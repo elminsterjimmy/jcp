@@ -1,18 +1,18 @@
 package com.elminster.jcp.ast.func.test;
 
 import com.elminster.common.util.Assert;
-import com.elminster.jcp.ast.AbstractFunction;
+import com.elminster.jcp.ast.statement.AbstractFunction;
+import com.elminster.jcp.ast.statement.FunctionDef;
 import com.elminster.jcp.ast.data.AnyFlowData;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.ast.data.DataType;
-import com.elminster.jcp.ast.FunctionDefinition;
 import com.elminster.jcp.ast.data.FlowData;
 import com.elminster.jcp.ast.data.FlowDataFactory;
 
 public class LogFunction extends AbstractFunction {
 
   public LogFunction() {
-    super(new FunctionDefinition("log", new FlowData[]{
+    super(new FunctionDef("log", new FlowData[]{
         FlowDataFactory.INSTANCE.createFlowDataVariable("msg", DataType.STRING)
     }));
   }

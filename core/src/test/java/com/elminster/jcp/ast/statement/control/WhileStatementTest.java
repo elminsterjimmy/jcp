@@ -1,13 +1,13 @@
 package com.elminster.jcp.ast.statement.control;
 
+import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.data.BooleanFlowData;
 import com.elminster.jcp.ast.data.DataType;
 import com.elminster.jcp.ast.data.IntegerFlowData;
 import com.elminster.jcp.ast.data.StringFlowData;
-import com.elminster.jcp.ast.express.core.*;
 import com.elminster.jcp.ast.expression.ConstantExpression;
-import com.elminster.jcp.ast.expression.Expression;
+import com.elminster.jcp.ast.expression.base.*;
 import com.elminster.jcp.ast.func.test.LogFunction;
 import com.elminster.jcp.ast.statement.*;
 import com.elminster.jcp.eval.EvalVisitor;

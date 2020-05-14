@@ -1,0 +1,28 @@
+package com.elminster.jcp.ast.expression.base;
+
+import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.ast.data.IntegerFlowData;
+import com.elminster.jcp.ast.Expression;
+import com.elminster.jcp.ast.expression.operator.ArithmeticOperator;
+
+public class Minus extends ArithmeticExpression {
+
+  public Minus(Expression leftOperand, Expression rightOperand) {
+    super(leftOperand, rightOperand, ArithmeticOperator.MINUS);
+  }
+
+  @Override
+  protected FlowData doBinaryOp(FlowData leftOperand, FlowData rightOperand) {
+    // integer
+    if (leftOperand instanceof IntegerFlowData) {
+      // - integer
+      Integer leftValue = ((IntegerFlowData) leftOperand).get();
+      if (rightOperand instanceof IntegerFlowData) {
+        Integer rightValue = ((IntegerFlowData) rightOperand).get();
+        return new IntegerFlowData(leftValue - rightValue);
+      }
+    }
+    // TODO: message
+    throw new UnsupportedOperationException();
+  }
+}

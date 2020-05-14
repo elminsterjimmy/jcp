@@ -1,6 +1,6 @@
 package com.elminster.jcp.ast.statement.control;
 
-import com.elminster.jcp.ast.expression.Expression;
+import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.eval.context.LoopContextImpl;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.eval.context.EvalContext;

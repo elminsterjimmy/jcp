@@ -2,7 +2,7 @@ package com.elminster.jcp.ast.statement;
 
 import com.elminster.common.util.Assert;
 import com.elminster.jcp.ast.Statement;
-import com.elminster.jcp.ast.expression.Expression;
+import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.data.FlowData;
 import com.elminster.jcp.eval.context.EvalContext;
 

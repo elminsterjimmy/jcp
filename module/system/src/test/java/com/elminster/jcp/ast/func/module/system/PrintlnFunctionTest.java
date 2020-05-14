@@ -1,10 +1,10 @@
 package com.elminster.jcp.ast.func.module.system;
 
+import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.data.StringFlowData;
-import com.elminster.jcp.ast.express.core.FunctionCallExpression;
 import com.elminster.jcp.ast.expression.ConstantExpression;
-import com.elminster.jcp.ast.expression.Expression;
+import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
 import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.ast.statement.Function;
 import com.elminster.jcp.eval.EvalVisitor;
@@ -15,7 +15,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.List;
-import java.util.Set;
 
 public class PrintlnFunctionTest {
 
@@ -32,6 +31,7 @@ public class PrintlnFunctionTest {
 
     EvalContext context = new EvalContextImpl();
     ModuleLoader.INSTANCE.register(new PrintlnFunction());
+
     List<Function> functions = ModuleLoader.INSTANCE.loadModule(SystemModuleFunction.SYSTEM_MODULE_NAME);
     for (Function function : functions) {
       context.addFunction(function);

@@ -3,7 +3,7 @@ package com.elminster.jcp.ast.statement.control;
 import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.data.AnyFlowData;
 import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.ast.expression.Expression;
+import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.eval.context.EvalContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

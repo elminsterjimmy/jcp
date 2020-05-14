@@ -1,15 +1,10 @@
 package com.elminster.jcp.ast.func.module.system;
 
-import com.elminster.jcp.ast.FunctionDefinition;
-import com.elminster.jcp.module.ModuleFunction;
+import com.elminster.jcp.module.AbstractModuleFunction;
 
-public class SystemModuleFunction extends ModuleFunction {
+abstract public class SystemModuleFunction extends AbstractModuleFunction {
 
   public static final String SYSTEM_MODULE_NAME = "system";
-
-  public SystemModuleFunction(FunctionDefinition functionDefinition) {
-    super(functionDefinition);
-  }
 
   @Override
   public String getModule() {

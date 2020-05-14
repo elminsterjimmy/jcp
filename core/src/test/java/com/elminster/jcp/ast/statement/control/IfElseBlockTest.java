@@ -2,9 +2,9 @@ package com.elminster.jcp.ast.statement.control;
 
 import com.elminster.jcp.ast.data.BooleanFlowData;
 import com.elminster.jcp.ast.data.StringFlowData;
-import com.elminster.jcp.ast.express.core.FunctionCallExpression;
+import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
 import com.elminster.jcp.ast.expression.ConstantExpression;
-import com.elminster.jcp.ast.expression.Expression;
+import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.func.test.LogFunction;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.ast.statement.BlockImpl;

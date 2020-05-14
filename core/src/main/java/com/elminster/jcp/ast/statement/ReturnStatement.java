@@ -1,6 +1,6 @@
 package com.elminster.jcp.ast.statement;
 
-import com.elminster.jcp.ast.expression.Expression;
+import com.elminster.jcp.ast.Expression;
 
 public class ReturnStatement extends ExpressionStatement {
 

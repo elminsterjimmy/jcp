@@ -4,7 +4,8 @@ public enum DataType {
   ANY,
   STRING,
   BOOLEAN,
-  INT
+  INT,
+  VOID
   ;
 
   public boolean isCastableTo(DataType dataType) {

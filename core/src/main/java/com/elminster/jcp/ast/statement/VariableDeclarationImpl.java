@@ -5,7 +5,7 @@ import com.elminster.jcp.ast.data.DataType;
 import com.elminster.jcp.ast.data.FlowData;
 import com.elminster.jcp.ast.data.FlowDataFactory;
 import com.elminster.jcp.ast.excpetion.CannotCastException;
-import com.elminster.jcp.ast.expression.Expression;
+import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.excpetion.AlreadyDeclaredException;
 import com.elminster.jcp.eval.context.EvalContext;
 

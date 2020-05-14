@@ -1,5 +1,6 @@
 package com.elminster.jcp.ast.expression;
 
+import com.elminster.jcp.ast.AbstractExpression;
 import com.elminster.jcp.ast.data.FlowData;
 import com.elminster.jcp.eval.context.EvalContext;
 
