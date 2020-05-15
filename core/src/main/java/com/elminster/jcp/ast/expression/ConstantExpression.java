@@ -2,7 +2,6 @@ package com.elminster.jcp.ast.expression;
 
 import com.elminster.jcp.ast.AbstractExpression;
 import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.eval.context.EvalContext;
 
 public class ConstantExpression extends AbstractExpression {
 
@@ -13,12 +12,16 @@ public class ConstantExpression extends AbstractExpression {
   }
 
   @Override
-  public FlowData eval(EvalContext evalContext) {
-    return constData;
+  public String getName() {
+    return "CONSTANT";
   }
 
-  @Override
-  public String getName() {
-    return "CONSTANT_EXPRESSION";
+  /**
+   * Gets constData.
+   *
+   * @return value of constData
+   */
+  public FlowData getConstData() {
+    return constData;
   }
 }

@@ -1,12 +1,8 @@
 package com.elminster.jcp.ast.expression.base;
 
-import com.elminster.jcp.ast.data.AnyFlowData;
-import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.ast.excpetion.UndeclaredException;
 import com.elminster.jcp.ast.AbstractExpression;
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.expression.operator.AssignmentOperator;
-import com.elminster.jcp.eval.context.EvalContext;
 
 public class AssignmentExpression extends AbstractExpression {
 
@@ -25,25 +21,30 @@ public class AssignmentExpression extends AbstractExpression {
     return "ASSIGNMENT";
   }
 
-  @Override
-  public FlowData eval(EvalContext evalContext) {
-    FlowData data = evalContext.getVariable(id);
-    if (null == data) {
-      UndeclaredException.throwUndeclaredVariableException(id);
-    }
-    FlowData result = expression.eval(evalContext);
-    doOperation(data, result);
-    data.set(result.get());
-    return AnyFlowData.EMPTY;
+  /**
+   * Gets id.
+   *
+   * @return value of id
+   */
+  public String getId() {
+    return id;
   }
 
-  private void doOperation(FlowData data, FlowData result) {
-    switch (operation) {
-      case ASSIGNMENT:
-        data.set(result);
-        break;
-      default:
-        throw new UnsupportedOperationException(operation.getName());
-    }
+  /**
+   * Gets operation.
+   *
+   * @return value of operation
+   */
+  public AssignmentOperator getOperation() {
+    return operation;
+  }
+
+  /**
+   * Gets expression.
+   *
+   * @return value of expression
+   */
+  public Expression getExpression() {
+    return expression;
   }
 }

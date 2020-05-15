@@ -2,11 +2,11 @@ package com.elminster.jcp.ast.expression.operator;
 
 public enum ArithmeticOperator implements BinaryOperator {
 
-  PLUS("+"),
-  MINUS("-"),
-  MULTIPLY("*"),
-  DIVIDE("/"),
-  MOD("%"),
+  PLUS("PLUS"),
+  MINUS("MINUS"),
+  MULTIPLY("MULTI"),
+  DIVIDE("DIVIDE"),
+  MOD("MOD"),
   ;
 
   String name;

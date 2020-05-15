@@ -1,6 +1,6 @@
 package com.elminster.jcp.eval.context;
 
-import com.elminster.jcp.ast.statement.control.LoopStatement;
+import com.elminster.jcp.eval.ast.LoopEvaluator;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -8,10 +8,10 @@ public class LoopContextImpl implements LoopContext {
 
   private AtomicInteger time = new AtomicInteger(0);
   private LoopContext parent = null;
-  private LoopStatement loopStatement = null;
+  private LoopEvaluator loopStatement = null;
   private boolean breakCurrentLoop = false;
 
-  public LoopContextImpl(LoopStatement loopStatement) {
+  public LoopContextImpl(LoopEvaluator loopStatement) {
     this.loopStatement = loopStatement;
   }
 
@@ -43,7 +43,7 @@ public class LoopContextImpl implements LoopContext {
    * {@inheritDoc}
    */
   @Override
-  public LoopStatement getLoopStatement() {
+  public LoopEvaluator getLoopStatement() {
     return loopStatement;
   }
 

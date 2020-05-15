@@ -2,8 +2,8 @@ package com.elminster.jcp.ast.expression.operator;
 
 public enum PostfixOperator implements UnaryOperator {
 
-  PLUS_PLUS("++"),
-  MINUS_MINUS("--"),
+  PLUS_PLUS("PLUS_PLUS"),
+  MINUS_MINUS("MINUS_MINUS"),
   ;
 
   String name;

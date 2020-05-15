@@ -3,15 +3,8 @@ package com.elminster.jcp.ast.statement;
 import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.data.DataType;
 import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.ast.excpetion.UndeclaredException;
-import com.elminster.jcp.ast.statement.FunctionDef;
-import com.elminster.jcp.eval.context.EvalContext;
-import com.elminster.jcp.ast.excpetion.CannotCastException;
-import com.elminster.jcp.ast.statement.BlockImpl;
-import com.elminster.jcp.ast.statement.Function;
-
-import java.util.HashMap;
-import java.util.Map;
+import com.elminster.jcp.eval.ast.excpetion.UndeclaredException;
+import com.elminster.jcp.eval.ast.excpetion.CannotCastException;
 
 public class AbstractFunction extends BlockImpl implements Function {
 
@@ -69,26 +62,6 @@ public class AbstractFunction extends BlockImpl implements Function {
 
   @Override
   public String getName() {
-    return "ABSTRACT_FUNCTION";
-  }
-
-  @Override
-  public FlowData eval(EvalContext evalContext) {
-    Map<String, FlowData> variables = evalContext.getVariables();
-    try {
-      evalContext.setVariables(new HashMap<>(parameters.length));
-      // TODO: init function variables.
-      FlowData result = doFunc(evalContext);
-      if (!resultDataType.isCastableTo(result.getDataType())) {
-        throw new CannotCastException(result.getDataType(), resultDataType);
-      }
-      return result;
-    } finally {
-      evalContext.setVariables(variables);
-    }
-  }
-
-  protected FlowData doFunc(EvalContext evalContext) {
-    return super.eval(evalContext);
+    return "FUNCTION";
   }
 }

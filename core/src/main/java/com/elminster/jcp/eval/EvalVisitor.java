@@ -3,6 +3,7 @@ package com.elminster.jcp.eval;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.vistor.AstVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
+import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
 
 public class EvalVisitor implements AstVisitor {
 
@@ -18,6 +19,7 @@ public class EvalVisitor implements AstVisitor {
 
   @Override
   public void visit(Node node) {
-    node.eval(context);
+    Evaluable evaluable = AstEvaluatorFactory.getEvaluator(node);
+    evaluable.eval(context);
   }
 }

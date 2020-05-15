@@ -1,6 +1,6 @@
 package com.elminster.jcp.eval.context;
 
-import com.elminster.jcp.ast.statement.control.LoopStatement;
+import com.elminster.jcp.eval.ast.LoopEvaluator;
 
 public interface LoopContext {
 
@@ -12,7 +12,7 @@ public interface LoopContext {
    * Get the loop component.
    * @return the loop component
    */
-  LoopStatement getLoopStatement();
+  LoopEvaluator getLoopStatement();
 
   /**
    * Get parent loop context.

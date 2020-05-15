@@ -1,16 +1,9 @@
 package com.elminster.jcp.ast.statement.control;
 
-import com.elminster.jcp.ast.Statement;
-import com.elminster.jcp.ast.data.AnyFlowData;
-import com.elminster.jcp.ast.data.FlowData;
 import com.elminster.jcp.ast.Expression;
-import com.elminster.jcp.eval.context.EvalContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.elminster.jcp.ast.Statement;
 
 public class IfElseStatement extends ControlStatement {
-
-  private static final Logger logger = LoggerFactory.getLogger(IfElseStatement.class);
 
   private Statement ifStatement;
   private Statement elseStatement;
@@ -28,20 +21,33 @@ public class IfElseStatement extends ControlStatement {
 
   @Override
   public String getName() {
-    return "IF-ELSE";
+    return "IFELSE";
   }
 
-  @Override
-  public FlowData eval(EvalContext evalContext) {
-    if (checkCondition(condition, evalContext)) {
-      logger.debug("[{}] condition [TRUE]", this.getName());
-      ifStatement.eval(evalContext);
-    } else {
-      logger.debug("[{}] condition [FALSE]", this.getName());
-      if (null != elseStatement) {
-        elseStatement.eval(evalContext);
-      }
-    }
-    return AnyFlowData.EMPTY;
+  /**
+   * Gets ifStatement.
+   *
+   * @return value of ifStatement
+   */
+  public Statement getIfStatement() {
+    return ifStatement;
+  }
+
+  /**
+   * Gets elseStatement.
+   *
+   * @return value of elseStatement
+   */
+  public Statement getElseStatement() {
+    return elseStatement;
+  }
+
+  /**
+   * Gets condition.
+   *
+   * @return value of condition
+   */
+  public Expression getCondition() {
+    return condition;
   }
 }

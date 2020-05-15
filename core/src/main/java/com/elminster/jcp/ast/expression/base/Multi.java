@@ -10,19 +10,4 @@ public class Multi extends ArithmeticExpression {
   public Multi(Expression leftOperand, Expression rightOperand) {
     super(leftOperand, rightOperand, ArithmeticOperator.MULTIPLY);
   }
-
-  @Override
-  protected FlowData doBinaryOp(FlowData leftOperand, FlowData rightOperand) {
-    // integer
-    if (leftOperand instanceof IntegerFlowData) {
-      // * integer
-      Integer leftValue = ((IntegerFlowData) leftOperand).get();
-      if (rightOperand instanceof IntegerFlowData) {
-        Integer rightValue = ((IntegerFlowData) rightOperand).get();
-        return new IntegerFlowData(leftValue * rightValue);
-      }
-    }
-    // TODO: message
-    throw new UnsupportedOperationException();
-  }
 }

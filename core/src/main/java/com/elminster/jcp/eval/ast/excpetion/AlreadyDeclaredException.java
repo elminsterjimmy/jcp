@@ -1,4 +1,4 @@
-package com.elminster.jcp.ast.excpetion;
+package com.elminster.jcp.eval.ast.excpetion;
 
 public class AlreadyDeclaredException extends DeclarationException {
 

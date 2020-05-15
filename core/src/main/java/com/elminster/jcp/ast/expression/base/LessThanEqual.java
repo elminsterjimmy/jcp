@@ -8,9 +8,4 @@ public class LessThanEqual extends CompareExpression {
   public LessThanEqual(Expression leftOperand, Expression rightOperand) {
     super(leftOperand, rightOperand, RelationalOperator.LESS_THAN_OR_EQUAL);
   }
-
-  @Override
-  protected boolean compare(Comparable leftValue, Comparable rightValue) {
-    return leftValue.compareTo(rightValue) <= 0;
-  }
 }

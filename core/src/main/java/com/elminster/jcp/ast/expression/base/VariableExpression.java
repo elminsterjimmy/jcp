@@ -1,9 +1,6 @@
 package com.elminster.jcp.ast.expression.base;
 
-import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.ast.excpetion.UndeclaredException;
 import com.elminster.jcp.ast.AbstractExpression;
-import com.elminster.jcp.eval.context.EvalContext;
 
 public class VariableExpression extends AbstractExpression {
 
@@ -14,16 +11,16 @@ public class VariableExpression extends AbstractExpression {
   }
 
   @Override
-  public FlowData eval(EvalContext evalContext) {
-    FlowData variable = evalContext.getVariable(id);
-    if (null == variable) {
-      UndeclaredException.throwUndeclaredVariableException(id);
-    }
-    return variable;
-  }
-
-  @Override
   public String getName() {
     return "VARIABLE";
+  }
+
+  /**
+   * Gets id.
+   *
+   * @return value of id
+   */
+  public String getId() {
+    return id;
   }
 }

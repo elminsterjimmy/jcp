@@ -1,10 +1,8 @@
 package com.elminster.jcp.ast.statement;
 
 import com.elminster.common.util.Assert;
-import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.Expression;
-import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.eval.context.EvalContext;
+import com.elminster.jcp.ast.Statement;
 
 public class ExpressionStatement extends AbstractStatement implements Statement {
 
@@ -17,11 +15,16 @@ public class ExpressionStatement extends AbstractStatement implements Statement 
 
   @Override
   public String getName() {
-    return "EXPRESSION_STATEMENT";
+    return "EXPRESSION";
   }
 
-  @Override
-  public FlowData eval(EvalContext evalContext) {
-    return this.expression.eval(evalContext);
+  /**
+   * Gets expression.
+   *
+   * @return value of expression
+   */
+  public Expression getExpression() {
+    return expression;
   }
 }
+

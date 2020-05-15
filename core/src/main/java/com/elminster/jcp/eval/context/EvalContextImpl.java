@@ -2,7 +2,7 @@ package com.elminster.jcp.eval.context;
 
 import com.elminster.common.util.Assert;
 import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.ast.excpetion.AlreadyDeclaredException;
+import com.elminster.jcp.eval.ast.excpetion.AlreadyDeclaredException;
 import com.elminster.jcp.ast.statement.Function;
 
 import java.util.Collections;

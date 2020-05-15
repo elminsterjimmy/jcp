@@ -2,8 +2,8 @@ package com.elminster.jcp.module;
 
 import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.ast.excpetion.CannotCastException;
-import com.elminster.jcp.ast.excpetion.UndeclaredException;
+import com.elminster.jcp.eval.ast.excpetion.CannotCastException;
+import com.elminster.jcp.eval.ast.excpetion.UndeclaredException;
 import com.elminster.jcp.eval.context.EvalContext;
 
 import java.util.Collections;
