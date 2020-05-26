@@ -1,33 +1,33 @@
-package com.elminster.jcp.ast.data;
+package com.elminster.jcp.eval.data;
 
 public class DataFactory {
   public static final DataFactory INSTANCE = new DataFactory();
 
   private DataFactory() {}
 
-  public Data createSystemDataVariable(String id, DataType dataType) {
-    return createSystemData(id, dataType, false);
+  public Data createSystemDataVariable(String id, DataType dataType, Object value) {
+    return createSystemData(id, dataType, value, false);
   }
 
-  public Data createSystemDataConst(String id, DataType dataType) {
-    return createSystemData(id, dataType, true);
+  public Data createSystemDataConst(String id, DataType dataType, Object value) {
+    return createSystemData(id, dataType, value,true);
   }
 
-  private Data createSystemData(String id, DataType dataType, boolean isConst) {
+  private Data createSystemData(String id, DataType dataType, Object value, boolean isConst) {
     Data data = null;
     if (dataType instanceof DataType.SystemDataType) {
       switch((DataType.SystemDataType)dataType) {
         case ANY:
-          data = new AnyData(id, null, isConst);
+          data = new AnyData(id, value, isConst);
           break;
         case BOOLEAN:
-          data = new BooleanData(id, false, isConst);
+          data = new BooleanData(id, (Boolean) value, isConst);
           break;
         case INT:
-          data = new IntegerData(id, 0, isConst);
+          data = new IntegerData(id, (Integer) value, isConst);
           break;
         case STRING:
-          data = new StringData(id, null, isConst);
+          data = new StringData(id, (String) value, isConst);
           break;
         case ANY_ARRAY:
           data = new ArrayData(DataType.SystemDataType.ANY, id, null, isConst);
@@ -44,7 +44,24 @@ public class DataFactory {
         default:
           throw new IllegalStateException("Unknown data type [" + dataType + "]");
       }
+    } else {
+      return new AnyData() {
+
+        @Override
+        public boolean isConst() {
+          return isConst;
+        }
+
+        @Override
+        public DataType getDataType() {
+          return dataType;
+        }
+      };
     }
     return data;
+  }
+
+  public Data createSystemDataVariable(String id, DataType dataType) {
+    return createSystemDataVariable(id, dataType, null);
   }
 }

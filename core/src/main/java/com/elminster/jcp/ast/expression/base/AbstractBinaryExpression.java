@@ -5,7 +5,6 @@ import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.expression.BinaryExpression;
 import com.elminster.jcp.ast.expression.operator.BinaryOperator;
 
-
 abstract public class AbstractBinaryExpression extends AbstractExpression implements BinaryExpression {
 
   protected Expression leftOperand;

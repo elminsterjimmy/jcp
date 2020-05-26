@@ -1,8 +1,8 @@
 package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.ast.data.IntegerFlowData;
+import com.elminster.jcp.eval.data.Data;
+import com.elminster.jcp.eval.data.IntegerData;
 
 public class MinusEvaluator extends ArithmeticEvaluator {
 
@@ -11,14 +11,14 @@ public class MinusEvaluator extends ArithmeticEvaluator {
   }
 
   @Override
-  protected FlowData doBinaryOp(FlowData leftOperand, FlowData rightOperand) {
+  protected Data doBinaryOp(Data leftOperand, Data rightOperand) {
     // integer
-    if (leftOperand instanceof IntegerFlowData) {
+    if (leftOperand instanceof IntegerData) {
       // - integer
-      Integer leftValue = ((IntegerFlowData) leftOperand).get();
-      if (rightOperand instanceof IntegerFlowData) {
-        Integer rightValue = ((IntegerFlowData) rightOperand).get();
-        return new IntegerFlowData(leftValue - rightValue);
+      Integer leftValue = ((IntegerData) leftOperand).get();
+      if (rightOperand instanceof IntegerData) {
+        Integer rightValue = ((IntegerData) rightOperand).get();
+        return new IntegerData(leftValue - rightValue);
       }
     }
     // TODO: message

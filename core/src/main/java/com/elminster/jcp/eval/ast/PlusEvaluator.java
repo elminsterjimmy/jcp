@@ -1,9 +1,9 @@
 package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.ast.data.IntegerFlowData;
-import com.elminster.jcp.ast.data.StringFlowData;
+import com.elminster.jcp.eval.data.Data;
+import com.elminster.jcp.eval.data.IntegerData;
+import com.elminster.jcp.eval.data.StringData;
 
 public class PlusEvaluator extends ArithmeticEvaluator {
 
@@ -12,31 +12,31 @@ public class PlusEvaluator extends ArithmeticEvaluator {
   }
 
   @Override
-  protected FlowData doBinaryOp(FlowData leftOperand, FlowData rightOperand) {
+  protected Data doBinaryOp(Data leftOperand, Data rightOperand) {
     // int
-    if (leftOperand instanceof IntegerFlowData) {
-      Integer leftValue = ((IntegerFlowData) leftOperand).get();
-      if (rightOperand instanceof IntegerFlowData) {
+    if (leftOperand instanceof IntegerData) {
+      Integer leftValue = ((IntegerData) leftOperand).get();
+      if (rightOperand instanceof IntegerData) {
         // + int
-        Integer rightValue = ((IntegerFlowData) rightOperand).get();
-        return new IntegerFlowData(leftValue + rightValue);
-      } else if (rightOperand instanceof StringFlowData) {
+        Integer rightValue = ((IntegerData) rightOperand).get();
+        return new IntegerData(leftValue + rightValue);
+      } else if (rightOperand instanceof StringData) {
         // + string
-        String rightValue = ((StringFlowData)rightOperand).get();
-        return new StringFlowData(leftValue + rightValue);
+        String rightValue = ((StringData)rightOperand).get();
+        return new StringData(leftValue + rightValue);
       }
     }
     // string
-    if (leftOperand instanceof StringFlowData) {
-      String leftValue = ((StringFlowData)leftOperand).get();
-      if (rightOperand instanceof IntegerFlowData) {
+    if (leftOperand instanceof StringData) {
+      String leftValue = ((StringData)leftOperand).get();
+      if (rightOperand instanceof IntegerData) {
         // + int
-        Integer rightValue = ((IntegerFlowData) rightOperand).get();
-        return new StringFlowData(leftValue + rightValue);
-      } else if (rightOperand instanceof StringFlowData) {
+        Integer rightValue = ((IntegerData) rightOperand).get();
+        return new StringData(leftValue + rightValue);
+      } else if (rightOperand instanceof StringData) {
         // + string
-        String rightValue = ((StringFlowData)rightOperand).get();
-        return new StringFlowData(leftValue + rightValue);
+        String rightValue = ((StringData)rightOperand).get();
+        return new StringData(leftValue + rightValue);
       }
     }
     // TODO: message

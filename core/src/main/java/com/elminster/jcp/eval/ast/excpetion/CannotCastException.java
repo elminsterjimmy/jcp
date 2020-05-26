@@ -1,6 +1,6 @@
 package com.elminster.jcp.eval.ast.excpetion;
 
-import com.elminster.jcp.ast.data.DataType;
+import com.elminster.jcp.eval.data.DataType;
 
 public class CannotCastException extends RuntimeException {
 

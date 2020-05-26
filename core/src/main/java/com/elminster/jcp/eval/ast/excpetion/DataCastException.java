@@ -1,4 +1,4 @@
-package com.elminster.jcp.ast.data;
+package com.elminster.jcp.eval.ast.excpetion;
 
-public class CastException extends Exception {
+public class DataCastException extends Exception {
 }

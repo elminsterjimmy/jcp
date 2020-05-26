@@ -2,7 +2,8 @@ package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.eval.data.BooleanData;
+import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.Evaluable;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
@@ -13,9 +14,9 @@ abstract public class ControlEvaluator extends ExpressionEvaluator {
     super(astNode);
   }
 
-  protected boolean checkCondition(Expression expression, EvalContext context) {
+  protected boolean checkCondition(Expression expression, EvalContext context) throws Exception {
     Evaluable evaluable = AstEvaluatorFactory.getEvaluator(expression);
-    FlowData<Boolean> condition = evaluable.eval(context);
+    Data<Boolean> condition = evaluable.eval(context);
     return condition.get();
   }
 }

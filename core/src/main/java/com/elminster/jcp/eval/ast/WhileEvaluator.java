@@ -3,8 +3,8 @@ package com.elminster.jcp.eval.ast;
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.Statement;
-import com.elminster.jcp.ast.data.AnyFlowData;
-import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.eval.data.AnyData;
+import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.ast.statement.control.WhileStatement;
 import com.elminster.jcp.eval.Evaluable;
 import com.elminster.jcp.eval.context.EvalContext;
@@ -21,7 +21,7 @@ public class WhileEvaluator extends LoopEvaluator {
   }
 
   @Override
-  public FlowData eval(EvalContext evalContext) {
+  public Data eval(EvalContext evalContext) throws Exception {
     WhileStatement whileStatement = (WhileStatement) astNode;
     Statement body = whileStatement.getBody();
     super.addToParent(evalContext);
@@ -32,14 +32,14 @@ public class WhileEvaluator extends LoopEvaluator {
       evaluable.eval(evalContext);
     }
     super.clearLoopContext(evalContext);
-    return AnyFlowData.EMPTY;
+    return AnyData.EMPTY;
   }
 
-  private boolean shouldContinue(EvalContext evalContext) {
+  protected boolean shouldContinue(EvalContext evalContext) throws Exception {
     WhileStatement whileStatement = (WhileStatement) astNode;
     Expression conditionExpression = whileStatement.getConditionExpression();
     Evaluable evaluable = AstEvaluatorFactory.getEvaluator(conditionExpression);
-    boolean condition = ((FlowData<Boolean>)evaluable.eval(evalContext)).get();
+    boolean condition = ((Data<Boolean>)evaluable.eval(evalContext)).get();
     logger.debug("[WHILE] condition: [{}], break [{}]", condition, isBreak);
     return condition && !isBreak;
   }

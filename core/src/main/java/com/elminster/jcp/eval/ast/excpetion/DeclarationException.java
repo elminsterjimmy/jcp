@@ -25,6 +25,7 @@ abstract public class DeclarationException extends RuntimeException {
 
   public enum Type {
     VARIABLE,
-    FUNCTION
+    FUNCTION,
+    DATATYPE
   }
 }

@@ -2,14 +2,16 @@ package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.data.AnyFlowData;
-import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.ast.data.FlowDataFactory;
+import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.eval.data.AnyData;
+import com.elminster.jcp.eval.data.Data;
+import com.elminster.jcp.eval.data.DataFactory;
 import com.elminster.jcp.eval.ast.excpetion.AlreadyDeclaredException;
 import com.elminster.jcp.eval.ast.excpetion.CannotCastException;
 import com.elminster.jcp.ast.statement.VariableDeclaration;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
+import com.elminster.jcp.util.DataTypeUtil;
 
 public class VariableDeclarationEvaluator extends AbstractAstEvaluator {
   public VariableDeclarationEvaluator(Node astNode) {
@@ -17,23 +19,24 @@ public class VariableDeclarationEvaluator extends AbstractAstEvaluator {
   }
 
   @Override
-  public FlowData eval(EvalContext evalContext) {
+  public Data eval(EvalContext evalContext) throws Exception {
     VariableDeclaration variableDeclaration = (VariableDeclaration) astNode;
-    String id = variableDeclaration.getId();
+    Identifier id = variableDeclaration.getId();
     Expression initExpress = variableDeclaration.getInit();
-    FlowData flowData = evalContext.getVariable(id);
-    if (null != flowData) {
-      AlreadyDeclaredException.throwAlreadyDeclaredVariableException(id);
+    Data variable = evalContext.getVariable(id.getId());
+    if (null != variable) {
+      AlreadyDeclaredException.throwAlreadyDeclaredVariableException(id.getId());
     }
-    FlowData variable = FlowDataFactory.INSTANCE.createFlowDataVariable(id, variableDeclaration.getDataType());
+    variable = DataFactory.INSTANCE.createSystemDataVariable(id.getId(),
+        DataTypeUtil.getDataType(variableDeclaration.getDataType(), evalContext));
     evalContext.addVariable(variable);
     if (null != initExpress) {
-      FlowData data = AstEvaluatorFactory.getEvaluator(initExpress).eval(evalContext);
-      if (!data.getDataType().isCastableTo(variable.getDataType())) {
-        throw new CannotCastException(data.getDataType(), variable.getDataType());
+      Data initValue = AstEvaluatorFactory.getEvaluator(initExpress).eval(evalContext);
+      if (!initValue.getDataType().isCastableTo(variable.getDataType())) {
+        throw new CannotCastException(initValue.getDataType(), variable.getDataType());
       }
-      variable.set(data.get());
+      variable.set(initValue.get());
     }
-    return AnyFlowData.EMPTY;
+    return AnyData.EMPTY;
   }
 }

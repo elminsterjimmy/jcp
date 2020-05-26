@@ -4,5 +4,5 @@ import com.elminster.jcp.ast.Node;
 
 public interface AstVisitor {
 
-  void visit(Node node);
+  void visit(Node node) throws Exception;
 }

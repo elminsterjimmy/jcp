@@ -1,27 +1,33 @@
 package com.elminster.jcp.ast.statement;
 
-import com.elminster.jcp.ast.data.DataType;
-import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.expression.base.IdentifierExpression;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.Data;
 
 public class FunctionDef {
 
-  final String id;
-  final FlowData[] parameters;
+  final Identifier id;
+  final ParameterDef[] parameters;
   final DataType returnType;
 
-  public FunctionDef(String id, FlowData... parameters) {
-    this(id, DataType.ANY, parameters);
+  public FunctionDef(String id, ParameterDef... parameters) {
+    this(id, DataType.SystemDataType.ANY, parameters);
   }
 
   public FunctionDef(String id, DataType dataType) {
-    this(id, dataType, new FlowData[0]);
+    this(id, dataType, new ParameterDef[0]);
   }
 
   public FunctionDef(String id) {
-    this(id, DataType.ANY, new FlowData[0]);
+    this(id, DataType.SystemDataType.ANY, new ParameterDef[0]);
   }
 
-  public FunctionDef(String id, DataType returnType, FlowData... parameters) {
+  public FunctionDef(String id, DataType returnType, ParameterDef... parameters) {
+    this(new IdentifierExpression(id), returnType, parameters);
+  }
+
+  public FunctionDef(Identifier id, DataType returnType, ParameterDef... parameters) {
     this.id = id;
     this.parameters = parameters;
     this.returnType = returnType;

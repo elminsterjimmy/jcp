@@ -2,29 +2,41 @@ package com.elminster.jcp.ast.expression.base;
 
 import com.elminster.jcp.ast.AbstractExpression;
 import com.elminster.jcp.ast.Expression;
+import com.elminster.jcp.eval.data.Data;
 
-public class FunctionCallExpression extends AbstractExpression {
+public class MethodCallExpression extends AbstractExpression {
 
-  private String id;
+  private Data data;
+  private String methodName;
   private Expression[] argurements;
 
-  public FunctionCallExpression(String id, Expression[] argurements) {
-    this.id = id;
+  public MethodCallExpression(Data data, String methodName, Expression[] argurements) {
+    this.data = data;
+    this.methodName = methodName;
     this.argurements = argurements;
   }
 
   @Override
   public String getName() {
-    return "FUNCALL";
+    return "METHOD_CALL";
   }
 
   /**
-   * Gets id.
+   * Gets data.
    *
-   * @return value of id
+   * @return value of data
    */
-  public String getId() {
-    return id;
+  public Data getData() {
+    return data;
+  }
+
+  /**
+   * Gets methodName.
+   *
+   * @return value of methodName
+   */
+  public String getMethodName() {
+    return methodName;
   }
 
   /**

@@ -1,11 +1,12 @@
-package com.elminster.jcp.ast.data;
+package com.elminster.jcp.module.vb;
 
+import java.util.LinkedList;
 import java.util.List;
 
 public class ValueBuffer {
 
   protected String[] header;
-  protected List<Object[]> buffer;
+  protected List<Object[]> buffer = new LinkedList<>();
 
   public void setHeader(String[] header) {
     this.header = header;

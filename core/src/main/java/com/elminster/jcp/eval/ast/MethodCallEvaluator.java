@@ -2,38 +2,41 @@ package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.data.Data;
-import com.elminster.jcp.eval.ast.excpetion.UndeclaredException;
-import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
+import com.elminster.jcp.eval.data.Data;
+import com.elminster.jcp.ast.expression.base.MethodCallExpression;
 import com.elminster.jcp.ast.statement.Function;
 import com.elminster.jcp.eval.Evaluable;
+import com.elminster.jcp.eval.ast.excpetion.UndeclaredException;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
 
-public class FuncallEvaluator extends AbstractAstEvaluator {
+public class MethodCallEvaluator extends AbstractAstEvaluator {
 
-  public FuncallEvaluator(Node astNode) {
+  public MethodCallEvaluator(Node astNode) {
     super(astNode);
   }
 
   @Override
-  public Data eval(EvalContext evalContext) {
-    FunctionCallExpression functionCallExpression = (FunctionCallExpression) astNode;
-    String id = functionCallExpression.getId();
-    Expression[] argurements = functionCallExpression.getArgurements();
-    Function function = evalContext.getFunction(id);
+  public Data eval(EvalContext evalContext) throws Exception {
+    MethodCallExpression methodCallExpression = (MethodCallExpression) astNode;
+    String methodName = methodCallExpression.getMethodName();
+    Data data = methodCallExpression.getData();
+    Expression[] arguments = methodCallExpression.getArgurements();
+    String functionName = data.getDataType().getName() + "." + methodName;
+    Function function = evalContext.getFunction(functionName);
     if (null == function) {
-      UndeclaredException.throwUndeclaredFunctionException(id);
+      UndeclaredException.throwUndeclaredFunctionException(functionName);
     }
-    Data[] parameters = new Data[argurements.length];
-    int i = 0;
-    for (Expression arg : argurements) {
+    Data[] parameters = new Data[arguments.length + 1];
+    parameters[0] = data;
+    int i = 1;
+    for (Expression arg : arguments) {
       Evaluable evaluable = AstEvaluatorFactory.getEvaluator(arg);
       parameters[i++] = evaluable.eval(evalContext);
     }
     function.setParameters(parameters);
     Evaluable evaluable = AstEvaluatorFactory.getEvaluator(function);
-    Data data = evaluable.eval(evalContext);
-    return data;
+    Data rtn = evaluable.eval(evalContext);
+    return rtn;
   }
 }

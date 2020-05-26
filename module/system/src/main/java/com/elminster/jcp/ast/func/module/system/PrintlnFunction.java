@@ -1,10 +1,13 @@
 package com.elminster.jcp.ast.func.module.system;
 
 import com.elminster.common.util.Assert;
-import com.elminster.jcp.ast.data.AnyFlowData;
-import com.elminster.jcp.ast.data.DataType;
-import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.ast.data.FlowDataFactory;
+import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.expression.base.IdentifierExpression;
+import com.elminster.jcp.ast.statement.ParameterDef;
+import com.elminster.jcp.eval.data.AnyData;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.Data;
+import com.elminster.jcp.eval.data.DataFactory;
 
 public class PrintlnFunction extends SystemModuleFunction {
 
@@ -14,27 +17,27 @@ public class PrintlnFunction extends SystemModuleFunction {
   }
 
   @Override
-  protected FlowData doFunction(FlowData[] parameters) {
+  protected Data doFunction(Data[] parameters) {
     Assert.isTrue(getParameters().length > 0);
-    FlowData msg = getParameters()[0];
+    Data msg = getParameters()[0];
     System.out.println(msg.get());
-    return AnyFlowData.EMPTY;
+    return AnyData.EMPTY;
   }
 
   @Override
-  public String getId() {
-    return "println";
+  public Identifier getId() {
+    return new IdentifierExpression("println");
   }
 
   @Override
-  public FlowData[] getParameterDefs() {
-    return new FlowData[]{
-        FlowDataFactory.INSTANCE.createFlowDataVariable("msg", DataType.STRING)
+  public ParameterDef[] getParameterDefs() {
+    return new ParameterDef[]{
+        new ParameterDef("msg", DataType.SystemDataType.STRING.getName())
     };
   }
 
   @Override
   public DataType getResultDataType() {
-    return DataType.VOID;
+    return DataType.SystemDataType.VOID;
   }
 }

@@ -1,4 +1,6 @@
 package com.elminster.jcp.ast.expression.literal;
 
-public class IntLiteral {
+import com.elminster.jcp.ast.expression.Literal;
+
+public interface IntLiteral extends Literal<Integer> {
 }

@@ -2,8 +2,8 @@ package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.Statement;
-import com.elminster.jcp.ast.data.AnyFlowData;
-import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.eval.data.AnyData;
+import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.eval.Evaluable;
 import com.elminster.jcp.eval.context.EvalContext;
@@ -18,10 +18,10 @@ public class BlockEvaluator extends AbstractAstEvaluator {
   }
 
   @Override
-  public FlowData eval(EvalContext evalContext) {
+  public Data eval(EvalContext evalContext) throws Exception {
     Block block = (Block) astNode;
     List<Statement> body =  block.getBody();
-    FlowData result = AnyFlowData.EMPTY;
+    Data result = AnyData.EMPTY;
     for (Statement statement : body) {
       LoopContext loopContext = evalContext.getLoopContext();
       if (null != loopContext && loopContext.isBreakBlock()) {

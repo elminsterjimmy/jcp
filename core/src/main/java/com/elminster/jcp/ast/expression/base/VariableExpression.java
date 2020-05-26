@@ -1,12 +1,13 @@
 package com.elminster.jcp.ast.expression.base;
 
 import com.elminster.jcp.ast.AbstractExpression;
+import com.elminster.jcp.ast.expression.Identifier;
 
 public class VariableExpression extends AbstractExpression {
 
-  private String id;
+  private Identifier id;
 
-  public VariableExpression(String id) {
+  public VariableExpression(Identifier id) {
     this.id = id;
   }
 
@@ -20,7 +21,12 @@ public class VariableExpression extends AbstractExpression {
    *
    * @return value of id
    */
-  public String getId() {
+  public Identifier getId() {
     return id;
+  }
+
+  @Override
+  public String toString() {
+    return getName() + " [" + getId() + "]";
   }
 }

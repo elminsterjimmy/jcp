@@ -1,27 +1,27 @@
 package com.elminster.jcp.ast.statement;
 
-import com.elminster.jcp.ast.data.DataType;
-import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.eval.data.DataType;
 
 public class FunctionDeclarationImpl extends BlockImpl implements FunctionDeclaration {
 
-  private String id;
+  private Identifier id;
   private DataType returnType;
-  private FlowData[] parameterDefines;
+  private ParameterDef[] parameterDefines;
 
   @Override
-  public FlowData[] getParameterDefines() {
+  public ParameterDef[] getParameterDefines() {
     return parameterDefines;
   }
 
   @Override
-  public String getId() {
+  public Identifier getId() {
     return id;
   }
 
   @Override
-  public DataType getDataType() {
-    return returnType;
+  public String getDataType() {
+    return returnType.getName();
   }
 
   @Override

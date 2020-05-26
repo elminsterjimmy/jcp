@@ -3,17 +3,17 @@ package com.elminster.jcp.ast.expression;
 import com.elminster.jcp.ast.AbstractExpression;
 import com.elminster.jcp.eval.data.Data;
 
-public class ConstantExpression extends AbstractExpression {
+public class LiteralExpression<T> extends AbstractExpression implements Literal {
 
-  private Data constData;
+  private T constData;
 
-  public ConstantExpression(Data constData) {
+  public LiteralExpression(T constData) {
     this.constData = constData;
   }
 
   @Override
   public String getName() {
-    return "CONSTANT";
+    return "LITERAL";
   }
 
   /**
@@ -21,7 +21,7 @@ public class ConstantExpression extends AbstractExpression {
    *
    * @return value of constData
    */
-  public Data getConstData() {
+  public T getValue() {
     return constData;
   }
 }

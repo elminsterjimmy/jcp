@@ -1,6 +1,6 @@
 package com.elminster.jcp.eval.data;
 
-abstract public class DataTypeImpl implements DataType {
+abstract public class AbstractDataType implements DataType {
 
   public String toString() {
     return getName();

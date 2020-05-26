@@ -1,5 +1,7 @@
 package com.elminster.jcp.eval.ast.excpetion;
 
+import com.elminster.jcp.ast.expression.Identifier;
+
 public class UndeclaredException extends DeclarationException {
 
   private static final String MESSAGE_PATTERN = "Undeclared %s [%s].";
@@ -19,5 +21,9 @@ public class UndeclaredException extends DeclarationException {
 
   public static UndeclaredException throwUndeclaredFunctionException(String id) {
     throw new UndeclaredException(id, Type.FUNCTION);
+  }
+
+  public static UndeclaredException throwUndeclaredFunctionException(Identifier id) {
+    throw new UndeclaredException(id.getId(), Type.FUNCTION);
   }
 }

@@ -1,31 +1,31 @@
 package com.elminster.jcp.ast.statement;
 
-import com.elminster.jcp.ast.data.DataType;
 import com.elminster.jcp.ast.Expression;
+import com.elminster.jcp.ast.expression.Identifier;
 
 public class VariableDeclarationImpl extends AbstractStatement implements VariableDeclaration {
 
-  private String id;
+  private Identifier id;
   private Expression initExpress;
-  private DataType dataType;
+  private String dataType;
 
-  public VariableDeclarationImpl(String id, DataType dataType) {
+  public VariableDeclarationImpl(Identifier id, String dataType) {
     this(id, dataType, null);
   }
 
-  public VariableDeclarationImpl(String id, DataType dataType, Expression initExpress) {
+  public VariableDeclarationImpl(Identifier id, String dataType, Expression initExpress) {
     this.id = id;
     this.dataType = dataType;
     this.initExpress = initExpress;
   }
 
   @Override
-  public String getId() {
+  public Identifier getId() {
     return id;
   }
 
   @Override
-  public DataType getDataType() {
+  public String getDataType() {
     return dataType;
   }
 

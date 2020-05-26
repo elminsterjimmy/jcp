@@ -2,8 +2,8 @@ package com.elminster.jcp.ast.func.module.system;
 
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Statement;
-import com.elminster.jcp.ast.data.StringFlowData;
-import com.elminster.jcp.ast.expression.ConstantExpression;
+import com.elminster.jcp.eval.data.StringData;
+import com.elminster.jcp.ast.expression.LiteralExpression;
 import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
 import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.ast.statement.Function;
@@ -26,7 +26,7 @@ public class PrintlnFunctionTest {
   @Test
   public void testPrintlnFunction() {
     FunctionCallExpression funcall = new FunctionCallExpression("println",
-        new Expression[]{new ConstantExpression(StringFlowData.newString("TEST"))});
+        new Expression[]{new LiteralExpression(StringData.newString("TEST"))});
     Statement statement = new ExpressionStatement(funcall);
 
     EvalContext context = new EvalContextImpl();

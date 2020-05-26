@@ -1,9 +1,10 @@
 package com.elminster.jcp.ast.statement.control;
 
-import com.elminster.jcp.ast.data.BooleanFlowData;
-import com.elminster.jcp.ast.data.StringFlowData;
+import com.elminster.jcp.ast.expression.LiteralExpression;
+import com.elminster.jcp.ast.expression.base.IdentifierExpression;
+import com.elminster.jcp.eval.data.BooleanData;
+import com.elminster.jcp.eval.data.StringData;
 import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
-import com.elminster.jcp.ast.expression.ConstantExpression;
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.func.test.LogFunction;
 import com.elminster.jcp.ast.statement.Block;
@@ -27,10 +28,10 @@ public class IfElseBlockTest {
    * }
    */
   @Test
-  public void testIfElseBlock() {
-    FunctionCallExpression logCall = new FunctionCallExpression("log",
-        new Expression[]{new ConstantExpression(StringFlowData.newString("TEST"))});
-    Expression condition = new ConstantExpression(BooleanFlowData.BOOLEAN_TRUE);
+  public void testIfElseBlock() throws Exception {
+    FunctionCallExpression logCall = new FunctionCallExpression(new IdentifierExpression("log"),
+        new Expression[]{new LiteralExpression(StringData.newString("TEST"))});
+    Expression condition = new LiteralExpression(BooleanData.BOOLEAN_TRUE);
     Block ifBlock = new BlockImpl();
     ifBlock.addStatement(new ExpressionStatement(logCall));
 

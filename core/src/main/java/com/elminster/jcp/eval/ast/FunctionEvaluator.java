@@ -1,8 +1,8 @@
 package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.data.DataType;
-import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.ast.excpetion.CannotCastException;
 import com.elminster.jcp.ast.statement.AbstractFunction;
 import com.elminster.jcp.eval.context.EvalContext;
@@ -17,15 +17,15 @@ abstract public class FunctionEvaluator extends BlockEvaluator {
   }
 
   @Override
-  public FlowData eval(EvalContext evalContext) {
+  public Data eval(EvalContext evalContext) throws Exception {
     AbstractFunction function = (AbstractFunction) astNode;
-    FlowData[] parameters = function.getParameters();
+    Data[] parameters = function.getParameters();
     DataType resultDataType = function.getResultDataType();
-    Map<String, FlowData> variables = evalContext.getVariables();
+    Map<String, Data> variables = evalContext.getVariables();
     try {
       evalContext.setVariables(new HashMap<>(parameters.length));
       // TODO: init function variables.
-      FlowData result = doFunc(evalContext);
+      Data result = doFunc(evalContext);
       if (!resultDataType.isCastableTo(result.getDataType())) {
         throw new CannotCastException(result.getDataType(), resultDataType);
       }
@@ -35,7 +35,7 @@ abstract public class FunctionEvaluator extends BlockEvaluator {
     }
   }
 
-  protected FlowData doFunc(EvalContext evalContext) {
+  protected Data doFunc(EvalContext evalContext) throws Exception {
     return super.eval(evalContext);
   }
 }

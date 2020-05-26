@@ -1,33 +1,25 @@
 package com.elminster.jcp.module;
 
+import com.elminster.common.util.TypeUtil;
 import com.elminster.jcp.ast.Statement;
-import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.ast.statement.ParameterDef;
+import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.ast.excpetion.CannotCastException;
 import com.elminster.jcp.eval.ast.excpetion.UndeclaredException;
 import com.elminster.jcp.eval.context.EvalContext;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.util.DataTypeUtil;
 
 import java.util.Collections;
 import java.util.List;
 
 abstract public class AbstractModuleFunction implements ModuleFunction {
 
-  protected FlowData[] parameters;
+  protected Data[] parameters;
 
   @Override
-  public void setParameters(FlowData... parameters) {
-    FlowData[] parameterDefs = getParameterDefs();
-    if (parameters.length != parameterDefs.length) {
-      // TODO
-      UndeclaredException.throwUndeclaredFunctionException(getId());
-    }
-    int i = 0;
-    for (FlowData parameter : parameters) {
-      FlowData def = parameterDefs[i++];
-      if (!parameter.getDataType().isCastableTo(def.getDataType())) {
-        throw new CannotCastException(parameter.getDataType(), def.getDataType());
-      }
-      this.parameters = parameters;
-    }
+  public void setParameters(Data... parameters) {
+    this.parameters = parameters;
   }
 
   @Override
@@ -40,14 +32,14 @@ abstract public class AbstractModuleFunction implements ModuleFunction {
   }
 
   @Override
-  public FlowData[] getParameters() {
+  public Data[] getParameters() {
     return this.parameters;
   }
 
   @Override
-  public FlowData eval(EvalContext evalContext) {
+  public Data eval(EvalContext evalContext) throws Exception {
     return doFunction(getParameters());
   }
 
-  protected abstract FlowData doFunction(FlowData[] parameters);
+  protected abstract Data doFunction(Data[] parameters) throws Exception;
 }

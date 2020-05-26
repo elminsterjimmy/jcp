@@ -4,6 +4,7 @@ public enum PostfixOperator implements UnaryOperator {
 
   PLUS_PLUS("PLUS_PLUS"),
   MINUS_MINUS("MINUS_MINUS"),
+  ARRAY("ARRAY"),
   ;
 
   String name;

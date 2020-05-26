@@ -2,20 +2,21 @@ package com.elminster.jcp.ast.expression.base;
 
 import com.elminster.jcp.ast.AbstractExpression;
 import com.elminster.jcp.ast.Expression;
+import com.elminster.jcp.ast.expression.Identifier;
 
 public class FunctionCallExpression extends AbstractExpression {
 
-  private String id;
-  private Expression[] argurements;
+  private Identifier id;
+  private Expression[] arguments;
 
-  public FunctionCallExpression(String id, Expression[] argurements) {
+  public FunctionCallExpression(Identifier id, Expression... arguments) {
     this.id = id;
-    this.argurements = argurements;
+    this.arguments = arguments;
   }
 
   @Override
   public String getName() {
-    return "FUNCALL";
+    return "FUN_CALL";
   }
 
   /**
@@ -23,7 +24,7 @@ public class FunctionCallExpression extends AbstractExpression {
    *
    * @return value of id
    */
-  public String getId() {
+  public Identifier getId() {
     return id;
   }
 
@@ -32,7 +33,7 @@ public class FunctionCallExpression extends AbstractExpression {
    *
    * @return value of argurements
    */
-  public Expression[] getArgurements() {
-    return argurements;
+  public Expression[] getArguments() {
+    return arguments;
   }
 }

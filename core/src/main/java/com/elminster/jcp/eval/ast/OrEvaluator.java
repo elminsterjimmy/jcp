@@ -1,8 +1,8 @@
 package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.data.BooleanFlowData;
-import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.eval.data.BooleanData;
+import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.ast.expression.base.LogicalOrExpression;
 import com.elminster.jcp.eval.context.EvalContext;
 
@@ -13,16 +13,16 @@ public class OrEvaluator extends LogicalEvaluator {
   }
 
   @Override
-  public FlowData eval(EvalContext evalContext) {
+  public Data eval(EvalContext evalContext) throws Exception {
     LogicalOrExpression orExpression = (LogicalOrExpression) astNode;
     boolean leftValue = evalBoolean(orExpression.getLeft(), evalContext);
     if (leftValue) {
-      return BooleanFlowData.BOOLEAN_TRUE;
+      return BooleanData.BOOLEAN_TRUE;
     }
     boolean rightValue = evalBoolean(orExpression.getRight(), evalContext);
     if (rightValue) {
-      return BooleanFlowData.BOOLEAN_TRUE;
+      return BooleanData.BOOLEAN_TRUE;
     }
-    return BooleanFlowData.BOOLEAN_FALSE;
+    return BooleanData.BOOLEAN_FALSE;
   }
 }

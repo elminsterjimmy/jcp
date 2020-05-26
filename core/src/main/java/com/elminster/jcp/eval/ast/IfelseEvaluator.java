@@ -3,8 +3,8 @@ package com.elminster.jcp.eval.ast;
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.Statement;
-import com.elminster.jcp.ast.data.AnyFlowData;
-import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.eval.data.AnyData;
+import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.ast.statement.control.IfElseStatement;
 import com.elminster.jcp.eval.Evaluable;
 import com.elminster.jcp.eval.context.EvalContext;
@@ -21,7 +21,7 @@ public class IfelseEvaluator extends ControlEvaluator {
   }
 
   @Override
-  public FlowData eval(EvalContext evalContext) {
+  public Data eval(EvalContext evalContext) throws Exception {
     IfElseStatement ifElseStatement = (IfElseStatement) astNode;
     Expression condition = ifElseStatement.getCondition();
     Statement ifStatement = ifElseStatement.getIfStatement();
@@ -37,6 +37,6 @@ public class IfelseEvaluator extends ControlEvaluator {
         evaluable.eval(evalContext);
       }
     }
-    return AnyFlowData.EMPTY;
+    return AnyData.EMPTY;
   }
 }

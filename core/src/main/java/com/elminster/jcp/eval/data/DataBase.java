@@ -1,4 +1,4 @@
-package com.elminster.jcp.ast.data;
+package com.elminster.jcp.eval.data;
 
 import com.elminster.jcp.eval.context.EvalContext;
 

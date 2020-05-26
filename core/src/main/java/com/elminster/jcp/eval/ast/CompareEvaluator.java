@@ -1,8 +1,8 @@
 package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.data.BooleanFlowData;
-import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.eval.data.BooleanData;
+import com.elminster.jcp.eval.data.Data;
 
 abstract public class CompareEvaluator extends AbstractBinaryEvaluator {
 
@@ -11,10 +11,10 @@ abstract public class CompareEvaluator extends AbstractBinaryEvaluator {
   }
 
   @Override
-  protected FlowData doBinaryOp(FlowData leftOperand, FlowData rightOperand) {
+  protected Data doBinaryOp(Data leftOperand, Data rightOperand) {
     Comparable leftValue = (Comparable) leftOperand.get();
     Comparable rightValue = (Comparable) rightOperand.get();
-    BooleanFlowData result = new BooleanFlowData(compare(leftValue, rightValue));
+    BooleanData result = new BooleanData(compare(leftValue, rightValue));
     return result;
   }
 

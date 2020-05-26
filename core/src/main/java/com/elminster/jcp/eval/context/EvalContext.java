@@ -1,25 +1,30 @@
 package com.elminster.jcp.eval.context;
 
-import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.eval.data.Data;
+import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.ast.statement.Function;
 
 import java.util.Map;
 
 public interface EvalContext {
 
-  Map<String, FlowData> getVariables();
+  Map<String, Data> getVariables();
 
-  FlowData getVariable(String name);
+  Data getVariable(String name);
 
-  void addVariable(FlowData variable);
+  void addVariable(Data variable);
 
-  void setVariables(Map<String, FlowData> varaibles);
+  void setVariables(Map<String, Data> varaibles);
 
   Map<String, Function> getFunctions();
 
   void addFunction(Function function);
 
   Function getFunction(String name);
+
+  void addDataType(DataType dataType);
+
+  DataType getDataType(String name);
 
   LoopContext getLoopContext();
 

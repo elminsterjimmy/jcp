@@ -2,45 +2,28 @@ package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.Statement;
-import com.elminster.jcp.ast.data.AnyFlowData;
-import com.elminster.jcp.ast.data.FlowData;
-import com.elminster.jcp.ast.statement.control.WhileStatement;
+import com.elminster.jcp.eval.data.Data;
+import com.elminster.jcp.ast.statement.control.RepeatStatement;
 import com.elminster.jcp.eval.Evaluable;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WhileEvaluator extends LoopEvaluator {
+public class RepeatEvaluator extends WhileEvaluator {
 
-  private static final Logger logger = LoggerFactory.getLogger(WhileEvaluator.class);
+  private static final Logger logger = LoggerFactory.getLogger(RepeatEvaluator.class);
 
-  public WhileEvaluator(Node astNode) {
+  public RepeatEvaluator(Node astNode) {
     super(astNode);
   }
 
-  @Override
-  public FlowData eval(EvalContext evalContext) {
-    WhileStatement whileStatement = (WhileStatement) astNode;
-    Statement body = whileStatement.getBody();
-    super.addToParent(evalContext);
-    while (shouldContinue(evalContext)) {
-      super.updateLoopContext(evalContext);
-      logger.debug("[WHILE] loop count [{}]", ctx.getLoopTime());
-      Evaluable evaluable = AstEvaluatorFactory.getEvaluator(body);
-      evaluable.eval(evalContext);
-    }
-    super.clearLoopContext(evalContext);
-    return AnyFlowData.EMPTY;
-  }
-
-  private boolean shouldContinue(EvalContext evalContext) {
-    WhileStatement whileStatement = (WhileStatement) astNode;
-    Expression conditionExpression = whileStatement.getConditionExpression();
+  protected boolean shouldContinue(EvalContext evalContext) throws Exception {
+    RepeatStatement repeatStatement = (RepeatStatement) astNode;
+    Expression conditionExpression = repeatStatement.getConditionExpression();
     Evaluable evaluable = AstEvaluatorFactory.getEvaluator(conditionExpression);
-    boolean condition = ((FlowData<Boolean>)evaluable.eval(evalContext)).get();
-    logger.debug("[WHILE] condition: [{}], break [{}]", condition, isBreak);
-    return condition && !isBreak;
+    Integer count = ((Data<Integer>)evaluable.eval(evalContext)).get();
+    logger.debug("[REPEAT] count: [{}], break [{}]", count, isBreak);
+    return ctx.getLoopTime() < count && !isBreak;
   }
 }

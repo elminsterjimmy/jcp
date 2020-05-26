@@ -20,4 +20,8 @@ public class AlreadyDeclaredException extends DeclarationException {
   public static AlreadyDeclaredException throwAlreadyDeclaredFunctionException(String id) {
     throw new AlreadyDeclaredException(id, Type.FUNCTION);
   }
+
+  public static AlreadyDeclaredException throwAlreadyDeclaredDataTypeException(String id) {
+    throw new AlreadyDeclaredException(id, Type.DATATYPE);
+  }
 }
