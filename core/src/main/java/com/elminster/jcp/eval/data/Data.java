@@ -2,7 +2,7 @@ package com.elminster.jcp.ast.data;
 
 import com.elminster.jcp.eval.Evaluable;
 
-public interface FlowData<T> extends Evaluable {
+public interface Data<T> extends Evaluable {
 
   String getName();
 

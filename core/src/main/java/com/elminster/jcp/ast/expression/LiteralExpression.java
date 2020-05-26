@@ -1,13 +1,13 @@
 package com.elminster.jcp.ast.expression;
 
 import com.elminster.jcp.ast.AbstractExpression;
-import com.elminster.jcp.ast.data.FlowData;
+import com.elminster.jcp.eval.data.Data;
 
 public class ConstantExpression extends AbstractExpression {
 
-  private FlowData constData;
+  private Data constData;
 
-  public ConstantExpression(FlowData constData) {
+  public ConstantExpression(Data constData) {
     this.constData = constData;
   }
 
@@ -21,7 +21,7 @@ public class ConstantExpression extends AbstractExpression {
    *
    * @return value of constData
    */
-  public FlowData getConstData() {
+  public Data getConstData() {
     return constData;
   }
 }

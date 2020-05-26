@@ -1,22 +1,26 @@
 package com.elminster.jcp.ast.data;
 
-public class AnyFlowData<T extends Object> extends FlowDataBase<T> {
+public class AnyData<T extends Object> extends DataBase<T> {
 
-  public static AnyFlowData EMPTY = new AnyFlowData(null, true);
+  public static AnyData EMPTY = new AnyData(null, true);
 
-  public AnyFlowData(T data) {
+  public AnyData() {
+    super(null);
+  }
+
+  public AnyData(T data) {
     super(data);
   }
 
-  public AnyFlowData(String name, T data) {
+  public AnyData(String name, T data) {
     super(name, data);
   }
 
-  public AnyFlowData(T data, boolean isConst) {
+  public AnyData(T data, boolean isConst) {
     super(data, isConst);
   }
 
-  public AnyFlowData(String name, T data, boolean isConst) {
+  public AnyData(String name, T data, boolean isConst) {
     super(name, data, isConst);
   }
 
@@ -31,6 +35,6 @@ public class AnyFlowData<T extends Object> extends FlowDataBase<T> {
 
   @Override
   public DataType getDataType() {
-    return DataType.ANY;
+    return DataType.SystemDataType.ANY;
   }
 }
