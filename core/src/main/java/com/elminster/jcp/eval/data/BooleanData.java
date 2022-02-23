@@ -1,5 +1,7 @@
 package com.elminster.jcp.eval.data;
 
+import com.elminster.jcp.ast.Identifier;
+
 public class BooleanData extends AnyData<Boolean> {
 
   public static BooleanData BOOLEAN_TRUE = new BooleanData(Boolean.TRUE, true);
@@ -9,12 +11,16 @@ public class BooleanData extends AnyData<Boolean> {
     super(data);
   }
 
-  public BooleanData(String name, Boolean data, boolean isConst) {
-    super(name, data, isConst);
+  public BooleanData(Identifier identifier, Boolean data, boolean isConst) {
+    super(identifier, data, isConst);
   }
 
   public BooleanData(Boolean data, boolean isConst) {
     super(data, isConst);
+  }
+
+  public static Data newBoolean(Boolean bool) {
+    return new BooleanData(bool);
   }
 
   @Override

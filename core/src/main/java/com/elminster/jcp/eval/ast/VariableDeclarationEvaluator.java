@@ -2,7 +2,7 @@ package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.eval.data.AnyData;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataFactory;
@@ -19,15 +19,15 @@ public class VariableDeclarationEvaluator extends AbstractAstEvaluator {
   }
 
   @Override
-  public Data eval(EvalContext evalContext) throws Exception {
+  public Data eval(EvalContext evalContext) {
     VariableDeclaration variableDeclaration = (VariableDeclaration) astNode;
     Identifier id = variableDeclaration.getId();
     Expression initExpress = variableDeclaration.getInit();
     Data variable = evalContext.getVariable(id.getId());
     if (null != variable) {
-      AlreadyDeclaredException.throwAlreadyDeclaredVariableException(id.getId());
+      AlreadyDeclaredException.throwAlreadyDeclaredVariableException(id);
     }
-    variable = DataFactory.INSTANCE.createSystemDataVariable(id.getId(),
+    variable = DataFactory.INSTANCE.createSystemDataVariable(id,
         DataTypeUtil.getDataType(variableDeclaration.getDataType(), evalContext));
     evalContext.addVariable(variable);
     if (null != initExpress) {

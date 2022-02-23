@@ -5,5 +5,5 @@ import com.elminster.jcp.eval.context.EvalContext;
 
 public interface Evaluable {
 
-  Data eval(EvalContext evalContext) throws Exception;
+  Data eval(EvalContext evalContext);
 }

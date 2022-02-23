@@ -17,7 +17,7 @@ abstract public class FunctionEvaluator extends BlockEvaluator {
   }
 
   @Override
-  public Data eval(EvalContext evalContext) throws Exception {
+  public Data eval(EvalContext evalContext) {
     AbstractFunction function = (AbstractFunction) astNode;
     Data[] parameters = function.getParameters();
     DataType resultDataType = function.getResultDataType();
@@ -35,7 +35,7 @@ abstract public class FunctionEvaluator extends BlockEvaluator {
     }
   }
 
-  protected Data doFunc(EvalContext evalContext) throws Exception {
+  protected Data doFunc(EvalContext evalContext) {
     return super.eval(evalContext);
   }
 }

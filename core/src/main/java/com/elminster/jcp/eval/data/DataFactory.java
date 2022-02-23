@@ -1,19 +1,42 @@
 package com.elminster.jcp.eval.data;
 
+import com.elminster.jcp.ast.Identifier;
+import org.apache.commons.lang3.ClassUtils;
+
 public class DataFactory {
   public static final DataFactory INSTANCE = new DataFactory();
 
   private DataFactory() {}
 
-  public Data createSystemDataVariable(String id, DataType dataType, Object value) {
+  public Data createSystemDataVariable(Identifier id, DataType dataType, Object value) {
     return createSystemData(id, dataType, value, false);
   }
 
-  public Data createSystemDataConst(String id, DataType dataType, Object value) {
+  public Data createSystemDataConst(Identifier id, DataType dataType, Object value) {
     return createSystemData(id, dataType, value,true);
   }
 
-  private Data createSystemData(String id, DataType dataType, Object value, boolean isConst) {
+  public <T> Data createConstValue(T value) {
+    if (null == value) {
+      return new AnyData(null, true);
+    }
+    Class<?> clazz = value.getClass();
+    if (ClassUtils.isPrimitiveOrWrapper(clazz)) {
+      if (clazz == Integer.class || clazz == int.class) {
+        return new IntegerData((int) value, true);
+      } else if (clazz == Boolean.class || clazz == boolean.class) {
+        return new BooleanData((boolean) value, true);
+      } else if (clazz == String.class) {
+        return new StringData((String) value, true);
+      } else {
+        return new AnyData(value, true);
+      }
+    } else {
+      return new AnyData(value, true);
+    }
+  }
+
+  private Data createSystemData(Identifier id, DataType dataType, Object value, boolean isConst) {
     Data data = null;
     if (dataType instanceof DataType.SystemDataType) {
       switch((DataType.SystemDataType)dataType) {
@@ -45,12 +68,7 @@ public class DataFactory {
           throw new IllegalStateException("Unknown data type [" + dataType + "]");
       }
     } else {
-      return new AnyData() {
-
-        @Override
-        public boolean isConst() {
-          return isConst;
-        }
+      return new AnyData(null, isConst) {
 
         @Override
         public DataType getDataType() {
@@ -61,7 +79,7 @@ public class DataFactory {
     return data;
   }
 
-  public Data createSystemDataVariable(String id, DataType dataType) {
+  public Data createSystemDataVariable(Identifier id, DataType dataType) {
     return createSystemDataVariable(id, dataType, null);
   }
 }

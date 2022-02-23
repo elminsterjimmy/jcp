@@ -2,7 +2,7 @@ package com.elminster.jcp.ast.expression.base;
 
 import com.elminster.jcp.ast.AbstractExpression;
 import com.elminster.jcp.ast.Expression;
-import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.Identifier;
 
 public class FunctionCallExpression extends AbstractExpression {
 

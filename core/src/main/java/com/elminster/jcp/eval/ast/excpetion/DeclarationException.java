@@ -1,11 +1,13 @@
 package com.elminster.jcp.eval.ast.excpetion;
 
-abstract public class DeclarationException extends RuntimeException {
+import com.elminster.jcp.ast.Identifier;
 
-  protected String id;
+abstract public class DeclarationException extends EvaluationException {
+
+  protected Identifier id;
   protected Type type;
 
-  public DeclarationException(String id, Type type) {
+  public DeclarationException(Identifier id, Type type) {
     this.id = id;
     this.type = type;
   }

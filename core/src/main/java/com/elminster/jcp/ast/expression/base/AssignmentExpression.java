@@ -2,7 +2,7 @@ package com.elminster.jcp.ast.expression.base;
 
 import com.elminster.jcp.ast.AbstractExpression;
 import com.elminster.jcp.ast.Expression;
-import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.expression.operator.AssignmentOperator;
 
 public class AssignmentExpression extends AbstractExpression {

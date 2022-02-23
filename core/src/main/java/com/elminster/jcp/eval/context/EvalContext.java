@@ -4,6 +4,7 @@ import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.ast.statement.Function;
 
+import javax.lang.model.type.TypeVariable;
 import java.util.Map;
 
 public interface EvalContext {
@@ -14,7 +15,7 @@ public interface EvalContext {
 
   void addVariable(Data variable);
 
-  void setVariables(Map<String, Data> varaibles);
+  void setVariables(Map<String, Data> variables);
 
   Map<String, Function> getFunctions();
 

@@ -1,10 +1,11 @@
 package com.elminster.jcp.eval.data;
 
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.eval.Evaluable;
 
 public interface Data<T> extends Evaluable {
 
-  String getName();
+  Identifier getIdentifier();
 
   DataType getDataType();
 

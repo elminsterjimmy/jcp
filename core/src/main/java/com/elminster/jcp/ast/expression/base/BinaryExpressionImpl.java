@@ -5,13 +5,13 @@ import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.expression.BinaryExpression;
 import com.elminster.jcp.ast.expression.operator.BinaryOperator;
 
-abstract public class AbstractBinaryExpression extends AbstractExpression implements BinaryExpression {
+public class BinaryExpressionImpl extends AbstractExpression implements BinaryExpression {
 
   protected Expression leftOperand;
   protected Expression rightOperand;
   protected BinaryOperator operator;
 
-  public AbstractBinaryExpression(Expression leftOperand, Expression rightOperand, BinaryOperator operator) {
+  public BinaryExpressionImpl(Expression leftOperand, Expression rightOperand, BinaryOperator operator) {
     this.leftOperand = leftOperand;
     this.rightOperand = rightOperand;
     this.operator = operator;

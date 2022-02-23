@@ -1,7 +1,7 @@
 package com.elminster.jcp.util;
 
 import com.elminster.common.util.ReflectUtil;
-import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.expression.base.IdentifierExpression;
 import com.elminster.jcp.ast.statement.Function;
 import com.elminster.jcp.ast.statement.ParameterDef;
@@ -11,6 +11,7 @@ import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.module.AbstractModuleFunction;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -72,13 +73,18 @@ public class ClassConverter {
           }
 
           @Override
-          protected Data doFunction(Data[] parameters) throws Exception {
+          protected Data doFunction(Data[] parameters) {
             Object target = parameters[0];
             Object[] args = new Object[parameters.length - 1];
             for (int i = 1; i < parameters.length; i++) {
               args[i - 1] = parameters[i].get();
             }
-            Object result = ReflectUtil.invoke(target, methodName, args);
+            Object result = null;
+            try {
+              result = ReflectUtil.invoke(target, methodName, args);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+              throw new RuntimeException(e);
+            }
             return new AnyData(result) {
               @Override
               public DataType getDataType() {
@@ -122,13 +128,17 @@ public class ClassConverter {
       }
 
       @Override
-      protected Data doFunction(Data[] parameters) throws Exception {
-        return new AnyData(clazz.newInstance()) {
-          @Override
-          public DataType getDataType() {
-            return dt;
-          }
-        };
+      protected Data doFunction(Data[] parameters) {
+        try {
+          return new AnyData(clazz.getDeclaredConstructor().newInstance()) {
+            @Override
+            public DataType getDataType() {
+              return dt;
+            }
+          };
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
       }
     });
     return dt;

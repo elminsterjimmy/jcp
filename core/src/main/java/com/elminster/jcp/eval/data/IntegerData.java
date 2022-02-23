@@ -1,5 +1,7 @@
 package com.elminster.jcp.eval.data;
 
+import com.elminster.jcp.ast.Identifier;
+
 public class IntegerData extends AnyData<Integer> {
 
   public static IntegerData constInt(Integer data) {
@@ -10,16 +12,16 @@ public class IntegerData extends AnyData<Integer> {
     super(data);
   }
 
-  public IntegerData(String name, Integer data) {
-    super(name, data);
+  public IntegerData(Identifier identifier, Integer data) {
+    super(identifier, data);
   }
 
   public IntegerData(Integer data, boolean isConst) {
     super(data, isConst);
   }
 
-  public IntegerData(String name, Integer data, boolean isConst) {
-    super(name, data, isConst);
+  public IntegerData(Identifier identifier, Integer data, boolean isConst) {
+    super(identifier, data, isConst);
   }
 
   @Override

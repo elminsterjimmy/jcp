@@ -13,7 +13,7 @@ public class OrEvaluator extends LogicalEvaluator {
   }
 
   @Override
-  public Data eval(EvalContext evalContext) throws Exception {
+  public Data eval(EvalContext evalContext) {
     LogicalOrExpression orExpression = (LogicalOrExpression) astNode;
     boolean leftValue = evalBoolean(orExpression.getLeft(), evalContext);
     if (leftValue) {

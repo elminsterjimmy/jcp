@@ -15,7 +15,7 @@ public class ExpressionStatement extends AbstractStatement implements Statement 
 
   @Override
   public String getName() {
-    return "EXPRESSION";
+    return "EXPRESSION_STATEMENT";
   }
 
   /**

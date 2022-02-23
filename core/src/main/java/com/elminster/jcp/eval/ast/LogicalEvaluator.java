@@ -16,7 +16,7 @@ abstract public class LogicalEvaluator extends AbstractAstEvaluator {
     super(astNode);
   }
 
-  protected boolean evalBoolean(Expression expr, EvalContext evalContext) throws Exception {
+  protected boolean evalBoolean(Expression expr, EvalContext evalContext) {
     Evaluable evaluable = AstEvaluatorFactory.getEvaluator(expr);
     Data data = evaluable.eval(evalContext);
     if (!(data instanceof BooleanData)) {

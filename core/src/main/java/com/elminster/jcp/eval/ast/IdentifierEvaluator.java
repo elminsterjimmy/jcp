@@ -1,7 +1,7 @@
 package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataFactory;
@@ -14,9 +14,9 @@ public class IdentifierEvaluator extends AbstractAstEvaluator {
   }
 
   @Override
-  public Data eval(EvalContext evalContext) throws Exception {
+  public Data eval(EvalContext evalContext) {
     Identifier identifier = (Identifier) astNode;
-    return DataFactory.INSTANCE.createSystemDataConst(identifier.getId(), DataType.SystemDataType.STRING,
+    return DataFactory.INSTANCE.createSystemDataConst(identifier, DataType.SystemDataType.STRING,
         identifier.getId());
   }
 }

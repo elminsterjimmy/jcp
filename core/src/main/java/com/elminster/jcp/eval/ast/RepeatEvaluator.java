@@ -3,7 +3,7 @@ package com.elminster.jcp.eval.ast;
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.eval.data.Data;
-import com.elminster.jcp.ast.statement.control.RepeatStatement;
+import com.elminster.jcp.eval.ast.control.RepeatStatement;
 import com.elminster.jcp.eval.Evaluable;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
@@ -18,7 +18,7 @@ public class RepeatEvaluator extends WhileEvaluator {
     super(astNode);
   }
 
-  protected boolean shouldContinue(EvalContext evalContext) throws Exception {
+  protected boolean shouldContinue(EvalContext evalContext) {
     RepeatStatement repeatStatement = (RepeatStatement) astNode;
     Expression conditionExpression = repeatStatement.getConditionExpression();
     Evaluable evaluable = AstEvaluatorFactory.getEvaluator(conditionExpression);

@@ -5,7 +5,7 @@ import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.eval.data.AnyData;
 import com.elminster.jcp.eval.data.Data;
-import com.elminster.jcp.ast.statement.control.WhileStatement;
+import com.elminster.jcp.eval.ast.control.WhileStatement;
 import com.elminster.jcp.eval.Evaluable;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
@@ -21,7 +21,7 @@ public class WhileEvaluator extends LoopEvaluator {
   }
 
   @Override
-  public Data eval(EvalContext evalContext) throws Exception {
+  public Data eval(EvalContext evalContext) {
     WhileStatement whileStatement = (WhileStatement) astNode;
     Statement body = whileStatement.getBody();
     super.addToParent(evalContext);
@@ -35,7 +35,7 @@ public class WhileEvaluator extends LoopEvaluator {
     return AnyData.EMPTY;
   }
 
-  protected boolean shouldContinue(EvalContext evalContext) throws Exception {
+  protected boolean shouldContinue(EvalContext evalContext) {
     WhileStatement whileStatement = (WhileStatement) astNode;
     Expression conditionExpression = whileStatement.getConditionExpression();
     Evaluable evaluable = AstEvaluatorFactory.getEvaluator(conditionExpression);

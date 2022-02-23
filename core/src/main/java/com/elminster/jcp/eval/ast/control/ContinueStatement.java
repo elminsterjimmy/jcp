@@ -1,4 +1,4 @@
-package com.elminster.jcp.ast.statement.control;
+package com.elminster.jcp.eval.ast.control;
 
 public class ContinueStatement extends ControlStatement {
 

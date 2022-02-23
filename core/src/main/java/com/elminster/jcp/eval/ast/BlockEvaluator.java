@@ -18,7 +18,7 @@ public class BlockEvaluator extends AbstractAstEvaluator {
   }
 
   @Override
-  public Data eval(EvalContext evalContext) throws Exception {
+  public Data eval(EvalContext evalContext) {
     Block block = (Block) astNode;
     List<Statement> body =  block.getBody();
     Data result = AnyData.EMPTY;

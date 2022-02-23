@@ -1,21 +1,33 @@
-lib/
 target/
-.settings/
-.idea/
-bin/
-tmp/
-logs/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-*.class
-*.jar
-*.ear
-*.war
-.classpath
-.project
-.checkstyle
-*.iml
 
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+/build/
+
+### VSCode ###
+.vscode
+bin/
+
+### OpenClover
+.clover
+
+.idea

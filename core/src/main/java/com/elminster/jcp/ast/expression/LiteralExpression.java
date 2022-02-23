@@ -1,14 +1,14 @@
 package com.elminster.jcp.ast.expression;
 
 import com.elminster.jcp.ast.AbstractExpression;
-import com.elminster.jcp.eval.data.Data;
+import com.elminster.jcp.ast.expression.literal.Literal;
 
-public class LiteralExpression<T> extends AbstractExpression implements Literal {
+public class LiteralExpression extends AbstractExpression {
 
-  private T constData;
+  private Literal literal;
 
-  public LiteralExpression(T constData) {
-    this.constData = constData;
+  public LiteralExpression(Literal literal) {
+    this.literal = literal;
   }
 
   @Override
@@ -16,12 +16,8 @@ public class LiteralExpression<T> extends AbstractExpression implements Literal 
     return "LITERAL";
   }
 
-  /**
-   * Gets constData.
-   *
-   * @return value of constData
-   */
-  public T getValue() {
-    return constData;
+  public Literal getLiteral() {
+    return literal;
   }
 }
+

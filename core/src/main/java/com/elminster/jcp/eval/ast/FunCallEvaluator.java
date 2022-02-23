@@ -2,7 +2,7 @@ package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.statement.ParameterDef;
 import com.elminster.jcp.eval.ast.excpetion.CannotCastException;
 import com.elminster.jcp.eval.data.Data;
@@ -22,7 +22,7 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
   }
 
   @Override
-  public Data eval(EvalContext evalContext) throws Exception {
+  public Data eval(EvalContext evalContext) {
     FunctionCallExpression functionCallExpression = (FunctionCallExpression) astNode;
     Identifier id = functionCallExpression.getId();
     Expression[] arguments = functionCallExpression.getArguments();

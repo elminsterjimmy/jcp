@@ -1,10 +1,12 @@
 package com.elminster.jcp.eval.ast.excpetion;
 
+import com.elminster.jcp.ast.Identifier;
+
 public class AlreadyDeclaredException extends DeclarationException {
 
   private static final String MESSAGE_PATTERN = "Already declared %s [%s].";
 
-  public AlreadyDeclaredException(String id, Type type) {
+  public AlreadyDeclaredException(Identifier id, Type type) {
     super(id, type);
   }
 
@@ -13,15 +15,15 @@ public class AlreadyDeclaredException extends DeclarationException {
     return MESSAGE_PATTERN;
   }
 
-  public static AlreadyDeclaredException throwAlreadyDeclaredVariableException(String id) {
+  public static AlreadyDeclaredException throwAlreadyDeclaredVariableException(Identifier id) {
     throw new AlreadyDeclaredException(id, Type.VARIABLE);
   }
 
-  public static AlreadyDeclaredException throwAlreadyDeclaredFunctionException(String id) {
+  public static AlreadyDeclaredException throwAlreadyDeclaredFunctionException(Identifier id) {
     throw new AlreadyDeclaredException(id, Type.FUNCTION);
   }
 
-  public static AlreadyDeclaredException throwAlreadyDeclaredDataTypeException(String id) {
+  public static AlreadyDeclaredException throwAlreadyDeclaredDataTypeException(Identifier id) {
     throw new AlreadyDeclaredException(id, Type.DATATYPE);
   }
 }

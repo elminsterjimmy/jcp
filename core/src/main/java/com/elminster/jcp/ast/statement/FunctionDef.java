@@ -1,9 +1,8 @@
 package com.elminster.jcp.ast.statement;
 
-import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.expression.base.IdentifierExpression;
 import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.eval.data.Data;
 
 public class FunctionDef {
 

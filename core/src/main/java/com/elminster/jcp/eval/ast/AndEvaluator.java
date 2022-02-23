@@ -13,7 +13,7 @@ public class AndEvaluator extends LogicalEvaluator {
   }
 
   @Override
-  public Data eval(EvalContext evalContext) throws Exception {
+  public Data eval(EvalContext evalContext) {
     LogicalAndExpression andExpression = (LogicalAndExpression) astNode;
     boolean leftValue = evalBoolean(andExpression.getLeft(), evalContext);
     if (!leftValue) {

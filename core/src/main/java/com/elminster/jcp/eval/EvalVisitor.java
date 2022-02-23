@@ -18,7 +18,7 @@ public class EvalVisitor implements AstVisitor {
   }
 
   @Override
-  public void visit(Node node) throws Exception {
+  public void visit(Node node) {
     Evaluable evaluable = AstEvaluatorFactory.getEvaluator(node);
     evaluable.eval(context);
   }

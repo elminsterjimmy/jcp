@@ -1,7 +1,7 @@
 package com.elminster.jcp.ast.statement;
 
 import com.elminster.jcp.ast.Expression;
-import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.Identifier;
 
 public class VariableDeclarationImpl extends AbstractStatement implements VariableDeclaration {
 

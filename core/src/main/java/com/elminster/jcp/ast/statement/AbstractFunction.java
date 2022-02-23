@@ -1,11 +1,9 @@
 package com.elminster.jcp.ast.statement;
 
 import com.elminster.jcp.ast.Statement;
-import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.Data;
-import com.elminster.jcp.eval.ast.excpetion.UndeclaredException;
-import com.elminster.jcp.eval.ast.excpetion.CannotCastException;
 
 public class AbstractFunction extends BlockImpl implements Function {
 

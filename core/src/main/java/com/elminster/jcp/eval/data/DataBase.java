@@ -1,39 +1,39 @@
 package com.elminster.jcp.eval.data;
 
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.eval.context.EvalContext;
 
 abstract public class DataBase<T> implements Data<T> {
 
-  protected final static String EMPTY_NAME = "";
-  protected final String name;
+  protected final Identifier identifier;
   protected T data;
   protected boolean isConst = false;
 
   public DataBase() {
-    this(EMPTY_NAME, null);
+    this(Identifier.EMPTY_IDENTIFIER, null);
   }
 
-  public DataBase(String name, T data) {
-    this(name, data, false);
+  public DataBase(Identifier identifier, T data) {
+    this(identifier, data, false);
   }
 
   public DataBase(T data) {
-    this(data, false);
+    this(data, true);
   }
 
   public DataBase(T data, boolean isConst) {
-    this(EMPTY_NAME, data, isConst);
+    this(Identifier.EMPTY_IDENTIFIER, data, isConst);
   }
 
-  public DataBase(String name, T data, boolean isConst) {
-    this.name = name;
+  public DataBase(Identifier identifier, T data, boolean isConst) {
+    this.identifier = identifier;
     this.data = data;
     this.isConst = isConst;
   }
 
   @Override
-  public String getName() {
-    return name;
+  public Identifier getIdentifier() {
+    return identifier;
   }
 
   @Override

@@ -14,7 +14,7 @@ abstract public class ControlEvaluator extends ExpressionEvaluator {
     super(astNode);
   }
 
-  protected boolean checkCondition(Expression expression, EvalContext context) throws Exception {
+  protected boolean checkCondition(Expression expression, EvalContext context) {
     Evaluable evaluable = AstEvaluatorFactory.getEvaluator(expression);
     Data<Boolean> condition = evaluable.eval(context);
     return condition.get();

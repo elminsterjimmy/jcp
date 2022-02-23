@@ -5,7 +5,7 @@ import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.eval.data.AnyData;
 import com.elminster.jcp.eval.data.Data;
-import com.elminster.jcp.ast.statement.control.IfElseStatement;
+import com.elminster.jcp.eval.ast.control.IfElseStatement;
 import com.elminster.jcp.eval.Evaluable;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
@@ -21,7 +21,7 @@ public class IfelseEvaluator extends ControlEvaluator {
   }
 
   @Override
-  public Data eval(EvalContext evalContext) throws Exception {
+  public Data eval(EvalContext evalContext) {
     IfElseStatement ifElseStatement = (IfElseStatement) astNode;
     Expression condition = ifElseStatement.getCondition();
     Statement ifStatement = ifElseStatement.getIfStatement();

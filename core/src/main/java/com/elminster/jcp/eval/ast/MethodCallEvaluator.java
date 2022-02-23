@@ -1,6 +1,7 @@
 package com.elminster.jcp.eval.ast;
 
 import com.elminster.jcp.ast.Expression;
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.ast.expression.base.MethodCallExpression;
@@ -17,7 +18,7 @@ public class MethodCallEvaluator extends AbstractAstEvaluator {
   }
 
   @Override
-  public Data eval(EvalContext evalContext) throws Exception {
+  public Data eval(EvalContext evalContext) {
     MethodCallExpression methodCallExpression = (MethodCallExpression) astNode;
     String methodName = methodCallExpression.getMethodName();
     Data data = methodCallExpression.getData();
@@ -25,7 +26,7 @@ public class MethodCallEvaluator extends AbstractAstEvaluator {
     String functionName = data.getDataType().getName() + "." + methodName;
     Function function = evalContext.getFunction(functionName);
     if (null == function) {
-      UndeclaredException.throwUndeclaredFunctionException(functionName);
+      UndeclaredException.throwUndeclaredFunctionException(Identifier.fromName(functionName));
     }
     Data[] parameters = new Data[arguments.length + 1];
     parameters[0] = data;

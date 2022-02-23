@@ -15,7 +15,7 @@ public class PlusPlusEvaluator extends UnaryEvaluator {
   }
 
   @Override
-  public Data eval(EvalContext evalContext) throws Exception {
+  public Data eval(EvalContext evalContext) {
     UnaryExpression unaryExpression = (UnaryExpression) astNode;
     Expression expression = unaryExpression.getExpress();
     Evaluable evaluable = AstEvaluatorFactory.getEvaluator(expression);

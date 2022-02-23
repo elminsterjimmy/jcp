@@ -1,13 +1,12 @@
-package com.elminster.jcp.ast.func.test;
+package com.elminster.jcp.eval.ast.test;
 
 import com.elminster.common.util.Assert;
-import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.expression.base.IdentifierExpression;
 import com.elminster.jcp.ast.statement.ParameterDef;
 import com.elminster.jcp.eval.data.AnyData;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.Data;
-import com.elminster.jcp.eval.data.DataFactory;
 import com.elminster.jcp.module.AbstractModuleFunction;
 
 public class LogFunction extends AbstractModuleFunction {

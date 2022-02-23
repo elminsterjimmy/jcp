@@ -13,7 +13,7 @@ public class NotEvaluator extends LogicalEvaluator {
   }
 
   @Override
-  public Data eval(EvalContext evalContext) throws Exception {
+  public Data eval(EvalContext evalContext) {
     LogicalNotExpression notExpression = (LogicalNotExpression) astNode;
     boolean value = evalBoolean(notExpression.getExpression(), evalContext);
     return new BooleanData(!value);

@@ -1,9 +1,11 @@
 package com.elminster.jcp.eval.data;
 
+import com.elminster.jcp.ast.Identifier;
+
 public class StringData extends AnyData<String> {
 
-  public StringData(String name, String data, boolean isConst) {
-    super(name, data, isConst);
+  public StringData(Identifier identifier, String data, boolean isConst) {
+    super(identifier, data, isConst);
   }
 
   public StringData(String data) {

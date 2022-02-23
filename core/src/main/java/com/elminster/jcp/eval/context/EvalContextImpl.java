@@ -1,7 +1,7 @@
 package com.elminster.jcp.eval.context;
 
 import com.elminster.common.util.Assert;
-import com.elminster.jcp.ast.expression.Identifier;
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.ast.excpetion.AlreadyDeclaredException;
@@ -60,9 +60,9 @@ public class EvalContextImpl implements EvalContext {
    */
   @Override
   public void addVariable(Data variable) {
-    String id = variable.getName();
+    String id = variable.getIdentifier().getId();
     if (variables.containsKey(id)) {
-      AlreadyDeclaredException.throwAlreadyDeclaredVariableException(id);
+      AlreadyDeclaredException.throwAlreadyDeclaredVariableException(variable.getIdentifier());
     }
     variables.put(id, variable);
   }
@@ -85,7 +85,7 @@ public class EvalContextImpl implements EvalContext {
   public void addFunction(Function function) {
     Identifier id = function.getId();
     if (functions.containsKey(id.getId())) {
-      AlreadyDeclaredException.throwAlreadyDeclaredFunctionException(id.getId());
+      AlreadyDeclaredException.throwAlreadyDeclaredFunctionException(id);
     }
     functions.put(id.getId(), function);
   }
@@ -102,7 +102,7 @@ public class EvalContextImpl implements EvalContext {
   public void addDataType(DataType dataType) {
     String name = dataType.getName();
     if (dataTypes.containsKey(name)) {
-      AlreadyDeclaredException.throwAlreadyDeclaredDataTypeException(name);
+      AlreadyDeclaredException.throwAlreadyDeclaredDataTypeException(Identifier.fromName(name));
     }
     dataTypes.put(name, dataType);
   }
