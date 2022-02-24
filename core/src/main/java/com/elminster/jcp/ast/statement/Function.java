@@ -8,7 +8,9 @@ public interface Function extends Block {
 
   Identifier getId();
   ParameterDef[] getParameterDefs();
-  Data[] getParameters();
-  void setParameters(Data... parameters);
+  Data[] getArguments();
+  void setArguments(Data... arguments);
   DataType getResultDataType();
+
+  String getFullName();
 }

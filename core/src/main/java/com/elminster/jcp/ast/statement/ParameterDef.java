@@ -1,11 +1,13 @@
 package com.elminster.jcp.ast.statement;
 
+import com.elminster.jcp.eval.data.DataType;
+
 public class ParameterDef {
 
   String id;
-  String dataType;
+  DataType dataType;
 
-  public ParameterDef(String id, String dataType) {
+  public ParameterDef(String id, DataType dataType) {
     this.id = id;
     this.dataType = dataType;
   }
@@ -34,7 +36,7 @@ public class ParameterDef {
    *
    * @return value of dataType
    */
-  public String getDataType() {
+  public DataType getDataType() {
     return dataType;
   }
 
@@ -44,7 +46,7 @@ public class ParameterDef {
    * @param dataType
    *     value of dataType
    */
-  public void setDataType(String dataType) {
+  public void setDataType(DataType dataType) {
     this.dataType = dataType;
   }
 }

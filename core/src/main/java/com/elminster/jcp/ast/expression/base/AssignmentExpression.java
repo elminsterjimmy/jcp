@@ -19,7 +19,7 @@ public class AssignmentExpression extends AbstractExpression {
 
   @Override
   public String getName() {
-    return "ASSIGNMENT";
+    return operation.getName();
   }
 
   /**

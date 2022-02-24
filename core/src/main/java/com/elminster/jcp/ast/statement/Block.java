@@ -8,5 +8,5 @@ public interface Block extends Statement {
 
   List<Statement> getBody();
 
-  void addStatement(Statement statement);
+  Block addStatement(Statement statement);
 }

@@ -29,9 +29,9 @@ public class FunctionCallExpression extends AbstractExpression {
   }
 
   /**
-   * Gets argurements.
+   * Gets arguments.
    *
-   * @return value of argurements
+   * @return value of arguments
    */
   public Expression[] getArguments() {
     return arguments;

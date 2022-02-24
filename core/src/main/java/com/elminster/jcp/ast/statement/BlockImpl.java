@@ -25,8 +25,9 @@ public class BlockImpl extends AbstractStatement implements Block {
   }
 
   @Override
-  public void addStatement(Statement statement) {
+  public Block addStatement(Statement statement) {
     this.body.add(statement);
+    return this;
   }
 
   @Override

@@ -20,8 +20,8 @@ public class FunctionDeclarationImpl extends BlockImpl implements FunctionDeclar
   }
 
   @Override
-  public String getDataType() {
-    return returnType.getName();
+  public DataType getDataType() {
+    return returnType;
   }
 
   @Override

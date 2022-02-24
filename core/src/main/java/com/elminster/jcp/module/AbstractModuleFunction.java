@@ -1,19 +1,21 @@
 package com.elminster.jcp.module;
 
 import com.elminster.jcp.ast.Statement;
+import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.data.Data;
+import com.elminster.jcp.util.FunctionUtils;
 
 import java.util.Collections;
 import java.util.List;
 
 abstract public class AbstractModuleFunction implements ModuleFunction {
 
-  protected Data[] parameters;
+  protected Data[] arguments;
 
   @Override
-  public void setParameters(Data... parameters) {
-    this.parameters = parameters;
+  public void setArguments(Data... arguments) {
+    this.arguments = arguments;
   }
 
   @Override
@@ -22,18 +24,27 @@ abstract public class AbstractModuleFunction implements ModuleFunction {
   }
 
   @Override
-  public void addStatement(Statement statement) {
+  public Block addStatement(Statement statement) {
+    // TODO
+    return null;
   }
 
   @Override
-  public Data[] getParameters() {
-    return this.parameters;
+  public Data[] getArguments() {
+    return this.arguments;
   }
 
   @Override
   public Data eval(EvalContext evalContext) {
-    return doFunction(getParameters());
+    return doFunction(getArguments(), evalContext);
   }
 
-  protected abstract Data doFunction(Data[] parameters);
+  @Override
+  public String getFullName() {
+    // TODO module support
+//    return this.getModule().concat("!").concat(FunctionUtils.generateFunctionFullName(getId(), getParameterDefs()));
+    return FunctionUtils.generateFunctionFullName(getId(), getParameterDefs());
+  }
+
+  protected abstract Data doFunction(Data[] parameters, EvalContext evalContext);
 }

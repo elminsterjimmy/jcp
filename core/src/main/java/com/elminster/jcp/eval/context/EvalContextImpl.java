@@ -4,14 +4,12 @@ import com.elminster.common.util.Assert;
 import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.eval.ast.excpetion.AlreadyDeclaredException;
+import com.elminster.jcp.eval.excpetion.AlreadyDeclaredException;
 import com.elminster.jcp.ast.statement.Function;
 import com.elminster.jcp.module.vb.ValueBuffer;
 import com.elminster.jcp.util.ClassConverter;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class EvalContextImpl implements EvalContext {
 
@@ -60,9 +58,10 @@ public class EvalContextImpl implements EvalContext {
    */
   @Override
   public void addVariable(Data variable) {
-    String id = variable.getIdentifier().getId();
+    Identifier identifier = variable.getIdentifier();
+    String id = identifier.getId();
     if (variables.containsKey(id)) {
-      AlreadyDeclaredException.throwAlreadyDeclaredVariableException(variable.getIdentifier());
+      AlreadyDeclaredException.throwVariableAlreadyDeclaredException(identifier);
     }
     variables.put(id, variable);
   }
@@ -83,11 +82,11 @@ public class EvalContextImpl implements EvalContext {
 
   @Override
   public void addFunction(Function function) {
-    Identifier id = function.getId();
-    if (functions.containsKey(id.getId())) {
-      AlreadyDeclaredException.throwAlreadyDeclaredFunctionException(id);
+    String functionFullName = function.getFullName();
+    if (functions.containsKey(functionFullName)) {
+      AlreadyDeclaredException.throwFunctionAlreadyDeclaredException(function);
     }
-    functions.put(id.getId(), function);
+    functions.put(functionFullName, function);
   }
 
   /**
@@ -102,7 +101,7 @@ public class EvalContextImpl implements EvalContext {
   public void addDataType(DataType dataType) {
     String name = dataType.getName();
     if (dataTypes.containsKey(name)) {
-      AlreadyDeclaredException.throwAlreadyDeclaredDataTypeException(Identifier.fromName(name));
+      AlreadyDeclaredException.throwDataTypeAlreadyDeclaredException(Identifier.fromName(name));
     }
     dataTypes.put(name, dataType);
   }

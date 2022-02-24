@@ -3,14 +3,32 @@ package com.elminster.jcp.eval.factory;
 import com.elminster.common.util.ReflectUtil;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.eval.Evaluable;
+import com.google.common.reflect.ClassPath;
 
-import javax.xml.stream.events.Characters;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 abstract public class AstEvaluatorFactory {
 
-  private static final String AST_EVAL_BASE_PACKAGE = "com.elminster.jcp.eval.ast";
+  private static final String AST_EVAL_BASE_PACKAGE = "com.elminster.jcp.eval";
+  private static final Map<String, ? extends Class<?>> SYSTEM_EVALUATOR;
+
+  static {
+    try {
+      SYSTEM_EVALUATOR = ClassPath.from(ClassLoader.getSystemClassLoader())
+              .getAllClasses()
+              .stream()
+              .filter(clazz -> clazz.getPackageName().startsWith(AST_EVAL_BASE_PACKAGE) && clazz.getSimpleName().endsWith("Evaluator"))
+              .map(clazz -> clazz.load())
+              .collect(Collectors.toMap(Class::getSimpleName, Function.identity()));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   public static Evaluable getEvaluator(Node astNode) {
     if (astNode instanceof Evaluable) {
@@ -18,16 +36,16 @@ abstract public class AstEvaluatorFactory {
     }
     String name = astNode.getName();
     try {
-      Class clazz = Class.forName(getEvaluatorClassName(name));
+      Class clazz = SYSTEM_EVALUATOR.get(getEvaluatorClassName(name));
       Constructor<Evaluable> constructor = ReflectUtil.getConstructor(clazz, Node.class);
       return constructor.newInstance(astNode);
-    } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException e) {
+    } catch (IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException e) {
       throw new RuntimeException(e);
     }
   }
 
   private static String getEvaluatorClassName(String name) {
-    return AST_EVAL_BASE_PACKAGE + "." + normalize(name) + "Evaluator";
+    return normalize(name) + "Evaluator";
   }
 
   private static String normalize(String name) {

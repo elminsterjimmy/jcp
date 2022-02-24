@@ -4,6 +4,10 @@ import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.Data;
+import com.elminster.jcp.util.FunctionUtils;
+
+import java.util.Arrays;
+import java.util.StringJoiner;
 
 public class AbstractFunction extends BlockImpl implements Function {
 
@@ -11,6 +15,7 @@ public class AbstractFunction extends BlockImpl implements Function {
   private final ParameterDef[] parameterDefs;
   private Data[] parameters;
   private final DataType resultDataType;
+  private final String fullName;
 
   public AbstractFunction(FunctionDef functionDef, Statement... body) {
     this(functionDef.id, functionDef.parameters, functionDef.returnType, body);
@@ -21,6 +26,7 @@ public class AbstractFunction extends BlockImpl implements Function {
     this.id = id;
     this.parameterDefs = parameterDefs;
     this.resultDataType = resultDataType;
+    this.fullName = FunctionUtils.generateFunctionFullName(id, parameterDefs);
   }
 
   @Override
@@ -34,18 +40,23 @@ public class AbstractFunction extends BlockImpl implements Function {
   }
 
   @Override
-  public Data[] getParameters() {
+  public Data[] getArguments() {
     return parameters;
   }
 
   @Override
-  public void setParameters(Data... parameters) {
-    this.parameters = parameters;
+  public void setArguments(Data... arguments) {
+    this.parameters = arguments;
   }
 
   @Override
   public DataType getResultDataType() {
     return resultDataType;
+  }
+
+  @Override
+  public String getFullName() {
+    return this.fullName;
   }
 
   @Override

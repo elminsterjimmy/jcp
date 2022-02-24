@@ -20,7 +20,7 @@ public class ClassConverter {
 
   public static DataType registerClass(Class<?> clazz, EvalContext context, String module) {
     String name = clazz.getSimpleName();
-    DataType dt = DataTypeUtil.getDataType(name, context);
+    DataType dt = DataTypeUtils.getDataType(name, context);
     context.addDataType(dt);
     Method[] methods = clazz.getDeclaredMethods();
     for (Method method : methods) {
@@ -59,10 +59,10 @@ public class ClassConverter {
 
           @Override
           public ParameterDef[] getParameterDefs() {
-            ParameterDef[] dataDefs = new ParameterDef[paramDts.length];
-            int i = 0;
-            for (DataType dt : paramDts) {
-              dataDefs[i++] = new ParameterDef(paramNames[i], paramDts[i].getName());
+            int length = paramDts.length;
+            ParameterDef[] dataDefs = new ParameterDef[length];
+            for (int i = 0; i < length; i++) {
+              dataDefs[i] = new ParameterDef(paramNames[i], paramDts[i]);
             }
             return dataDefs;
           }
@@ -73,7 +73,7 @@ public class ClassConverter {
           }
 
           @Override
-          protected Data doFunction(Data[] parameters) {
+          protected Data doFunction(Data[] parameters, EvalContext evalContext) {
             Object target = parameters[0];
             Object[] args = new Object[parameters.length - 1];
             for (int i = 1; i < parameters.length; i++) {
@@ -128,7 +128,7 @@ public class ClassConverter {
       }
 
       @Override
-      protected Data doFunction(Data[] parameters) {
+      protected Data doFunction(Data[] parameters, EvalContext evalContext) {
         try {
           return new AnyData(clazz.getDeclaredConstructor().newInstance()) {
             @Override
@@ -145,7 +145,7 @@ public class ClassConverter {
   }
 
   private static DataType getDataType(Class<?> dataType, EvalContext context, String module) {
-    DataType rdt = DataTypeUtil.getDataType(dataType.getSimpleName(), context);
+    DataType rdt = DataTypeUtils.getDataType(dataType.getSimpleName(), context);
     if (null == rdt) {
       rdt = registerClass(dataType, context, module);
     }
