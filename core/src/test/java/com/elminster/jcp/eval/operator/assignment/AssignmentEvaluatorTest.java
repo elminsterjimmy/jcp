@@ -14,8 +14,6 @@ import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.test.LogFunction;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class AssignmentEvaluatorTest {
 
     /**

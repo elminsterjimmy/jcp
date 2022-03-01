@@ -24,24 +24,34 @@ public class IfElseBlockTest {
 
   /**
    * if (true) {
-   * log(TRUE)
+ *     log(TRUE)
+   * } else {
+ *     log(FALSE)
    * }
    */
   @Test
   public void testIfElseBlock() {
     FunctionCallExpression logCall = new FunctionCallExpression(new IdentifierExpression("log"),
-        new Expression[]{new LiteralExpression(StringLiteral.of("TEST"))});
+        new Expression[]{new LiteralExpression(StringLiteral.of("TRUE"))});
     Expression condition = new LiteralExpression(Literal.of(true));
     Block ifBlock = new BlockImpl();
     ifBlock.addStatement(new ExpressionStatement(logCall));
+    Block elseBlock = new BlockImpl();
+    elseBlock.addStatement(new ExpressionStatement(new FunctionCallExpression(new IdentifierExpression("log"),
+            new Expression[]{new LiteralExpression(StringLiteral.of("FALSE"))})));
 
     IfElseStatement ifElseStatement = new IfElseStatement(
-        ifBlock, null, condition);
+        ifBlock, elseBlock, condition);
 
     EvalContext context = new EvalContextImpl();
     context.addFunction(new LogFunction());
 
     EvalVisitor visitor = new EvalVisitor(context);
+    visitor.visit(ifElseStatement);
+
+    ifElseStatement = new IfElseStatement(
+            ifBlock, elseBlock, new LiteralExpression(Literal.of(false)));
+
     visitor.visit(ifElseStatement);
   }
 }
