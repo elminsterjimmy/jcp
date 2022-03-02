@@ -1,8 +1,7 @@
 package com.elminster.jcp.util;
 
-import com.elminster.common.util.ReflectUtil;
 import com.elminster.jcp.module.ModuleFunction;
-import com.elminster.jcp.ast.statement.Function;
+import com.elminster.jcp.ast.statement.function.Function;
 
 import java.util.*;
 

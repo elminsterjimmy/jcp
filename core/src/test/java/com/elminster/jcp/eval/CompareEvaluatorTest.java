@@ -1,9 +1,9 @@
 package com.elminster.jcp.eval;
 
 import com.elminster.jcp.ast.expression.LiteralExpression;
-import com.elminster.jcp.ast.expression.base.BinaryExpressionImpl;
+import com.elminster.jcp.ast.expression.operation.BinaryExpressionImpl;
 import com.elminster.jcp.ast.expression.literal.IntLiteral;
-import com.elminster.jcp.ast.expression.operator.RelationalOperator;
+import com.elminster.jcp.ast.expression.operation.operator.RelationalOperator;
 import com.elminster.jcp.eval.base.ExpressionEvaluator;
 import com.elminster.jcp.eval.context.EvalContextImpl;
 import com.elminster.jcp.eval.data.BooleanData;

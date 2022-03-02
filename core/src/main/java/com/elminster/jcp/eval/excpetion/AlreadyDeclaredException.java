@@ -1,7 +1,7 @@
 package com.elminster.jcp.eval.excpetion;
 
 import com.elminster.jcp.ast.Identifier;
-import com.elminster.jcp.ast.statement.Function;
+import com.elminster.jcp.ast.statement.function.Function;
 
 import java.util.Arrays;
 import java.util.StringJoiner;

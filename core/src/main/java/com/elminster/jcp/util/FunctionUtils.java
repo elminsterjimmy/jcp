@@ -1,7 +1,7 @@
 package com.elminster.jcp.util;
 
 import com.elminster.jcp.ast.Identifier;
-import com.elminster.jcp.ast.statement.ParameterDef;
+import com.elminster.jcp.ast.statement.function.ParameterDef;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 

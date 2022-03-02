@@ -1,11 +1,12 @@
 package com.elminster.jcp.eval.control;
 
 import com.elminster.jcp.ast.expression.LiteralExpression;
-import com.elminster.jcp.ast.expression.base.IdentifierExpression;
+import com.elminster.jcp.ast.expression.operation.IdentifierExpression;
 import com.elminster.jcp.ast.expression.literal.Literal;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
 import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
 import com.elminster.jcp.ast.Expression;
+import com.elminster.jcp.ast.statement.control.IfElseStatement;
 import com.elminster.jcp.eval.test.LogFunction;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.ast.statement.BlockImpl;

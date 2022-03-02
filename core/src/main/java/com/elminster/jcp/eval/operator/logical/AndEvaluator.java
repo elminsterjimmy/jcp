@@ -3,7 +3,7 @@ package com.elminster.jcp.eval.operator.logical;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.eval.data.BooleanData;
 import com.elminster.jcp.eval.data.Data;
-import com.elminster.jcp.ast.expression.base.LogicalAndExpression;
+import com.elminster.jcp.ast.expression.operation.LogicalAndExpression;
 import com.elminster.jcp.eval.context.EvalContext;
 
 public class AndEvaluator extends LogicalEvaluator {

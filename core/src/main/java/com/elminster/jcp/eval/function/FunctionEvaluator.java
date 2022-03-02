@@ -6,10 +6,8 @@ import com.elminster.jcp.eval.base.BlockEvaluator;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.excpetion.CannotCastException;
-import com.elminster.jcp.ast.statement.AbstractFunction;
+import com.elminster.jcp.ast.statement.function.AbstractFunction;
 import com.elminster.jcp.eval.context.EvalContext;
-
-import java.util.Map;
 
 abstract public class FunctionEvaluator extends BlockEvaluator {
 

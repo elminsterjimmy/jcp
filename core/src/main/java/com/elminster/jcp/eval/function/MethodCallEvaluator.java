@@ -7,7 +7,7 @@ import com.elminster.jcp.eval.base.AbstractAstEvaluator;
 import com.elminster.jcp.eval.Evaluable;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.ast.expression.base.MethodCallExpression;
-import com.elminster.jcp.ast.statement.Function;
+import com.elminster.jcp.ast.statement.function.Function;
 import com.elminster.jcp.eval.excpetion.UndeclaredException;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.data.DataType;

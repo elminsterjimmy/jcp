@@ -9,7 +9,7 @@ import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataFactory;
 import com.elminster.jcp.eval.excpetion.AlreadyDeclaredException;
 import com.elminster.jcp.eval.excpetion.CannotCastException;
-import com.elminster.jcp.ast.statement.VariableDeclaration;
+import com.elminster.jcp.ast.statement.declaration.VariableDeclaration;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
 import com.elminster.jcp.util.DataTypeUtils;

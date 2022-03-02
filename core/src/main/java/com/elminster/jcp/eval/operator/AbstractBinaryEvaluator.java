@@ -3,7 +3,7 @@ package com.elminster.jcp.eval.operator;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.eval.base.AbstractAstEvaluator;
 import com.elminster.jcp.eval.data.Data;
-import com.elminster.jcp.ast.expression.base.BinaryExpressionImpl;
+import com.elminster.jcp.ast.expression.operation.BinaryExpressionImpl;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
 

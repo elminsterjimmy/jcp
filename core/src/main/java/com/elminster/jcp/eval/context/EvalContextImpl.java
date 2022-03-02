@@ -6,7 +6,7 @@ import com.elminster.jcp.collection.FastStack;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.excpetion.AlreadyDeclaredException;
-import com.elminster.jcp.ast.statement.Function;
+import com.elminster.jcp.ast.statement.function.Function;
 import com.elminster.jcp.module.vb.ValueBuffer;
 import com.elminster.jcp.util.ClassConverter;
 

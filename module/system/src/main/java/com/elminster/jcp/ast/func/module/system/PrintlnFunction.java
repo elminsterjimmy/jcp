@@ -2,7 +2,7 @@ package com.elminster.jcp.ast.func.module.system;
 
 import com.elminster.common.util.Assert;
 import com.elminster.jcp.ast.Identifier;
-import com.elminster.jcp.ast.statement.ParameterDef;
+import com.elminster.jcp.ast.statement.function.ParameterDef;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.data.AnyData;
 import com.elminster.jcp.eval.data.Data;

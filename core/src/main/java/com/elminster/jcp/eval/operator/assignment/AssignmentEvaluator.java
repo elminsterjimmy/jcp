@@ -3,7 +3,7 @@ package com.elminster.jcp.eval.operator.assignment;
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.expression.base.AssignmentExpression;
+import com.elminster.jcp.ast.expression.operation.AssignmentExpression;
 import com.elminster.jcp.eval.Evaluable;
 import com.elminster.jcp.eval.base.AbstractAstEvaluator;
 import com.elminster.jcp.eval.context.EvalContext;
@@ -14,7 +14,7 @@ import com.elminster.jcp.eval.excpetion.CannotCastException;
 import com.elminster.jcp.eval.excpetion.UndeclaredException;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
 
-import static com.elminster.jcp.ast.expression.operator.AssignmentOperator.PLUS_ASSIGNMENT;
+import static com.elminster.jcp.ast.expression.operation.operator.AssignmentOperator.PLUS_ASSIGNMENT;
 
 public class AssignmentEvaluator extends AbstractAstEvaluator {
 

@@ -2,8 +2,8 @@ package com.elminster.jcp.eval.test;
 
 import com.elminster.common.util.Assert;
 import com.elminster.jcp.ast.Identifier;
-import com.elminster.jcp.ast.expression.base.IdentifierExpression;
-import com.elminster.jcp.ast.statement.ParameterDef;
+import com.elminster.jcp.ast.expression.operation.IdentifierExpression;
+import com.elminster.jcp.ast.statement.function.ParameterDef;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.data.AnyData;
 import com.elminster.jcp.eval.data.DataType;
