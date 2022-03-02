@@ -1,6 +1,7 @@
 package com.elminster.jcp.eval.function;
 
 import com.elminster.jcp.ast.Node;
+import com.elminster.jcp.collection.FastStack;
 import com.elminster.jcp.eval.base.BlockEvaluator;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.Data;
@@ -21,7 +22,12 @@ abstract public class FunctionEvaluator extends BlockEvaluator {
     AbstractFunction function = (AbstractFunction) astNode;
     Data[] parameters = function.getArguments();
     DataType resultDataType = function.getResultDataType();
-    Map<String, Data> variables = evalContext.getVariables();
+    // nested function support
+    FastStack funcStack = evalContext.getFuncVariableStack();
+    int paramCount = parameters.length;
+    for (Data parameter : parameters) {
+      funcStack.push(parameter);
+    }
     try {
       Data result = doFunc(parameters, evalContext);
       if (!resultDataType.isCastableTo(result.getDataType())) {
@@ -29,7 +35,9 @@ abstract public class FunctionEvaluator extends BlockEvaluator {
       }
       return result;
     } finally {
-      evalContext.setVariables(variables);
+      for (int i = 0; i < paramCount; i++) {
+        funcStack.pop();
+      }
     }
   }
 

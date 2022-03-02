@@ -2,6 +2,7 @@ package com.elminster.jcp.eval.context;
 
 import com.elminster.common.util.Assert;
 import com.elminster.jcp.ast.Identifier;
+import com.elminster.jcp.collection.FastStack;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.excpetion.AlreadyDeclaredException;
@@ -17,6 +18,7 @@ public class EvalContextImpl implements EvalContext {
   private Map<String, Function> functions = new HashMap<>();
   private Map<String, DataType> dataTypes = new HashMap<>();
   private LoopContext loopContext;
+  private FastStack<Data> functionVariableStack = new FastStack<>();
 
   public EvalContextImpl() {
     init();
@@ -139,6 +141,11 @@ public class EvalContextImpl implements EvalContext {
   @Override
   public void setLoopContext(LoopContext loopContext) {
     this.loopContext = loopContext;
+  }
+
+  @Override
+  public FastStack<Data> getFuncVariableStack() {
+    return functionVariableStack;
   }
 
   @Override

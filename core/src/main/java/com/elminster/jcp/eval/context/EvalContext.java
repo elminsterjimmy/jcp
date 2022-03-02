@@ -1,5 +1,6 @@
 package com.elminster.jcp.eval.context;
 
+import com.elminster.jcp.collection.FastStack;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.ast.statement.Function;
@@ -30,4 +31,6 @@ public interface EvalContext {
   LoopContext getLoopContext();
 
   void setLoopContext(LoopContext loopContext);
+
+  FastStack<Data> getFuncVariableStack();
 }
