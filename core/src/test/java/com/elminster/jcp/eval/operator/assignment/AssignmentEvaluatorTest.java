@@ -14,7 +14,7 @@ import com.elminster.jcp.ast.statement.declaration.VariableDeclaration;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
 import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
-import com.elminster.jcp.eval.context.EvalContextImpl;
+import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.test.LogFunction;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,7 @@ class AssignmentEvaluatorTest {
                 .addStatement(new ExpressionStatement(assignmentExpression))
                 .addStatement(new ExpressionStatement(logCall));
 
-        EvalContext context = new EvalContextImpl();
+        EvalContext context = new RootEvalContext();
         context.addFunction(new LogFunction());
 
         EvalVisitor visitor = new EvalVisitor(context);

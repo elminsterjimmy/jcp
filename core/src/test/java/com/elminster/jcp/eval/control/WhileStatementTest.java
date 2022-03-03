@@ -18,7 +18,7 @@ import com.elminster.jcp.eval.test.LogFunction;
 import com.elminster.jcp.ast.statement.*;
 import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
-import com.elminster.jcp.eval.context.EvalContextImpl;
+import com.elminster.jcp.eval.context.RootEvalContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -84,7 +84,7 @@ public class WhileStatementTest {
     block.addStatement(vbVariable);
     block.addStatement(whileStatement);
 
-    EvalContext context = new EvalContextImpl();
+    EvalContext context = new RootEvalContext();
     context.addFunction(new LogFunction());
 
     EvalVisitor visitor = new EvalVisitor(context);

@@ -10,7 +10,7 @@ import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.ast.statement.function.Function;
 import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
-import com.elminster.jcp.eval.context.EvalContextImpl;
+import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.util.ModuleLoader;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -30,7 +30,7 @@ public class PrintlnFunctionTest {
         new Expression[] {new LiteralExpression(Literal.of("TEST"))});
     Statement statement = new ExpressionStatement(funcall);
 
-    EvalContext context = new EvalContextImpl();
+    EvalContext context = new RootEvalContext();
     ModuleLoader.INSTANCE.register(new PrintlnFunction());
 
     List<Function> functions = ModuleLoader.INSTANCE.loadModule(SystemModuleFunction.SYSTEM_MODULE_NAME);

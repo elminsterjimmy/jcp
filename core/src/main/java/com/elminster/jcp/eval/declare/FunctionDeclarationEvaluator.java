@@ -23,7 +23,7 @@ public class FunctionDeclarationEvaluator extends BlockEvaluator {
     Function function = new AbstractFunction(functionDeclaration.getId(),
         functionDeclaration.getParameterDefines(),
         functionDeclaration.getDataType(),
-        (Statement[]) CollectionUtil.collection2Array(functionDeclaration.getBody()));
+        functionDeclaration.getBody().toArray(new Statement[functionDeclaration.getBody().size()]));
     evalContext.addFunction(function);
     return AnyData.EMPTY;
   }

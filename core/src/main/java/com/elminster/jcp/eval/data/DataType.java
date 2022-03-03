@@ -32,6 +32,9 @@ public interface DataType {
     if (dataType == this) {
       return true;
     }
+    if (SystemDataType.ANY == dataType) {
+      return true;
+    }
     return false;
   }
 

@@ -40,7 +40,7 @@ abstract public class AstEvaluatorFactory {
       Constructor<Evaluable> constructor = ReflectUtil.getConstructor(clazz, Node.class);
       return constructor.newInstance(astNode);
     } catch (IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException(String.format("cannot get evaluator for node: %s", astNode), e);
     }
   }
 

@@ -15,8 +15,6 @@ public interface EvalContext {
 
   void addVariable(Data variable);
 
-  void setVariables(Map<String, Data> variables);
-
   Map<String, Function> getFunctions();
 
   void addFunction(Function function);
@@ -31,5 +29,5 @@ public interface EvalContext {
 
   void setLoopContext(LoopContext loopContext);
 
-  FastStack<Data> getFuncVariableStack();
+  FastStack<EvalContext> getContextStack();
 }

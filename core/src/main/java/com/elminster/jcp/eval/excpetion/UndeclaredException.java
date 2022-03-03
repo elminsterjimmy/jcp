@@ -20,7 +20,7 @@ public class UndeclaredException extends DeclarationException {
     throw new UndeclaredException.DataTypeUndeclaredException(identifier);
   }
 
-  static class FunctionUndeclaredException extends UndeclaredException {
+  public static class FunctionUndeclaredException extends UndeclaredException {
 
     private static final String MESSAGE_PATTERN = "Function [%s] with parameter [%s] undeclared.";
     private final Identifier identifier;
@@ -44,7 +44,7 @@ public class UndeclaredException extends DeclarationException {
     }
   }
 
-  static class VariableUndeclaredException extends UndeclaredException {
+  public static class VariableUndeclaredException extends UndeclaredException {
 
     private static final String MESSAGE_PATTERN = "Variable [%s] undeclared.";
     private final Identifier identifier;
@@ -60,7 +60,7 @@ public class UndeclaredException extends DeclarationException {
     }
   }
 
-  static class DataTypeUndeclaredException extends UndeclaredException {
+  public static class DataTypeUndeclaredException extends UndeclaredException {
 
     private static final String MESSAGE_PATTERN = "DataType [%s] undeclared.";
     private final Identifier identifier;

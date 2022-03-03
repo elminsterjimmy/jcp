@@ -37,7 +37,7 @@ public class LogFunction extends AbstractModuleFunction {
   public ParameterDef[] getParameterDefs() {
     return new ParameterDef[]{
         new ParameterDef(
-            "msg", DataType.SystemDataType.STRING)
+            "msg", DataType.SystemDataType.ANY)
     };
   }
 

@@ -20,7 +20,7 @@ public class AlreadyDeclaredException extends DeclarationException {
     throw new DataTypeAlreadyDeclaredException(identifier);
   }
 
-  static class FunctionAlreadyDeclaredException extends AlreadyDeclaredException {
+  public static class FunctionAlreadyDeclaredException extends AlreadyDeclaredException {
 
     private static final String MESSAGE_PATTERN = "Function [%s] with parameter [%s] already declared.";
     private final Function function;
@@ -43,7 +43,7 @@ public class AlreadyDeclaredException extends DeclarationException {
     }
   }
 
-  static class VariableAlreadyDeclaredException extends AlreadyDeclaredException {
+  public static class VariableAlreadyDeclaredException extends AlreadyDeclaredException {
 
     private static final String MESSAGE_PATTERN = "Variable [%s] already declared.";
     private final Identifier identifier;
@@ -59,7 +59,7 @@ public class AlreadyDeclaredException extends DeclarationException {
     }
   }
 
-  static class DataTypeAlreadyDeclaredException extends AlreadyDeclaredException {
+  public static class DataTypeAlreadyDeclaredException extends AlreadyDeclaredException {
 
     private static final String MESSAGE_PATTERN = "DataType [%s] already declared.";
     private final Identifier identifier;

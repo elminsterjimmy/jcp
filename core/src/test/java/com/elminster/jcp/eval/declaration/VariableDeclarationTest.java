@@ -12,7 +12,7 @@ import com.elminster.jcp.ast.statement.declaration.VariableDeclaration;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
 import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
-import com.elminster.jcp.eval.context.EvalContextImpl;
+import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.excpetion.CannotCastException;
 import com.elminster.jcp.eval.test.LogFunction;
@@ -39,7 +39,7 @@ public class VariableDeclarationTest {
         block.addStatement(variableDeclaration)
                 .addStatement(new ExpressionStatement(logCall));
 
-        EvalContext context = new EvalContextImpl();
+        EvalContext context = new RootEvalContext();
         context.addFunction(new LogFunction());
 
         EvalVisitor visitor = new EvalVisitor(context);
@@ -63,7 +63,7 @@ public class VariableDeclarationTest {
         block.addStatement(variableDeclaration)
                 .addStatement(new ExpressionStatement(logCall));
 
-        EvalContext context = new EvalContextImpl();
+        EvalContext context = new RootEvalContext();
         context.addFunction(new LogFunction());
 
         EvalVisitor visitor = new EvalVisitor(context);
@@ -83,7 +83,7 @@ public class VariableDeclarationTest {
                 DataType.SystemDataType.STRING, new LiteralExpression(IntLiteral.of(1)));
 
         block.addStatement(variableDeclaration);
-        EvalContext context = new EvalContextImpl();
+        EvalContext context = new RootEvalContext();
         EvalVisitor visitor = new EvalVisitor(context);
         assertThrows(CannotCastException.class, () -> visitor.visit(block));
 

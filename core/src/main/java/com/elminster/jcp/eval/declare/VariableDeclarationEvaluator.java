@@ -25,11 +25,7 @@ public class VariableDeclarationEvaluator extends AbstractAstEvaluator {
     VariableDeclaration variableDeclaration = (VariableDeclaration) astNode;
     Identifier id = variableDeclaration.getId();
     Expression initExpress = variableDeclaration.getInit();
-    Data variable = evalContext.getVariable(id.getId());
-    if (null != variable) {
-      AlreadyDeclaredException.throwVariableAlreadyDeclaredException(id);
-    }
-    variable = DataFactory.INSTANCE.createSystemDataVariable(id,
+    Data variable = DataFactory.INSTANCE.createSystemDataVariable(id,
         DataTypeUtils.getDataType(variableDeclaration.getDataType().getName(), evalContext));
     evalContext.addVariable(variable);
     if (null != initExpress) {

@@ -5,7 +5,7 @@ import com.elminster.jcp.ast.expression.operation.BinaryExpressionImpl;
 import com.elminster.jcp.ast.expression.literal.IntLiteral;
 import com.elminster.jcp.ast.expression.operation.operator.RelationalOperator;
 import com.elminster.jcp.eval.base.ExpressionEvaluator;
-import com.elminster.jcp.eval.context.EvalContextImpl;
+import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.eval.data.BooleanData;
 import com.elminster.jcp.eval.data.Data;
 import org.junit.jupiter.api.Assertions;
@@ -137,7 +137,7 @@ class CompareEvaluatorTest {
     @ParameterizedTest
     @MethodSource("getCompareEvaluatorAndExpected")
     void testCompareEvaluator_eval(ExpressionEvaluator compareEvaluator, Boolean expected) {
-        Data eval = compareEvaluator.eval(new EvalContextImpl());
+        Data eval = compareEvaluator.eval(new RootEvalContext());
         Assertions.assertEquals(BooleanData.class, eval.getClass());
         Assertions.assertEquals(expected, eval.get());
     }

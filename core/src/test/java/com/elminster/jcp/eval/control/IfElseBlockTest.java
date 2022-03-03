@@ -13,7 +13,7 @@ import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
-import com.elminster.jcp.eval.context.EvalContextImpl;
+import com.elminster.jcp.eval.context.RootEvalContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -44,7 +44,7 @@ public class IfElseBlockTest {
     IfElseStatement ifElseStatement = new IfElseStatement(
         ifBlock, elseBlock, condition);
 
-    EvalContext context = new EvalContextImpl();
+    EvalContext context = new RootEvalContext();
     context.addFunction(new LogFunction());
 
     EvalVisitor visitor = new EvalVisitor(context);
