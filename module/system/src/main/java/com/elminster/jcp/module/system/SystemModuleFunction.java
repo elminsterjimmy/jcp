@@ -1,4 +1,4 @@
-package com.elminster.jcp.ast.func.module.system;
+package com.elminster.jcp.module.system;
 
 import com.elminster.jcp.module.AbstractModuleFunction;
 

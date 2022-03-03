@@ -1,4 +1,4 @@
-package com.elminster.jcp.ast.func.module.system;
+package com.elminster.jcp.module.system;
 
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Identifier;
@@ -6,6 +6,7 @@ import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.expression.literal.Literal;
 import com.elminster.jcp.ast.expression.LiteralExpression;
 import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
+import com.elminster.jcp.ast.expression.literal.StringLiteral;
 import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.ast.statement.function.Function;
 import com.elminster.jcp.eval.EvalVisitor;
@@ -26,12 +27,12 @@ public class PrintlnFunctionTest {
 
   @Test
   public void testPrintlnFunction() {
-    FunctionCallExpression funcall = new FunctionCallExpression(Identifier.fromName("println"),
-        new Expression[] {new LiteralExpression(Literal.of("TEST"))});
+    FunctionCallExpression funcall = new FunctionCallExpression(Identifier.fromName("print"),
+        new Expression[] {new LiteralExpression(StringLiteral.of("TEST"))});
     Statement statement = new ExpressionStatement(funcall);
 
     EvalContext context = new RootEvalContext();
-    ModuleLoader.INSTANCE.register(new PrintlnFunction());
+    ModuleLoader.INSTANCE.register(new PrintFunction());
 
     List<Function> functions = ModuleLoader.INSTANCE.loadModule(SystemModuleFunction.SYSTEM_MODULE_NAME);
     for (Function function : functions) {

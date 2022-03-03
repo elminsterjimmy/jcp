@@ -1,4 +1,4 @@
-package com.elminster.jcp.ast.func.module.system;
+package com.elminster.jcp.module.system;
 
 import com.elminster.common.util.Assert;
 import com.elminster.jcp.ast.Identifier;
@@ -8,11 +8,11 @@ import com.elminster.jcp.eval.data.AnyData;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 
-public class PrintlnFunction extends SystemModuleFunction {
+public class PrintFunction extends SystemModuleFunction {
 
   @Override
   public String getName() {
-    return "PRINTLN";
+    return "PRINT";
   }
 
   @Override
@@ -25,7 +25,7 @@ public class PrintlnFunction extends SystemModuleFunction {
 
   @Override
   public Identifier getId() {
-    return Identifier.fromName("println");
+    return Identifier.fromName("print");
   }
 
   @Override
