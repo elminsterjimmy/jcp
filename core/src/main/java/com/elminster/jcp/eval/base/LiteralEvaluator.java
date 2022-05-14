@@ -19,10 +19,10 @@ public class LiteralEvaluator extends AbstractAstEvaluator {
   public Data eval(EvalContext evalContext) {
     LiteralExpression literalExpression = (LiteralExpression) astNode;
     Literal literal = literalExpression.getLiteral();
-    return literalToData(literal);
+    return literalToData(literal, evalContext);
   }
 
-  private Data literalToData(Literal literal) {
+  private Data literalToData(Literal literal, EvalContext evalContext) {
     if (literal instanceof StringLiteral) {
       return StringData.newString(((StringLiteral) literal).getValue());
     } else if (literal instanceof BooleanLiteral) {
@@ -31,7 +31,7 @@ public class LiteralEvaluator extends AbstractAstEvaluator {
       return IntegerData.constInt(((IntLiteral) literal).getValue());
     } else {
       Object value = literal.getValue();
-      return DataFactory.INSTANCE.createConstValue(value);
+      return DataFactory.INSTANCE.createConstValue(value, evalContext);
     }
   }
 }

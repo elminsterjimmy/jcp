@@ -1,6 +1,8 @@
 package com.elminster.jcp.eval.data;
 
 import com.elminster.jcp.ast.Identifier;
+import com.elminster.jcp.eval.context.EvalContext;
+import com.elminster.jcp.util.DataTypeUtils;
 import org.apache.commons.lang3.ClassUtils;
 
 public class DataFactory {
@@ -8,15 +10,15 @@ public class DataFactory {
 
   private DataFactory() {}
 
-  public Data createSystemDataVariable(Identifier id, DataType dataType, Object value) {
-    return createSystemData(id, dataType, value, false);
+  public Data createVariable(Identifier id, DataType dataType, Object value) {
+    return createData(id, dataType, value, false);
   }
 
   public Data createSystemDataConst(Identifier id, DataType dataType, Object value) {
-    return createSystemData(id, dataType, value,true);
+    return createData(id, dataType, value,true);
   }
 
-  public <T> Data createConstValue(T value) {
+  public <T> Data createConstValue(T value, EvalContext evalContext) {
     if (null == value) {
       return new AnyData(null, true);
     }
@@ -32,11 +34,18 @@ public class DataFactory {
         return new AnyData(value, true);
       }
     } else {
-      return new AnyData(value, true);
+      DataType dataType = DataTypeUtils.getDataType(clazz.getSimpleName(), evalContext);
+      return new AnyData(value, true) {
+
+        @Override
+        public DataType getDataType() {
+          return dataType;
+        }
+      };
     }
   }
 
-  private Data createSystemData(Identifier id, DataType dataType, Object value, boolean isConst) {
+  private Data createData(Identifier id, DataType dataType, Object value, boolean isConst) {
     Data data = null;
     if (dataType instanceof DataType.SystemDataType) {
       switch((DataType.SystemDataType)dataType) {
@@ -68,7 +77,7 @@ public class DataFactory {
           throw new IllegalStateException("Unknown data type [" + dataType + "]");
       }
     } else {
-      return new AnyData(null, isConst) {
+      return new AnyData(id, null, isConst) {
 
         @Override
         public DataType getDataType() {
@@ -79,7 +88,7 @@ public class DataFactory {
     return data;
   }
 
-  public Data createSystemDataVariable(Identifier id, DataType dataType) {
-    return createSystemDataVariable(id, dataType, null);
+  public Data createVariable(Identifier id, DataType dataType) {
+    return createVariable(id, dataType, null);
   }
 }

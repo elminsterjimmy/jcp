@@ -26,7 +26,7 @@ abstract public class AstEvaluatorFactory {
               .map(clazz -> clazz.load())
               .collect(Collectors.toMap(Class::getSimpleName, Function.identity()));
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("failed to load the system evaluators", e);
     }
   }
 

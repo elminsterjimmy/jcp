@@ -7,13 +7,13 @@ import com.elminster.jcp.ast.expression.literal.StringLiteral;
 import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.statement.control.IfElseStatement;
-import com.elminster.jcp.eval.test.LogFunction;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.context.RootEvalContext;
+import com.elminster.jcp.module.base.Logger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -25,27 +25,27 @@ public class IfElseBlockTest {
 
   /**
    * if (true) {
- *     log(TRUE)
+ *     Logger.log(TRUE)
    * } else {
- *     log(FALSE)
+ *     Logger.log(FALSE)
    * }
    */
   @Test
   public void testIfElseBlock() {
-    FunctionCallExpression logCall = new FunctionCallExpression(new IdentifierExpression("log"),
+    FunctionCallExpression logCall = new FunctionCallExpression(new IdentifierExpression("Logger.log"),
         new Expression[]{new LiteralExpression(StringLiteral.of("TRUE"))});
     Expression condition = new LiteralExpression(Literal.of(true));
     Block ifBlock = new BlockImpl();
     ifBlock.addStatement(new ExpressionStatement(logCall));
     Block elseBlock = new BlockImpl();
-    elseBlock.addStatement(new ExpressionStatement(new FunctionCallExpression(new IdentifierExpression("log"),
+    elseBlock.addStatement(new ExpressionStatement(new FunctionCallExpression
+            (new IdentifierExpression("Logger.log"),
             new Expression[]{new LiteralExpression(StringLiteral.of("FALSE"))})));
 
     IfElseStatement ifElseStatement = new IfElseStatement(
         ifBlock, elseBlock, condition);
 
     EvalContext context = new RootEvalContext();
-    context.addFunction(new LogFunction());
 
     EvalVisitor visitor = new EvalVisitor(context);
     visitor.visit(ifElseStatement);

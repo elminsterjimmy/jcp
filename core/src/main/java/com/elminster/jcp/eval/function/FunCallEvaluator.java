@@ -19,6 +19,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * The function call evaluator.
+ *
+ * @author jgu
+ * @version 1.0
+ */
 public class FunCallEvaluator extends AbstractAstEvaluator {
 
   public FunCallEvaluator(Node astNode) {
@@ -47,7 +53,8 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
 
     String functionName = functionCallExpression.getId().getId();
 
-    List<Function> functionCandidates = getFunctionCandidates(functionName, argumentData, evalContext);
+    List<Function> functionCandidates = getFunctionCandidates(functionName,
+            argumentData, evalContext);
     int functionCandidateSize = functionCandidates.size();
     if (0 == functionCandidateSize) {
       DataType[] dataTypes = Arrays.stream(argumentData).map(

@@ -4,7 +4,7 @@ import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.util.FunctionUtils;
 
-public class FunctionAmbiguityException  extends EvaluationException {
+public class FunctionAmbiguityException extends EvaluationException {
 
     private static final String MESSAGE_PATTERN = "ambiguous function call: %s";
 

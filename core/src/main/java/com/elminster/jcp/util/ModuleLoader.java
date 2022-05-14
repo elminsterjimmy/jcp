@@ -8,60 +8,37 @@ import java.util.*;
 public class ModuleLoader {
   public static final ModuleLoader INSTANCE = new ModuleLoader();
 
-  private Map<String, List<Function>> cache = new HashMap<>();
+  private Map<String, Set<Function>> moduleFunctions = new HashMap<>();
+  private Map<String, Set<Class<?>>> moduleClasses = new HashMap<>();
 
   private ModuleLoader() {
 
   }
 
-  public List<Function> loadModule(String moduleName) {
-    List<Function> set = cache.get(moduleName);
-    return Optional.ofNullable(set).orElse(Collections.emptyList());
+  public Set<Function> loadModuleFunctions(String moduleName) {
+    return Optional.ofNullable(moduleFunctions.get(moduleName)).orElse(Collections.emptySet());
   }
 
-  public void register(ModuleFunction function) {
+  public Set<Class<?>> loadModuleClasses(String moduleName) {
+    return Optional.ofNullable(moduleClasses.get(moduleName)).orElse(Collections.emptySet());
+  }
+
+  public synchronized void registerModuleClass(Class<?> clazz, String moduleName) {
+    Set<Class<?>> moduleClass = moduleClasses.get(moduleName);
+    if (null == moduleClass) {
+      moduleClass = new HashSet<>();
+      moduleClasses.put(moduleName, moduleClass);
+    }
+    moduleClass.add(clazz);
+  }
+
+  public synchronized void registerModuleFunction(ModuleFunction function) {
     String moduleName = function.getModule();
-    List<Function> functions = cache.get(moduleName);
+    Set<Function> functions = moduleFunctions.get(moduleName);
     if (null == functions) {
-      functions = new LinkedList<>();
-      cache.put(moduleName, functions);
+      functions = new HashSet<>();
+      moduleFunctions.put(moduleName, functions);
     }
-    if (!functions.contains(function)) {
-      functions.add(function);
-    }
+    functions.add(function);
   }
-
-//  /**
-//   * FIXME: could be not loaded yet.
-//   */
-//  private void initCache() {
-//    ClassLoader cl = this.getClass().getClassLoader();
-//    Vector<Class<?>> classes = null;
-//    try {
-//      classes = (Vector<Class<?>>) ReflectUtil.getFieldValue(cl, "classes");
-//    } catch (IllegalAccessException e) {
-//      e.printStackTrace();
-//    }
-//    for (int i = 0; i < classes.size(); i++) {
-//      Class<?> clazz = classes.get(i);
-//      if (ModuleFunction.class.isAssignableFrom(clazz)) {
-//        try {
-//          ModuleFunction function = (ModuleFunction) clazz.newInstance();
-//          String module = function.getModule();
-//          Set<Function> functions = cache.get(module);
-//          if (null == functions) {
-//            functions = new TreeSet<>();
-//            cache.put(module, functions);
-//          }
-//          if (!functions.contains(function)) {
-//            functions.add(function);
-//          }
-//        } catch (InstantiationException e) {
-//          e.printStackTrace();
-//        } catch (IllegalAccessException e) {
-//          e.printStackTrace();
-//        }
-//      }
-//    }
-//  }
 }

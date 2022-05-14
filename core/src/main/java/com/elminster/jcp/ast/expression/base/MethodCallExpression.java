@@ -6,14 +6,14 @@ import com.elminster.jcp.eval.data.Data;
 
 public class MethodCallExpression extends AbstractExpression {
 
-  private Data data;
+  private Expression expression;
   private String methodName;
-  private Expression[] argurements;
+  private Expression[] arguments;
 
-  public MethodCallExpression(Data data, String methodName, Expression[] argurements) {
-    this.data = data;
+  public MethodCallExpression(Expression expression, String methodName, Expression... arguments) {
+    this.expression = expression;
     this.methodName = methodName;
-    this.argurements = argurements;
+    this.arguments = arguments;
   }
 
   @Override
@@ -21,13 +21,8 @@ public class MethodCallExpression extends AbstractExpression {
     return "METHOD_CALL";
   }
 
-  /**
-   * Gets data.
-   *
-   * @return value of data
-   */
-  public Data getData() {
-    return data;
+  public Expression getExpression() {
+    return expression;
   }
 
   /**
@@ -44,7 +39,7 @@ public class MethodCallExpression extends AbstractExpression {
    *
    * @return value of argurements
    */
-  public Expression[] getArgurements() {
-    return argurements;
+  public Expression[] getArguments() {
+    return arguments;
   }
 }

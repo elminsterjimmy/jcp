@@ -8,4 +8,8 @@ public class Equal extends CompareExpression {
   public Equal(Expression leftOperand, Expression rightOperand) {
     super(leftOperand, rightOperand, RelationalOperator.EQUAL);
   }
+
+  public static Equal of(Expression leftOperand, Expression rightOperand) {
+    return new Equal(leftOperand, rightOperand);
+  }
 }

@@ -12,11 +12,27 @@ import com.elminster.jcp.eval.context.EvalContext;
 public class DataTypeUtils {
 
   public static DataType getDataType(String name, EvalContext ctx) {
+    if (isArray(name)) {
+      String baseTypeName = name.substring(0, name.length() - 2);
+      DataType baseType = getDataType(baseTypeName, ctx);
+      return new AbstractDataType() {
+        @Override
+        public String getName() {
+          return baseType.getName() + "[]";
+        }
+      };
+    } else {
+      return ctx.getDataType(name);
+    }
+  }
+
+  public static DataType getDataTypeAndCreateOnMissing(String name, EvalContext ctx) {
     DataType dt = ctx.getDataType(name);
+    // data type not found
     if (null == dt) {
       if (isArray(name)) {
         String baseTypeName = name.substring(0, name.length() - 2);
-        DataType baseType = getDataType(baseTypeName, ctx);
+        DataType baseType = getDataTypeAndCreateOnMissing(baseTypeName, ctx);
         dt = new AbstractDataType() {
           @Override
           public String getName() {
@@ -39,7 +55,7 @@ public class DataTypeUtils {
     return name.endsWith("[]");
   }
 
-  public static DataType getDataType(LiteralExpression literalExpression) {
+  public static DataType getDataTypeAndCreateOnMissing(LiteralExpression literalExpression) {
     if (literalExpression instanceof StringLiteral) {
       return DataType.SystemDataType.STRING;
     }

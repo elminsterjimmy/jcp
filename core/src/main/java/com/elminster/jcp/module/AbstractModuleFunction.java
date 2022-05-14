@@ -46,5 +46,5 @@ abstract public class AbstractModuleFunction implements ModuleFunction {
     return FunctionUtils.generateFunctionFullName(getId(), getParameterDefs());
   }
 
-  protected abstract Data doFunction(Data[] parameters, EvalContext evalContext);
+  protected abstract Data doFunction(Data[] arguments, EvalContext evalContext);
 }

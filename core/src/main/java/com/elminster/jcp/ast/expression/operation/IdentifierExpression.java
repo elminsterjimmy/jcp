@@ -11,6 +11,10 @@ public class IdentifierExpression extends AbstractExpression implements Identifi
     this.id = id;
   }
 
+  public static IdentifierExpression of(String id) {
+    return new IdentifierExpression(id);
+  }
+
   @Override
   public String getName() {
     return "IDENTIFIER";

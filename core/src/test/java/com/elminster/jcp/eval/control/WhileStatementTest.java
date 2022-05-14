@@ -2,23 +2,26 @@ package com.elminster.jcp.eval.control;
 
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Statement;
+import com.elminster.jcp.ast.expression.LiteralExpression;
+import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
+import com.elminster.jcp.ast.expression.base.VariableExpression;
 import com.elminster.jcp.ast.expression.literal.Literal;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
 import com.elminster.jcp.ast.expression.operation.*;
+import com.elminster.jcp.ast.statement.Block;
+import com.elminster.jcp.ast.statement.BlockImpl;
+import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.ast.statement.control.BreakStatement;
 import com.elminster.jcp.ast.statement.control.ContinueStatement;
 import com.elminster.jcp.ast.statement.control.IfElseStatement;
 import com.elminster.jcp.ast.statement.control.WhileStatement;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclaration;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
-import com.elminster.jcp.eval.data.*;
-import com.elminster.jcp.ast.expression.LiteralExpression;
-import com.elminster.jcp.ast.expression.base.*;
-import com.elminster.jcp.eval.test.LogFunction;
-import com.elminster.jcp.ast.statement.*;
 import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.context.RootEvalContext;
+import com.elminster.jcp.eval.data.AbstractDataType;
+import com.elminster.jcp.eval.data.DataType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -60,7 +63,7 @@ public class WhileStatementTest {
     Expression whileCondition = new LiteralExpression(Literal.of(true));
 
     Block body = new BlockImpl();
-    FunctionCallExpression logCall = new FunctionCallExpression(new IdentifierExpression("log"),
+    FunctionCallExpression logCall = new FunctionCallExpression(new IdentifierExpression("Logger.log"),
         new Expression[]{new Plus(
             new LiteralExpression(StringLiteral.of("body")),
             new VariableExpression(new IdentifierExpression("i")))});
@@ -85,7 +88,6 @@ public class WhileStatementTest {
     block.addStatement(whileStatement);
 
     EvalContext context = new RootEvalContext();
-    context.addFunction(new LogFunction());
 
     EvalVisitor visitor = new EvalVisitor(context);
     visitor.visit(block);

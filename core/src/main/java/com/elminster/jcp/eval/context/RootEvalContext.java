@@ -3,10 +3,15 @@ package com.elminster.jcp.eval.context;
 import com.elminster.jcp.ast.statement.function.Function;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.module.vb.ValueBuffer;
+import com.elminster.jcp.module.base.Assertions;
+import com.elminster.jcp.module.base.BaseModuleRegister;
+import com.elminster.jcp.module.base.ValueBuffer;
 import com.elminster.jcp.util.ClassConverter;
+import com.elminster.jcp.util.ModuleLoader;
 
 import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 public class RootEvalContext extends DefaultEvalContext {
 
@@ -22,7 +27,8 @@ public class RootEvalContext extends DefaultEvalContext {
   }
 
   private void registerSystemFunctions() {
-    ClassConverter.registerClass(ValueBuffer.class, this, "base");
+    List<Class<?>> classes = BaseModuleRegister.classToRegister();
+    classes.forEach(clazz -> ClassConverter.registerClass(clazz, this, "base"));
   }
 
   private void registerSystemDataTypes() {

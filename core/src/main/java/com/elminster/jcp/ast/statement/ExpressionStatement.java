@@ -13,6 +13,10 @@ public class ExpressionStatement extends AbstractStatement implements Statement 
     this.expression = expression;
   }
 
+  public static ExpressionStatement of(Expression expression) {
+    return new ExpressionStatement(expression);
+  }
+
   @Override
   public String getName() {
     return "EXPRESSION_STATEMENT";

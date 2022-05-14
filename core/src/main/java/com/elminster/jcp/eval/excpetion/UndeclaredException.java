@@ -38,9 +38,9 @@ public class UndeclaredException extends DeclarationException {
     }
 
     private static String generateMessage(Identifier identifier, DataType... dataTypes) {
-      StringJoiner parameterJoiner = new StringJoiner(" ");
+      StringJoiner parameterJoiner = new StringJoiner(", ");
       Arrays.stream(dataTypes).forEach(dataType -> parameterJoiner.add(dataType.getName()));
-      return String.format(MESSAGE_PATTERN, identifier.getId(), parameterJoiner.toString());
+      return String.format(MESSAGE_PATTERN, identifier.getId(), parameterJoiner);
     }
   }
 

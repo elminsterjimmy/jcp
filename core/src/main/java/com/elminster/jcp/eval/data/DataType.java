@@ -32,6 +32,9 @@ public interface DataType {
     if (dataType == this) {
       return true;
     }
+    if (dataType.getName().equals(getName())) {
+      return true;
+    }
     if (SystemDataType.ANY == dataType) {
       return true;
     }

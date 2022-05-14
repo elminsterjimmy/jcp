@@ -15,6 +15,12 @@ import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
 
 import java.util.List;
 
+/**
+ * This is an internal call for a function.
+ *
+ * @author jgu
+ * @version 1.0
+ */
 public class FunctionEvaluator extends BlockEvaluator {
 
   public FunctionEvaluator(Node astNode) {

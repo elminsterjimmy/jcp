@@ -11,6 +11,14 @@ public class LiteralExpression extends AbstractExpression {
     this.literal = literal;
   }
 
+  public static LiteralExpression of(Literal literal) {
+    return new LiteralExpression(literal);
+  }
+
+  public static <T> LiteralExpression of(T value) {
+    return new LiteralExpression(Literal.of(value));
+  }
+
   @Override
   public String getName() {
     return "LITERAL";

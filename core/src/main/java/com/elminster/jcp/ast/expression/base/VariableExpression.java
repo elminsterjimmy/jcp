@@ -11,6 +11,14 @@ public class VariableExpression extends AbstractExpression {
     this.id = id;
   }
 
+  public static VariableExpression of(Identifier id) {
+    return new VariableExpression(id);
+  }
+
+  public static VariableExpression of(String name) {
+    return new VariableExpression(Identifier.fromName(name));
+  }
+
   @Override
   public String getName() {
     return "VARIABLE";
