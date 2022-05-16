@@ -9,7 +9,7 @@ public class LoopContextImpl implements LoopContext {
   private AtomicInteger time = new AtomicInteger(0);
   private LoopContext parent = null;
   private LoopEvaluator loopStatement = null;
-  private boolean breakCurrentLoop = false;
+  private volatile boolean breakCurrentLoop = false;
 
   public LoopContextImpl(LoopEvaluator loopStatement) {
     this.loopStatement = loopStatement;

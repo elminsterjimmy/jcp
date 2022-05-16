@@ -39,7 +39,9 @@ abstract public class AstEvaluatorFactory {
       Class clazz = SYSTEM_EVALUATOR.get(getEvaluatorClassName(name));
       Constructor<Evaluable> constructor = ReflectUtil.getConstructor(clazz, Node.class);
       return constructor.newInstance(astNode);
-    } catch (IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException e) {
+    } catch (NullPointerException | IllegalAccessException
+            | InstantiationException | InvocationTargetException
+            | NoSuchMethodException e) {
       throw new RuntimeException(String.format("cannot get evaluator for node: %s", astNode), e);
     }
   }

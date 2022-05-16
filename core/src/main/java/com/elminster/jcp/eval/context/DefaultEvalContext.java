@@ -6,6 +6,7 @@ import com.elminster.jcp.collection.FastStack;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.excpetion.AlreadyDeclaredException;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ public class DefaultEvalContext implements EvalContext {
     private Map<String, DataType> dataTypes = new HashMap<>();
     private LoopContext loopContext;
     private FastStack<EvalContext> contextStack = new FastStack<>();
+    private volatile boolean isReturn = false;
 
     public DefaultEvalContext() {
     }
@@ -135,13 +137,17 @@ public class DefaultEvalContext implements EvalContext {
     }
 
     @Override
+    public boolean isReturn() {
+        return isReturn;
+    }
+
+    @Override
+    public void setReturn(boolean isReturn) {
+        this.isReturn = isReturn;
+    }
+
+    @Override
     public String toString() {
-        return "DefaultEvalContext{" +
-                "variables=" + variables +
-                ", functions=" + functions +
-                ", dataTypes=" + dataTypes +
-                ", loopContext=" + loopContext +
-                ", contextStack=" + contextStack +
-                '}';
+        return ToStringBuilder.reflectionToString(this);
     }
 }

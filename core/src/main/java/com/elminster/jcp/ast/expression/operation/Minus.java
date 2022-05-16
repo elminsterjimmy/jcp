@@ -8,4 +8,8 @@ public class Minus extends ArithmeticExpression {
   public Minus(Expression leftOperand, Expression rightOperand) {
     super(leftOperand, rightOperand, ArithmeticOperator.MINUS);
   }
+
+  public static Minus of(Expression leftOperand, Expression rightOperand) {
+    return new Minus(leftOperand, rightOperand);
+  }
 }

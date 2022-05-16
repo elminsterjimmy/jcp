@@ -6,6 +6,7 @@ import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.util.FunctionUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class AbstractFunction extends BlockImpl implements Function {
 
@@ -60,5 +61,10 @@ public class AbstractFunction extends BlockImpl implements Function {
   @Override
   public String getName() {
     return "FUNCTION";
+  }
+
+  @Override
+  public String toString() {
+    return ToStringBuilder.reflectionToString(this);
   }
 }

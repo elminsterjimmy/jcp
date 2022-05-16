@@ -29,12 +29,12 @@ public class IfelseEvaluator extends ControlEvaluator {
     if (checkCondition(condition, evalContext)) {
       logger.debug("[{}] condition [TRUE]", astNode.getName());
       Evaluable evaluable = AstEvaluatorFactory.getEvaluator(ifStatement);
-      evaluable.eval(evalContext);
+      return evaluable.eval(evalContext);
     } else {
       logger.debug("[{}] condition [FALSE]", astNode.getName());
       if (null != elseStatement) {
         Evaluable evaluable = AstEvaluatorFactory.getEvaluator(elseStatement);
-        evaluable.eval(evalContext);
+        return evaluable.eval(evalContext);
       }
     }
     return AnyData.EMPTY;

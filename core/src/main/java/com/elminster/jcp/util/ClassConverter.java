@@ -81,12 +81,7 @@ public class ClassConverter {
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     throwInvokeException(e);
                 }
-                return new AnyData(result) {
-                    @Override
-                    public DataType getDataType() {
-                        return returnDataType;
-                    }
-                };
+                return new AnyData(result, returnDataType);
             }
         };
         context.addFunction(function);
@@ -182,12 +177,7 @@ public class ClassConverter {
                 } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
                     throwInvokeException(e);
                 }
-                return new AnyData(result) {
-                    @Override
-                    public DataType getDataType() {
-                        return returnDt;
-                    }
-                };
+                return new AnyData(result, returnDt);
             }
         };
         context.addFunction(function);
@@ -232,12 +222,7 @@ public class ClassConverter {
                     protected Data doFunction(Data[] parameters, EvalContext evalContext) {
                         Object[] argValues = getArgumentValues(arguments);
                         try {
-                            return new AnyData(constructor.newInstance(argValues)) {
-                                @Override
-                                public DataType getDataType() {
-                                    return dt;
-                                }
-                            };
+                            return new AnyData(constructor.newInstance(argValues), dt);
                         } catch (Exception e) {
                             throw new InitializeException(e);
                         }

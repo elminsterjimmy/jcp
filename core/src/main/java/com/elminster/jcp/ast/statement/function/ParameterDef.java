@@ -12,6 +12,10 @@ public class ParameterDef {
     this.dataType = dataType;
   }
 
+  public static ParameterDef of(String id, DataType dataType) {
+    return new ParameterDef(id, dataType);
+  }
+
   /**
    * Gets id.
    *

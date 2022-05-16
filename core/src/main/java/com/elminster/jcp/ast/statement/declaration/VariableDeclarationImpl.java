@@ -21,6 +21,14 @@ public class VariableDeclarationImpl extends AbstractStatement implements Variab
     this.initExpress = initExpress;
   }
 
+  public VariableDeclarationImpl(String id, DataType dataType) {
+    this(id, dataType, null);
+  }
+
+  public VariableDeclarationImpl(String id, DataType dataType, Expression initExpress) {
+    this(Identifier.fromName(id), dataType, initExpress);
+  }
+
   @Override
   public Identifier getId() {
     return id;

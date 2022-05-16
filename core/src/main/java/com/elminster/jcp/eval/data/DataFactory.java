@@ -35,13 +35,7 @@ public class DataFactory {
       }
     } else {
       DataType dataType = DataTypeUtils.getDataType(clazz.getSimpleName(), evalContext);
-      return new AnyData(value, true) {
-
-        @Override
-        public DataType getDataType() {
-          return dataType;
-        }
-      };
+      return new AnyData(value, dataType, true);
     }
   }
 
@@ -77,13 +71,7 @@ public class DataFactory {
           throw new IllegalStateException("Unknown data type [" + dataType + "]");
       }
     } else {
-      return new AnyData(id, null, isConst) {
-
-        @Override
-        public DataType getDataType() {
-          return dataType;
-        }
-      };
+      return new AnyData(id, dataType, null, isConst);
     }
     return data;
   }

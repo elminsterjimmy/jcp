@@ -30,4 +30,8 @@ public interface EvalContext {
   void setLoopContext(LoopContext loopContext);
 
   FastStack<EvalContext> getContextStack();
+
+  boolean isReturn();
+
+  void setReturn(boolean isReturn);
 }

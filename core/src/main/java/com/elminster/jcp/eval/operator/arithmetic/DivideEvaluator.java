@@ -2,6 +2,7 @@ package com.elminster.jcp.eval.operator.arithmetic;
 
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.eval.data.Data;
+import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.IntegerData;
 import com.elminster.jcp.eval.operator.arithmetic.ArithmeticEvaluator;
 
@@ -14,11 +15,12 @@ public class DivideEvaluator extends ArithmeticEvaluator {
   @Override
   protected Data doBinaryOp(Data leftOperand, Data rightOperand) {
     // integer
-    if (leftOperand instanceof IntegerData) {
-      // * integer
-      Integer leftValue = ((IntegerData) leftOperand).get();
-      if (rightOperand instanceof IntegerData) {
-        Integer rightValue = ((IntegerData) rightOperand).get();
+    if (DataType.SystemDataType.INT == leftOperand.getDataType()) {
+      // - integer
+      Integer leftValue = ((Integer) leftOperand.get());
+      if (DataType.SystemDataType.INT == rightOperand.getDataType()
+              || rightOperand.getDataType().isCastableTo(DataType.SystemDataType.INT)) {
+        Integer rightValue = ((Integer) rightOperand.get());
         return new IntegerData(leftValue / rightValue);
       }
     }

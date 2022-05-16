@@ -8,6 +8,7 @@ import com.elminster.jcp.module.base.BaseModuleRegister;
 import com.elminster.jcp.module.base.ValueBuffer;
 import com.elminster.jcp.util.ClassConverter;
 import com.elminster.jcp.util.ModuleLoader;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.util.Iterator;
 import java.util.List;
@@ -76,7 +77,17 @@ public class RootEvalContext extends DefaultEvalContext {
   }
 
   @Override
+  public boolean isReturn() {
+    return getContextStack().peek().isReturn();
+  }
+
+  @Override
+  public void setReturn(boolean isReturn) {
+      getContextStack().peek().setReturn(isReturn);
+  }
+
+  @Override
   public String toString() {
-    return "RootEvalContext{}";
+    return ToStringBuilder.reflectionToString(this);
   }
 }
