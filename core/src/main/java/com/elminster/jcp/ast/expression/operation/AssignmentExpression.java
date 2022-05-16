@@ -11,7 +11,9 @@ public class AssignmentExpression extends AbstractExpression {
   private AssignmentOperator operation;
   private Expression expression;
 
-  public AssignmentExpression(Identifier id, AssignmentOperator operation, Expression expression) {
+  public AssignmentExpression(Identifier id,
+                              AssignmentOperator operation,
+                              Expression expression) {
     this.id = id;
     this.operation = operation;
     this.expression = expression;

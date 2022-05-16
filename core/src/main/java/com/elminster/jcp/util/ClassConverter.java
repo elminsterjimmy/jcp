@@ -15,6 +15,12 @@ import com.google.common.reflect.ClassPath;
 
 import java.lang.reflect.*;
 
+/**
+ * The helper class to convert a class to a registered datatype and functions.
+ *
+ * @author jgu
+ * @version 1.0
+ */
 public class ClassConverter {
 
     public static void registerClass(Class<?> clazz, EvalContext context, String module) {

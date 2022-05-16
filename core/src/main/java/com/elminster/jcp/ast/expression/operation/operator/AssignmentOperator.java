@@ -5,8 +5,8 @@ public enum AssignmentOperator implements BinaryOperator {
   ASSIGNMENT("="),
   PLUS_ASSIGNMENT("+="),
   MINUS_ASSIGNMENT("-="),
-  MULTIPLE_ASSIGNMENT("*="),
-  DEV_ASSIGNMENT("/="),
+  MULTI_ASSIGNMENT("*="),
+  DIVIDE_ASSIGNMENT("/="),
   MOD_ASSIGNMENT("%=");
 
   private String symbol;

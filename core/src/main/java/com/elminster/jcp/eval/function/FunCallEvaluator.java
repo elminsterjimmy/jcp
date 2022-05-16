@@ -53,7 +53,10 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
     }
 
     String functionName = functionCallExpression.getId().getId();
-    String moduleName = functionCallExpression.getModule();
+    String moduleName = Modulable.DEFAULT_MODULE;
+    if (functionCallExpression instanceof Modulable) {
+      moduleName = ((Modulable) functionCallExpression).getModule();
+    }
 
     List<Function> functionCandidates = getFunctionCandidates(functionName,
             moduleName,

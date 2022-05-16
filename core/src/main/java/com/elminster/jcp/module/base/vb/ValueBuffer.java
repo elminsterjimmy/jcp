@@ -3,6 +3,12 @@ package com.elminster.jcp.module.base.vb;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * The value buffer is the system data for storing table data.
+ *
+ * @author jgu
+ * @version 1.0
+ */
 public class ValueBuffer {
 
   protected String[] header;

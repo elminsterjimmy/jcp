@@ -2,6 +2,12 @@ package com.elminster.jcp.module.base.assertions;
 
 import com.elminster.common.util.AssertException;
 
+/**
+ * The assertions utils.
+ *
+ * @author jgu
+ * @version 1.0
+ */
 public class Assertions {
 
     public static void assertTrue(boolean condition) {

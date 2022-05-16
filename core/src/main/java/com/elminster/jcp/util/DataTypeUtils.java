@@ -9,6 +9,12 @@ import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.context.EvalContext;
 
+/**
+ * The DataType Utils.
+ *
+ * @author jgu
+ * @version 1.0
+ */
 public class DataTypeUtils {
 
   public static DataType getDataType(String name, EvalContext ctx) {

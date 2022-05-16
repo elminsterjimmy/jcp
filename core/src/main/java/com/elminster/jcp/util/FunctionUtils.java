@@ -8,6 +8,12 @@ import com.elminster.jcp.eval.data.DataType;
 import java.util.Arrays;
 import java.util.StringJoiner;
 
+/**
+ * The function utils.
+ *
+ * @author jgu
+ * @version 1.0
+ */
 public class FunctionUtils {
 
     private static final String FUNCTION_FULLNAME_PARAMETER_SPLITTER = "@";
