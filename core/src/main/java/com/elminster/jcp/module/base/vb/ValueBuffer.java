@@ -1,4 +1,4 @@
-package com.elminster.jcp.module.base;
+package com.elminster.jcp.module.base.vb;
 
 import java.util.LinkedList;
 import java.util.List;

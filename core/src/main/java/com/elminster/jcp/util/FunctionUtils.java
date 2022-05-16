@@ -17,7 +17,7 @@ public class FunctionUtils {
     private static final String FUNCTION_TOSTRING_PARAMETER_STARTER = "(";
     private static final String FUNCTION_TOSTRING_PARAMETER_ENDER = ")";
 
-    private static final String MODULE_SPLITTER = "!";
+    private static final String MODULE_SPLITTER = "::";
 
     public static String generateFunctionFullName(Identifier identifier, ParameterDef[] parameterDefs) {
         String functionName = identifier.getId();

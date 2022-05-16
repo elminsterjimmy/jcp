@@ -1,4 +1,4 @@
-package com.elminster.jcp.module.base;
+package com.elminster.jcp.module.base.assertions;
 
 import com.elminster.common.util.AssertException;
 

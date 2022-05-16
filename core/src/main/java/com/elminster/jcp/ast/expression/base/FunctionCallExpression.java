@@ -3,14 +3,21 @@ package com.elminster.jcp.ast.expression.base;
 import com.elminster.jcp.ast.AbstractExpression;
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Identifier;
+import com.elminster.jcp.module.Modulable;
 
-public class FunctionCallExpression extends AbstractExpression {
+public class FunctionCallExpression extends AbstractExpression implements Modulable {
 
+  private String module;
   private Identifier id;
   private Expression[] arguments;
 
   public FunctionCallExpression(Identifier id, Expression... arguments) {
+    this(id, Modulable.DEFAULT_MODULE, arguments);
+  }
+
+  public FunctionCallExpression(Identifier id, String module, Expression... arguments) {
     this.id = id;
+    this.module = module;
     this.arguments = arguments;
   }
 
@@ -35,5 +42,9 @@ public class FunctionCallExpression extends AbstractExpression {
    */
   public Expression[] getArguments() {
     return arguments;
+  }
+
+  public String getModule() {
+    return module;
   }
 }

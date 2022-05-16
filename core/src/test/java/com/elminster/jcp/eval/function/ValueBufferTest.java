@@ -14,7 +14,7 @@ import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.eval.data.Data;
-import com.elminster.jcp.module.base.ValueBuffer;
+import com.elminster.jcp.module.base.vb.ValueBuffer;
 import com.elminster.jcp.util.DataTypeUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

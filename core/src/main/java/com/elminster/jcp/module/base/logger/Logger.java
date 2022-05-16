@@ -1,4 +1,4 @@
-package com.elminster.jcp.module.base;
+package com.elminster.jcp.module.base.logger;
 
 import org.slf4j.LoggerFactory;
 

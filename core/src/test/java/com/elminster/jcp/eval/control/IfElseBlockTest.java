@@ -13,7 +13,6 @@ import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.context.RootEvalContext;
-import com.elminster.jcp.module.base.Logger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

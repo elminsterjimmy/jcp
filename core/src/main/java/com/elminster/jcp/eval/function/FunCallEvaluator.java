@@ -14,6 +14,7 @@ import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.excpetion.FunctionAmbiguityException;
 import com.elminster.jcp.eval.excpetion.UndeclaredException;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
+import com.elminster.jcp.module.Modulable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -52,8 +53,10 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
     }
 
     String functionName = functionCallExpression.getId().getId();
+    String moduleName = functionCallExpression.getModule();
 
     List<Function> functionCandidates = getFunctionCandidates(functionName,
+            moduleName,
             argumentData, evalContext);
     int functionCandidateSize = functionCandidates.size();
     if (0 == functionCandidateSize) {
@@ -73,24 +76,46 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
     return function;
   }
 
-  private List<Function> getFunctionCandidates(final String functionName, final Data[] arguments, EvalContext evalContext) {
+  private List<Function> getFunctionCandidates(final String functionName,
+                                               final String moduleName,
+                                               final Data[] arguments,
+                                               EvalContext evalContext) {
     return evalContext.getFunctions()
             .values().stream()
-            .filter(function -> functionName.equals(function.getId().getId()))
-            .filter(function -> {
-              ParameterDef[] parameterDefs = function.getParameterDefs();
-              if (null == arguments) {
-                return null == parameterDefs;
-              }
-              if (parameterDefs.length == arguments.length) {
-                for (int i = 0; i < parameterDefs.length; i++) {
-                  if (!arguments[i].getDataType().isCastableTo(parameterDefs[i].getDataType())) {
-                    return false;
-                  }
-                }
-                return true;
-              }
-              return false;
-            }).collect(Collectors.toList());
+            .filter(function -> hasSameFunctionName(functionName, function))
+            .filter(function -> hasSameModule(moduleName, function))
+            .filter(function -> hasSameParameterDefinition(arguments, function))
+            .collect(Collectors.toList());
+
+  }
+
+  private boolean hasSameFunctionName(String functionName2Test, Function function) {
+    return functionName2Test.equals(function.getId().getId());
+  }
+
+  private boolean hasSameParameterDefinition(Data[] arguments, Function function) {
+    ParameterDef[] parameterDefs = function.getParameterDefs();
+    if (null == arguments) {
+      return null == parameterDefs;
+    }
+    if (parameterDefs.length == arguments.length) {
+      for (int i = 0; i < parameterDefs.length; i++) {
+        if (!arguments[i].getDataType().isCastableTo(parameterDefs[i].getDataType())) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private boolean hasSameModule(String moduleName2Test, Function function) {
+    if (Modulable.DEFAULT_MODULE.equals(moduleName2Test)) {
+      return true;
+    }
+    if (function instanceof Modulable) {
+      return ((Modulable) function).getModule().equals(moduleName2Test);
+    }
+    return false;
   }
 }
