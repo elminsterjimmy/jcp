@@ -4,8 +4,7 @@ import com.elminster.jcp.ast.expression.LiteralExpression;
 import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
 import com.elminster.jcp.ast.expression.literal.IntLiteral;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
-import com.elminster.jcp.eval.data.AbstractDataType;
-import com.elminster.jcp.eval.data.Data;
+import com.elminster.jcp.eval.data.DataTypeImpl;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.context.EvalContext;
 
@@ -21,12 +20,7 @@ public class DataTypeUtils {
     if (isArray(name)) {
       String baseTypeName = name.substring(0, name.length() - 2);
       DataType baseType = getDataType(baseTypeName, ctx);
-      return new AbstractDataType() {
-        @Override
-        public String getName() {
-          return baseType.getName() + "[]";
-        }
-      };
+      return DataTypeImpl.newArrayType(baseType.getName());
     } else {
       return ctx.getDataType(name);
     }
@@ -39,19 +33,9 @@ public class DataTypeUtils {
       if (isArray(name)) {
         String baseTypeName = name.substring(0, name.length() - 2);
         DataType baseType = getDataTypeAndCreateOnMissing(baseTypeName, ctx);
-        dt = new AbstractDataType() {
-          @Override
-          public String getName() {
-            return baseType.getName() + "[]";
-          }
-        };
+        dt = DataTypeImpl.newArrayType(baseType.getName());
       } else {
-        dt = new AbstractDataType() {
-          @Override
-          public String getName() {
-            return name;
-          }
-        };
+        dt = new DataTypeImpl(name);
       }
     }
     return dt;

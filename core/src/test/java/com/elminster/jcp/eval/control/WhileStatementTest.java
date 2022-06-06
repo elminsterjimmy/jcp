@@ -20,7 +20,7 @@ import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
 import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.context.RootEvalContext;
-import com.elminster.jcp.eval.data.AbstractDataType;
+import com.elminster.jcp.eval.data.DataTypeImpl;
 import com.elminster.jcp.eval.data.DataType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -52,12 +52,7 @@ public class WhileStatementTest {
     VariableDeclaration variableDeclaration =
         new VariableDeclarationImpl(new IdentifierExpression("i"), DataType.SystemDataType.INT,
             new LiteralExpression(Literal.of(0)));
-    VariableDeclaration vbVariable = new VariableDeclarationImpl(new IdentifierExpression("vb"), new AbstractDataType() {
-      @Override
-      public String getName() {
-        return "ValueBuffer";
-      }
-    },
+    VariableDeclaration vbVariable = new VariableDeclarationImpl(new IdentifierExpression("vb"), new DataTypeImpl("ValueBuffer"),
             new FunctionCallExpression(new IdentifierExpression("ValueBuffer.new")));
 
     Expression whileCondition = new LiteralExpression(Literal.of(true));
