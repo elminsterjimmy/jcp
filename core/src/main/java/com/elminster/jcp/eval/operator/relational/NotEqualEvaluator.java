@@ -10,6 +10,10 @@ public class NotEqualEvaluator extends CompareEvaluator {
 
   @Override
   protected boolean compare(Comparable leftValue, Comparable rightValue) {
-    return leftValue.compareTo(rightValue) != 0;
+    if (null == leftValue) {
+      return null != rightValue;
+    } else {
+      return null == rightValue ? true : leftValue.compareTo(rightValue) != 0;
+    }
   }
 }

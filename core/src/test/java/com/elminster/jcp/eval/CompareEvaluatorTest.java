@@ -130,6 +130,54 @@ class CompareEvaluatorTest {
                                         RelationalOperator.NOT_EQUAL
                                 )),
                         false
+                ),
+                Arguments.of(new ExpressionEvaluator(
+                                new BinaryExpressionImpl(
+                                        new LiteralExpression(IntLiteral.of(null)),
+                                        new LiteralExpression(IntLiteral.of(null)),
+                                        RelationalOperator.EQUAL
+                                )),
+                        true
+                ),
+                Arguments.of(new ExpressionEvaluator(
+                                new BinaryExpressionImpl(
+                                        new LiteralExpression(IntLiteral.of(null)),
+                                        new LiteralExpression(IntLiteral.of(null)),
+                                        RelationalOperator.NOT_EQUAL
+                                )),
+                        false
+                ),
+                Arguments.of(new ExpressionEvaluator(
+                                new BinaryExpressionImpl(
+                                        new LiteralExpression(IntLiteral.of(null)),
+                                        new LiteralExpression(IntLiteral.of(20)),
+                                        RelationalOperator.EQUAL
+                                )),
+                        false
+                ),
+                Arguments.of(new ExpressionEvaluator(
+                                new BinaryExpressionImpl(
+                                        new LiteralExpression(IntLiteral.of(null)),
+                                        new LiteralExpression(IntLiteral.of(20)),
+                                        RelationalOperator.NOT_EQUAL
+                                )),
+                        true
+                ),
+                Arguments.of(new ExpressionEvaluator(
+                                new BinaryExpressionImpl(
+                                        new LiteralExpression(IntLiteral.of(20)),
+                                        new LiteralExpression(IntLiteral.of(null)),
+                                        RelationalOperator.EQUAL
+                                )),
+                        false
+                ),
+                Arguments.of(new ExpressionEvaluator(
+                                new BinaryExpressionImpl(
+                                        new LiteralExpression(IntLiteral.of(20)),
+                                        new LiteralExpression(IntLiteral.of(null)),
+                                        RelationalOperator.NOT_EQUAL
+                                )),
+                        true
                 )
         );
     }
