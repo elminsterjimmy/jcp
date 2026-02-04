@@ -113,13 +113,48 @@ Bytecode operations:
 
 ## Progress
 
-### Completed
+### Completed ✅
 - [x] AST nodes for struct declaration, instantiation, field access, field assignment
 - [x] StructType and StructData for eval mode
 - [x] All evaluators for struct operations
-- [x] Eval mode tests (all passing)
+- [x] Eval mode tests (5/5 passing)
+- [x] Variable storage correctly preserves struct type
 
-### In Progress
-- [ ] Compilers for struct operations
-- [ ] Compile mode infrastructure updates
-- [ ] Compile mode tests
+### Remaining Work (Compile Mode)
+
+Compile mode requires significant additional infrastructure:
+
+**StructDeclarationCompiler:**
+- Use `ClassWriter` to generate a new JVM class for each struct
+- Add public fields for each struct field
+- Generate a constructor that initializes all fields
+- Store generated class bytes for later loading
+
+**JcpCompiler/BytecodeGenerator modifications:**
+- Support generating multiple classes (main + struct classes)
+- Implement class dependency resolution
+- Create custom `ClassLoader` that can load multiple related classes
+- Return `Map<String, byte[]>` instead of single `byte[]`
+
+**StructInstantiationCompiler:**
+- Emit `NEW` opcode for struct class
+- Emit `DUP` for constructor call
+- Compile field value expressions
+- Emit `INVOKESPECIAL <init>` to call constructor
+
+**FieldAccessCompiler:**
+- Compile object expression
+- Emit `GETFIELD` with correct descriptor
+
+**FieldAssignmentCompiler:**
+- Compile object expression
+- Compile value expression
+- Emit `PUTFIELD` with correct descriptor
+
+**Challenges:**
+1. Class generation order (structs must be generated before main class)
+2. Type descriptors for custom struct types (e.g., "LPoint;")
+3. Circular dependencies between struct types
+4. ClassLoader that can find and load generated struct classes
+
+This is a substantial undertaking that would best be done as a separate focused effort after eval mode is validated in production use.
