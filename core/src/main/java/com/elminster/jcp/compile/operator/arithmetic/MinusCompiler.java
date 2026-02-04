@@ -16,6 +16,6 @@ public class MinusCompiler extends ArithmeticCompiler {
 
     @Override
     protected void emitOperation(MethodVisitor mv) {
-        mv.visitInsn(Opcodes.ISUB);
+        mv.visitInsn(useDouble ? Opcodes.DSUB : Opcodes.ISUB);
     }
 }

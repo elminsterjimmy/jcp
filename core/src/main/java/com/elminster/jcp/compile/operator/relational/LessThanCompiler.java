@@ -17,4 +17,9 @@ public class LessThanCompiler extends CompareCompiler {
     protected int getCompareOpcode() {
         return Opcodes.IF_ICMPLT;
     }
+
+    @Override
+    protected int getDoubleConditionOpcode() {
+        return Opcodes.IFLT;  // DCMPL result < 0 means left < right
+    }
 }

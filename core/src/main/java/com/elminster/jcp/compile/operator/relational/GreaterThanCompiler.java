@@ -17,4 +17,14 @@ public class GreaterThanCompiler extends CompareCompiler {
     protected int getCompareOpcode() {
         return Opcodes.IF_ICMPGT;
     }
+
+    @Override
+    protected int getDoubleCompareOpcode() {
+        return Opcodes.DCMPG;  // Use DCMPG for > so NaN returns +1 (not greater)
+    }
+
+    @Override
+    protected int getDoubleConditionOpcode() {
+        return Opcodes.IFGT;  // DCMPG result > 0 means left > right
+    }
 }

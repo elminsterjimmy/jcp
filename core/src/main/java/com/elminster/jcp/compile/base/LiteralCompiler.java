@@ -3,6 +3,7 @@ package com.elminster.jcp.compile.base;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.expression.LiteralExpression;
 import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
+import com.elminster.jcp.ast.expression.literal.DoubleLiteral;
 import com.elminster.jcp.ast.expression.literal.IntLiteral;
 import com.elminster.jcp.ast.expression.literal.Literal;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
@@ -31,6 +32,8 @@ public class LiteralCompiler extends AbstractAstCompiler {
         // First check for specific interfaces
         if (literal instanceof IntLiteral) {
             compileInt(((IntLiteral) literal).getValue(), mv);
+        } else if (literal instanceof DoubleLiteral) {
+            compileDouble(((DoubleLiteral) literal).getValue(), mv);
         } else if (literal instanceof BooleanLiteral) {
             compileBoolean(((BooleanLiteral) literal).getValue(), mv);
         } else if (literal instanceof StringLiteral) {
@@ -40,6 +43,8 @@ public class LiteralCompiler extends AbstractAstCompiler {
             Object value = literal.getValue();
             if (value instanceof Integer) {
                 compileInt((Integer) value, mv);
+            } else if (value instanceof Double) {
+                compileDouble((Double) value, mv);
             } else if (value instanceof Boolean) {
                 compileBoolean((Boolean) value, mv);
             } else if (value instanceof String) {
@@ -84,5 +89,19 @@ public class LiteralCompiler extends AbstractAstCompiler {
      */
     private void compileString(String value, MethodVisitor mv) {
         mv.visitLdcInsn(value);
+    }
+
+    /**
+     * Compile a double literal using the most efficient instruction.
+     */
+    private void compileDouble(double value, MethodVisitor mv) {
+        if (value == 0.0) {
+            mv.visitInsn(Opcodes.DCONST_0);
+        } else if (value == 1.0) {
+            mv.visitInsn(Opcodes.DCONST_1);
+        } else {
+            // ASM handles LDC2_W automatically for doubles
+            mv.visitLdcInsn(value);
+        }
     }
 }

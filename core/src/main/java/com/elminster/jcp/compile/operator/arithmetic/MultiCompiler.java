@@ -16,6 +16,6 @@ public class MultiCompiler extends ArithmeticCompiler {
 
     @Override
     protected void emitOperation(MethodVisitor mv) {
-        mv.visitInsn(Opcodes.IMUL);
+        mv.visitInsn(useDouble ? Opcodes.DMUL : Opcodes.IMUL);
     }
 }

@@ -26,6 +26,8 @@ public class DataFactory {
     if (ClassUtils.isPrimitiveOrWrapper(clazz)) {
       if (clazz == Integer.class || clazz == int.class) {
         return new IntegerData((int) value, true);
+      } else if (clazz == Double.class || clazz == double.class) {
+        return new DoubleData((double) value, true);
       } else if (clazz == Boolean.class || clazz == boolean.class) {
         return new BooleanData((boolean) value, true);
       } else if (clazz == String.class) {
@@ -52,6 +54,9 @@ public class DataFactory {
         case INT:
           data = new IntegerData(id, (Integer) value, isConst);
           break;
+        case DOUBLE:
+          data = new DoubleData(id, (Double) value, isConst);
+          break;
         case STRING:
           data = new StringData(id, (String) value, isConst);
           break;
@@ -66,6 +71,9 @@ public class DataFactory {
           break;
         case INT_ARRAY:
           data = new ArrayData(DataType.SystemDataType.INT, id, null, isConst);
+          break;
+        case DOUBLE_ARRAY:
+          data = new ArrayData(DataType.SystemDataType.DOUBLE, id, null, isConst);
           break;
         default:
           throw new IllegalStateException("Unknown data type [" + dataType + "]");

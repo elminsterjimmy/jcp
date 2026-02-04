@@ -11,8 +11,10 @@ public interface DataType {
     BOOLEAN_ARRAY("Boolean[]", ANY),
     NUMERIC("Numeric", ANY),
     NUMERIC_ARRAY("Numeric[]", ANY),
-    INT("Integer", ANY),
+    INT("Integer", NUMERIC),
     INT_ARRAY("Integer[]", ANY),
+    DOUBLE("Double", NUMERIC),
+    DOUBLE_ARRAY("Double[]", ANY),
     VOID("Void", ANY),
     ;
 

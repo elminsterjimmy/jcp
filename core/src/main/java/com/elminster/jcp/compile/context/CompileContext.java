@@ -1,5 +1,6 @@
 package com.elminster.jcp.compile.context;
 
+import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import org.objectweb.asm.Label;
 
@@ -100,7 +101,9 @@ public class CompileContext {
      * @return the allocated local variable index
      */
     public int allocateLocal(String name, DataType type) {
-        int index = nextLocalIndex++;
+        int index = nextLocalIndex;
+        int slotSize = TypeMapper.getSlotSize(type);
+        nextLocalIndex += slotSize;  // 2 for double, 1 for others
         locals.put(name, new LocalVariable(index, type, name));
         return index;
     }

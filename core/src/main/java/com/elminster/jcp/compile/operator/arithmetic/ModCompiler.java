@@ -16,6 +16,6 @@ public class ModCompiler extends ArithmeticCompiler {
 
     @Override
     protected void emitOperation(MethodVisitor mv) {
-        mv.visitInsn(Opcodes.IREM);
+        mv.visitInsn(useDouble ? Opcodes.DREM : Opcodes.IREM);
     }
 }

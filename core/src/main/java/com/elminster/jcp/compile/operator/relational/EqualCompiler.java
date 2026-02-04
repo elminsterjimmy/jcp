@@ -17,4 +17,9 @@ public class EqualCompiler extends CompareCompiler {
     protected int getCompareOpcode() {
         return Opcodes.IF_ICMPEQ;
     }
+
+    @Override
+    protected int getDoubleConditionOpcode() {
+        return Opcodes.IFEQ;  // DCMPL result == 0 means left == right
+    }
 }

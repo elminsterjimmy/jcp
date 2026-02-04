@@ -2,10 +2,13 @@ package com.elminster.jcp.util;
 
 import com.elminster.jcp.ast.expression.LiteralExpression;
 import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
+import com.elminster.jcp.ast.expression.literal.DoubleLiteral;
 import com.elminster.jcp.ast.expression.literal.IntLiteral;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
+import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataTypeImpl;
 import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.context.EvalContext;
 
 /**
@@ -55,6 +58,23 @@ public class DataTypeUtils {
     if (literalExpression instanceof IntLiteral) {
       return DataType.SystemDataType.INT;
     }
+    if (literalExpression instanceof DoubleLiteral) {
+      return DataType.SystemDataType.DOUBLE;
+    }
     return DataType.SystemDataType.ANY;
+  }
+
+  /**
+   * Convert a Data operand to double value, handling INT to DOUBLE promotion.
+   */
+  public static double toDoubleValue(Data operand) {
+    DataType type = operand.getDataType();
+    if (type == SystemDataType.DOUBLE) {
+      return (Double) operand.get();
+    }
+    if (type == SystemDataType.INT) {
+      return ((Integer) operand.get()).doubleValue();
+    }
+    throw new IllegalArgumentException("Cannot convert to double: " + type);
   }
 }
