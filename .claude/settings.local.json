@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(mvn test:*)",
+      "Bash(mvn:*)",
+      "Bash(git merge:*)"
+    ]
+  }
+}
