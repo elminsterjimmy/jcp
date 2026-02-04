@@ -26,14 +26,28 @@ public class VariableDeclarationEvaluator extends AbstractAstEvaluator {
     Expression initExpress = variableDeclaration.getInit();
     Data variable = DataFactory.INSTANCE.createVariable(id,
         DataTypeUtils.getDataType(variableDeclaration.getDataType().getName(), evalContext));
-    evalContext.addVariable(variable);
+
     if (null != initExpress) {
       Data initValue = AstEvaluatorFactory.getEvaluator(initExpress).eval(evalContext);
       if (!initValue.getDataType().isCastableTo(variable.getDataType())) {
         throw new CannotCastException(initValue.getDataType(), variable.getDataType());
       }
-      variable.set(initValue.get());
+
+      // For custom types (like structs), use the instance directly instead of wrapping
+      if (initValue.getDataType() instanceof com.elminster.jcp.eval.data.StructType) {
+        // Replace variable with the struct instance but with the correct identifier
+        com.elminster.jcp.eval.data.StructData structData = (com.elminster.jcp.eval.data.StructData) initValue;
+        variable = new com.elminster.jcp.eval.data.StructData(
+            id,
+            structData.getStructType(),
+            (java.util.Map<String, Data>) structData.get()
+        );
+      } else {
+        variable.set(initValue.get());
+      }
     }
+
+    evalContext.addVariable(variable);
     return AnyData.EMPTY;
   }
 }

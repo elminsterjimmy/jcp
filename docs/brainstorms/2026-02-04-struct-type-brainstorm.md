@@ -80,18 +80,20 @@ Bytecode operations:
 ## Files to Create/Modify
 
 **New AST nodes:**
-- `ast/statement/declaration/StructDeclaration.java`
-- `ast/expression/StructInstantiation.java`
-- `ast/expression/FieldAccessExpression.java`
-- `ast/expression/FieldAssignmentExpression.java`
+- [x] `ast/statement/declaration/StructDeclaration.java`
+- [x] `ast/statement/declaration/StructFieldDef.java`
+- [x] `ast/statement/declaration/StructDeclarationImpl.java`
+- [x] `ast/expression/StructInstantiation.java`
+- [x] `ast/expression/FieldAccessExpression.java`
+- [x] `ast/expression/FieldAssignmentExpression.java`
 
 **New eval classes:**
-- `eval/data/StructType.java`
-- `eval/data/StructData.java`
-- `eval/declaration/StructDeclarationEvaluator.java`
-- `eval/struct/StructInstantiationEvaluator.java`
-- `eval/struct/FieldAccessEvaluator.java`
-- `eval/struct/FieldAssignmentEvaluator.java`
+- [x] `eval/data/StructType.java`
+- [x] `eval/data/StructData.java`
+- [x] `eval/declare/StructDeclarationEvaluator.java`
+- [x] `eval/struct/StructInstantiationEvaluator.java`
+- [x] `eval/struct/FieldAccessEvaluator.java`
+- [x] `eval/struct/FieldAssignmentEvaluator.java`
 
 **New compile classes:**
 - `compile/declaration/StructDeclarationCompiler.java`
@@ -109,6 +111,15 @@ Bytecode operations:
 2. Should struct fields have default values?
 3. How to manage generated class loading in compile mode?
 
-## Next Steps
+## Progress
 
-Run `/workflows:plan docs/brainstorms/2026-02-04-struct-type-brainstorm.md`
+### Completed
+- [x] AST nodes for struct declaration, instantiation, field access, field assignment
+- [x] StructType and StructData for eval mode
+- [x] All evaluators for struct operations
+- [x] Eval mode tests (all passing)
+
+### In Progress
+- [ ] Compilers for struct operations
+- [ ] Compile mode infrastructure updates
+- [ ] Compile mode tests
