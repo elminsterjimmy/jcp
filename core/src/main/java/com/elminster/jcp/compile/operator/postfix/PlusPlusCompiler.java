@@ -1,8 +1,11 @@
 package com.elminster.jcp.compile.operator.postfix;
 
 import com.elminster.jcp.ast.Expression;
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.ast.expression.operation.PlusPlus;
+import com.elminster.jcp.ast.expression.UnaryExpression;
+import com.elminster.jcp.ast.expression.base.VariableExpression;
+import com.elminster.jcp.ast.expression.operation.IdentifierExpression;
 import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.context.CompileContext.LocalVariable;
@@ -21,8 +24,8 @@ public class PlusPlusCompiler extends AbstractAstCompiler {
 
     @Override
     public void compile(MethodVisitor mv, CompileContext ctx) {
-        PlusPlus plusPlus = (PlusPlus) astNode;
-        Expression operand = plusPlus.getOperand();
+        UnaryExpression unaryExpr = (UnaryExpression) astNode;
+        Expression operand = unaryExpr.getExpress();
 
         String varName = extractVariableName(operand);
         LocalVariable local = ctx.getLocal(varName);
@@ -38,11 +41,12 @@ public class PlusPlusCompiler extends AbstractAstCompiler {
     }
 
     private String extractVariableName(Expression expr) {
-        if (expr instanceof com.elminster.jcp.ast.expression.base.VariableExpression) {
-            return ((com.elminster.jcp.ast.expression.base.VariableExpression) expr).getId().getName();
+        if (expr instanceof VariableExpression) {
+            Identifier id = ((VariableExpression) expr).getId();
+            return id.getId();
         }
-        if (expr instanceof com.elminster.jcp.ast.expression.operation.IdentifierExpression) {
-            return ((com.elminster.jcp.ast.expression.operation.IdentifierExpression) expr).getId().getName();
+        if (expr instanceof IdentifierExpression) {
+            return ((IdentifierExpression) expr).getId();
         }
         throw new CompileException("Invalid increment target: " + expr.getClass().getSimpleName());
     }

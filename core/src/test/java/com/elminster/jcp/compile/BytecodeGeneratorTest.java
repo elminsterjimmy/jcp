@@ -1,13 +1,13 @@
 package com.elminster.jcp.compile;
 
 import com.elminster.jcp.ast.Identifier;
-import static com.elminster.jcp.ast.Identifier.fromName;
 import com.elminster.jcp.ast.expression.LiteralExpression;
 import com.elminster.jcp.ast.expression.literal.IntLiteral;
+import com.elminster.jcp.ast.expression.operation.AssignmentExpression;
 import com.elminster.jcp.ast.expression.operation.GreaterThan;
 import com.elminster.jcp.ast.expression.operation.IdentifierExpression;
+import com.elminster.jcp.ast.expression.operation.LessThan;
 import com.elminster.jcp.ast.expression.operation.Plus;
-import com.elminster.jcp.ast.expression.operation.AssignmentExpression;
 import com.elminster.jcp.ast.expression.operation.operator.AssignmentOperator;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.ast.statement.BlockImpl;
@@ -34,9 +34,9 @@ public class BytecodeGeneratorTest {
         // int x = 42;
         Block program = new BlockImpl();
         program.addStatement(new VariableDeclarationImpl(
-                fromName("x"),
+                "x",
                 SystemDataType.INT,
-                new LiteralExpression(new IntLiteral(42))
+                LiteralExpression.of(42)
         ));
 
         // Compile and verify no exceptions
@@ -51,16 +51,14 @@ public class BytecodeGeneratorTest {
 
     @Test
     void testArithmeticExpression() throws Exception {
-        // int x = 1 + 2 * 3;
-        // This will be: int x = 1 + 6 = 7 (if we had proper precedence)
-        // For now: int x = (1 + 2) since we're testing just addition
+        // int x = 1 + 2;
         Block program = new BlockImpl();
         program.addStatement(new VariableDeclarationImpl(
-                fromName("x"),
+                "x",
                 SystemDataType.INT,
                 new Plus(
-                        new LiteralExpression(new IntLiteral(1)),
-                        new LiteralExpression(new IntLiteral(2))
+                        LiteralExpression.of(1),
+                        LiteralExpression.of(2)
                 )
         ));
 
@@ -83,37 +81,35 @@ public class BytecodeGeneratorTest {
 
         // int x = 10;
         program.addStatement(new VariableDeclarationImpl(
-                fromName("x"),
+                "x",
                 SystemDataType.INT,
-                new LiteralExpression(new IntLiteral(10))
+                LiteralExpression.of(10)
         ));
+
+        // if block: x = 1
+        Block ifBlock = new BlockImpl();
+        ifBlock.addStatement(ExpressionStatement.of(new AssignmentExpression(
+                Identifier.fromName("x"),
+                AssignmentOperator.ASSIGNMENT,
+                LiteralExpression.of(1)
+        )));
+
+        // else block: x = 0
+        Block elseBlock = new BlockImpl();
+        elseBlock.addStatement(ExpressionStatement.of(new AssignmentExpression(
+                Identifier.fromName("x"),
+                AssignmentOperator.ASSIGNMENT,
+                LiteralExpression.of(0)
+        )));
 
         // if (x > 5)
-        Block thenBlock = new BlockImpl();
-        thenBlock.addStatement(new ExpressionStatement(
-                new AssignmentExpression(
-                        new IdentifierExpression(fromName("x")),
-                        new LiteralExpression(new IntLiteral(1)),
-                        AssignmentOperator.ASSIGN
-                )
-        ));
-
-        Block elseBlock = new BlockImpl();
-        elseBlock.addStatement(new ExpressionStatement(
-                new AssignmentExpression(
-                        new IdentifierExpression(fromName("x")),
-                        new LiteralExpression(new IntLiteral(0)),
-                        AssignmentOperator.ASSIGN
-                )
-        ));
-
         program.addStatement(new IfElseStatement(
+                ifBlock,
+                elseBlock,
                 new GreaterThan(
-                        new IdentifierExpression(fromName("x")),
-                        new LiteralExpression(new IntLiteral(5))
-                ),
-                thenBlock,
-                elseBlock
+                        IdentifierExpression.of("x"),
+                        LiteralExpression.of(5)
+                )
         ));
 
         byte[] bytecode = compiler.compileToBytes(program, "TestIfElse");
@@ -133,29 +129,27 @@ public class BytecodeGeneratorTest {
 
         // int x = 0;
         program.addStatement(new VariableDeclarationImpl(
-                fromName("x"),
+                "x",
                 SystemDataType.INT,
-                new LiteralExpression(new IntLiteral(0))
+                LiteralExpression.of(0)
         ));
 
         // while body: x = x + 1;
         Block whileBody = new BlockImpl();
-        whileBody.addStatement(new ExpressionStatement(
-                new AssignmentExpression(
-                        new IdentifierExpression(fromName("x")),
-                        new Plus(
-                                new IdentifierExpression(fromName("x")),
-                                new LiteralExpression(new IntLiteral(1))
-                        ),
-                        AssignmentOperator.ASSIGN
+        whileBody.addStatement(ExpressionStatement.of(new AssignmentExpression(
+                Identifier.fromName("x"),
+                AssignmentOperator.ASSIGNMENT,
+                new Plus(
+                        IdentifierExpression.of("x"),
+                        LiteralExpression.of(1)
                 )
-        ));
+        )));
 
         // while (x < 10)
         program.addStatement(new WhileStatement(
-                new com.elminster.jcp.ast.expression.operation.LessThan(
-                        new IdentifierExpression(fromName("x")),
-                        new LiteralExpression(new IntLiteral(10))
+                new LessThan(
+                        IdentifierExpression.of("x"),
+                        LiteralExpression.of(10)
                 ),
                 whileBody
         ));
@@ -172,9 +166,9 @@ public class BytecodeGeneratorTest {
         // int x = 100;
         Block program = new BlockImpl();
         program.addStatement(new VariableDeclarationImpl(
-                fromName("x"),
+                "x",
                 SystemDataType.INT,
-                new LiteralExpression(new IntLiteral(100))
+                LiteralExpression.of(100)
         ));
 
         // Compile and load class

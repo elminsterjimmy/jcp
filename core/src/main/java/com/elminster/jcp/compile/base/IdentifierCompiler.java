@@ -25,7 +25,7 @@ public class IdentifierCompiler extends AbstractAstCompiler {
         if (astNode instanceof IdentifierExpression) {
             varName = ((IdentifierExpression) astNode).getId();
         } else if (astNode instanceof Identifier) {
-            varName = ((Identifier) astNode).getName();
+            varName = ((Identifier) astNode).getId();
         } else {
             throw new CompileException("Unknown identifier type: " + astNode.getClass().getSimpleName());
         }

@@ -28,6 +28,7 @@ public class LiteralCompiler extends AbstractAstCompiler {
     }
 
     private void compileLiteral(Literal literal, MethodVisitor mv) {
+        // First check for specific interfaces
         if (literal instanceof IntLiteral) {
             compileInt(((IntLiteral) literal).getValue(), mv);
         } else if (literal instanceof BooleanLiteral) {
@@ -35,8 +36,20 @@ public class LiteralCompiler extends AbstractAstCompiler {
         } else if (literal instanceof StringLiteral) {
             compileString(((StringLiteral) literal).getValue(), mv);
         } else {
-            throw new UnsupportedOperationException(
-                    "Unsupported literal type: " + literal.getClass().getSimpleName());
+            // Handle generic Literal (e.g., created by Literal.of())
+            Object value = literal.getValue();
+            if (value instanceof Integer) {
+                compileInt((Integer) value, mv);
+            } else if (value instanceof Boolean) {
+                compileBoolean((Boolean) value, mv);
+            } else if (value instanceof String) {
+                compileString((String) value, mv);
+            } else if (value == null) {
+                mv.visitInsn(Opcodes.ACONST_NULL);
+            } else {
+                throw new UnsupportedOperationException(
+                        "Unsupported literal value type: " + value.getClass().getSimpleName());
+            }
         }
     }
 

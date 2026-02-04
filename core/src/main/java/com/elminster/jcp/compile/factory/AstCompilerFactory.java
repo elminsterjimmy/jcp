@@ -48,7 +48,8 @@ public abstract class AstCompilerFactory {
         String name = astNode.getName();
         try {
             Class<?> clazz = SYSTEM_COMPILERS.get(getCompilerClassName(name));
-            Constructor<Compilable> constructor = ReflectUtil.getConstructor(clazz, Node.class);
+            @SuppressWarnings("unchecked")
+            Constructor<Compilable> constructor = (Constructor<Compilable>) ReflectUtil.getConstructor(clazz, Node.class);
             return constructor.newInstance(astNode);
         } catch (NullPointerException | IllegalAccessException
                 | InstantiationException | InvocationTargetException

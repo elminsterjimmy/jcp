@@ -21,7 +21,7 @@ public class VariableCompiler extends AbstractAstCompiler {
     @Override
     public void compile(MethodVisitor mv, CompileContext ctx) {
         VariableExpression varExpr = (VariableExpression) astNode;
-        String varName = varExpr.getId().getName();
+        String varName = varExpr.getId().getId();
 
         LocalVariable local = ctx.getLocal(varName);
         if (local == null) {
