@@ -4,7 +4,6 @@ import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.compile.context.CompileContext;
-import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import org.objectweb.asm.ClassWriter;
@@ -109,9 +108,9 @@ public class BytecodeGenerator implements Opcodes {
         ctx.setClassName(className);
         ctx.setNextLocalIndex(1);  // Skip index 0 (args)
 
-        // Compile the program
-        Compilable programCompiler = AstCompilerFactory.getCompiler(program);
-        programCompiler.compile(mv, ctx);
+        // Compile the program using visitor pattern
+        CompileVisitor visitor = new CompileVisitor(mv, ctx);
+        visitor.visit(program);
 
         // Return from main
         mv.visitInsn(RETURN);
@@ -186,17 +185,18 @@ public class BytecodeGenerator implements Opcodes {
         ctx.setClassName(className);
         ctx.setNextLocalIndex(0);  // No args parameter in static evaluate()
 
+        // Use visitor pattern for compilation
+        CompileVisitor visitor = new CompileVisitor(mv, ctx);
+
         // Compile the program statements directly (not as a block to avoid child context)
         if (program != null) {
             for (Statement statement : program.getBody()) {
-                Compilable stmtCompiler = AstCompilerFactory.getCompiler(statement);
-                stmtCompiler.compile(mv, ctx);
+                visitor.visit(statement);
             }
         }
 
         // Compile the expression (leaves value on stack)
-        Compilable exprCompiler = AstCompilerFactory.getCompiler(expression);
-        exprCompiler.compile(mv, ctx);
+        visitor.visit(expression);
 
         // Return the value
         int returnOpcode = TypeMapper.getReturnOpcode(returnType);
