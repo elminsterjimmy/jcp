@@ -8,7 +8,9 @@
       "Bash(git commit:*)",
       "Bash(mvn test:*)",
       "Bash(mvn:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(git symbolic-ref:*)",
+      "Bash(git pull:*)"
     ]
   }
 }

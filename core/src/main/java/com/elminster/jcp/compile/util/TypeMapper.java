@@ -56,6 +56,10 @@ public final class TypeMapper {
         if (type == SystemDataType.BOOLEAN_ARRAY) {
             return "[Z";
         }
+        // For custom types (like StructType), use the type name as class descriptor
+        if (type instanceof com.elminster.jcp.eval.data.StructType) {
+            return "L" + type.getName() + ";";
+        }
         // Default to Object for ANY or unknown types
         return "Ljava/lang/Object;";
     }
@@ -164,6 +168,16 @@ public final class TypeMapper {
      */
     public static int getSlotSize(DataType type) {
         return (type == SystemDataType.DOUBLE) ? 2 : 1;
+    }
+
+    /**
+     * Alias for getSlotSize - get the size of a type for parameter indexing.
+     *
+     * @param type the data type
+     * @return the slot size (1 or 2)
+     */
+    public static int getSize(DataType type) {
+        return getSlotSize(type);
     }
 
     /**

@@ -12,6 +12,9 @@ import org.objectweb.asm.Opcodes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Main bytecode generator that compiles a JCP program to a Java class file.
  */
@@ -21,6 +24,7 @@ public class BytecodeGenerator implements Opcodes {
 
     private final String className;
     private final ClassWriter classWriter;
+    private CompileContext rootContext;
 
     /**
      * Create a new bytecode generator.
@@ -104,12 +108,12 @@ public class BytecodeGenerator implements Opcodes {
 
         // Create compilation context
         // Index 0 is reserved for the args parameter in static main
-        CompileContext ctx = new CompileContext();
-        ctx.setClassName(className);
-        ctx.setNextLocalIndex(1);  // Skip index 0 (args)
+        rootContext = new CompileContext();
+        rootContext.setClassName(className);
+        rootContext.setNextLocalIndex(1);  // Skip index 0 (args)
 
         // Compile the program using visitor pattern
-        CompileVisitor visitor = new CompileVisitor(mv, ctx);
+        CompileVisitor visitor = new CompileVisitor(mv, rootContext);
         visitor.visit(program);
 
         // Return from main
@@ -126,6 +130,18 @@ public class BytecodeGenerator implements Opcodes {
      */
     public String getClassName() {
         return className;
+    }
+
+    /**
+     * Get generated classes (structs, etc.) from the compilation context.
+     *
+     * @return map of class names to bytecode
+     */
+    public Map<String, byte[]> getGeneratedClasses() {
+        if (rootContext != null) {
+            return rootContext.getGeneratedClasses();
+        }
+        return new java.util.HashMap<>();
     }
 
     /**

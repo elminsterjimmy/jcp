@@ -13,6 +13,8 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Main entry point for compiling JCP programs to Java bytecode.
@@ -67,8 +69,41 @@ public class JcpCompiler {
      * @return the loaded class
      */
     public Class<?> compileAndLoad(Block program, String className) {
-        byte[] bytecode = compileToBytes(program, className);
-        return new ByteArrayClassLoader().defineClass(className, bytecode);
+        Map<String, byte[]> allClasses = compileToMultipleClasses(program, className);
+
+        // Load all classes using MultiClassLoader
+        MultiClassLoader loader = new MultiClassLoader();
+        for (Map.Entry<String, byte[]> entry : allClasses.entrySet()) {
+            loader.defineClass(entry.getKey(), entry.getValue());
+        }
+
+        // Load and return the main class
+        try {
+            return loader.loadClass(className);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Failed to load main class: " + className, e);
+        }
+    }
+
+    /**
+     * Compile to multiple classes (main + struct classes).
+     *
+     * @param program   the program AST
+     * @param className the main class name
+     * @return map of class names to bytecode
+     */
+    public Map<String, byte[]> compileToMultipleClasses(Block program, String className) {
+        BytecodeGenerator generator = new BytecodeGenerator(className);
+        byte[] mainBytecode = generator.compile(program);
+
+        // Collect all classes
+        Map<String, byte[]> result = new java.util.HashMap<>();
+        result.put(className, mainBytecode);
+
+        // Add generated struct classes
+        result.putAll(generator.getGeneratedClasses());
+
+        return result;
     }
 
     /**

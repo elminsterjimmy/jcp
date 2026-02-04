@@ -81,6 +81,9 @@ public class CompileContext {
     // Parent context for nested scopes
     private CompileContext parent;
 
+    // Generated classes (for structs and other auxiliary classes)
+    private final Map<String, byte[]> generatedClasses = new HashMap<>();
+
     public CompileContext() {
         this(null);
     }
@@ -231,5 +234,32 @@ public class CompileContext {
      */
     public CompileContext createChildContext() {
         return new CompileContext(this);
+    }
+
+    /**
+     * Register a generated class (e.g., a struct class).
+     *
+     * @param className the class name
+     * @param bytecode  the class bytecode
+     */
+    public void addGeneratedClass(String className, byte[] bytecode) {
+        if (parent != null) {
+            // Always register at root context
+            parent.addGeneratedClass(className, bytecode);
+        } else {
+            generatedClasses.put(className, bytecode);
+        }
+    }
+
+    /**
+     * Get all generated classes.
+     *
+     * @return map of class names to bytecode
+     */
+    public Map<String, byte[]> getGeneratedClasses() {
+        if (parent != null) {
+            return parent.getGeneratedClasses();
+        }
+        return generatedClasses;
     }
 }
