@@ -31,7 +31,7 @@ public class VariableDeclarationCompiler extends AbstractAstCompiler {
         String varName = id.getId();
 
         // Get the data type
-        DataType dataType = resolveDataType(varDecl.getDataType().getName());
+        DataType dataType = resolveDataType(varDecl.getDataType().getName(), ctx);
 
         // Allocate a local variable slot
         int localIndex = ctx.allocateLocal(varName, dataType);
@@ -54,13 +54,20 @@ public class VariableDeclarationCompiler extends AbstractAstCompiler {
         }
     }
 
-    private DataType resolveDataType(String typeName) {
+    private DataType resolveDataType(String typeName, CompileContext ctx) {
         // Try to match system data types
         for (SystemDataType sdt : SystemDataType.values()) {
             if (sdt.getName().equalsIgnoreCase(typeName)) {
                 return sdt;
             }
         }
+
+        // Try to look up custom types (like structs) from context
+        DataType customType = ctx.getDataType(typeName);
+        if (customType != null) {
+            return customType;
+        }
+
         // Default to ANY
         return SystemDataType.ANY;
     }

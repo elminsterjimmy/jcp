@@ -1,0 +1,137 @@
+package com.elminster.jcp.compile.struct;
+
+import com.elminster.jcp.ast.Expression;
+import com.elminster.jcp.ast.Node;
+import com.elminster.jcp.ast.expression.FieldAssignmentExpression;
+import com.elminster.jcp.ast.statement.declaration.StructFieldDef;
+import com.elminster.jcp.compile.base.AbstractAstCompiler;
+import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.factory.AstCompilerFactory;
+import com.elminster.jcp.compile.util.TypeMapper;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.StructType;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+
+/**
+ * Compiler for field assignment: obj.field = value
+ * Writes a value to a field of a struct instance.
+ *
+ * Example: p.y = 30
+ * Generates:
+ *   ALOAD n     // load struct reference
+ *   BIPUSH 30   // load new value
+ *   PUTFIELD Point.y I
+ */
+public class FieldAssignmentCompiler extends AbstractAstCompiler {
+
+    public FieldAssignmentCompiler(Node astNode) {
+        super(astNode);
+    }
+
+    @Override
+    public void compile(MethodVisitor mv, CompileContext ctx) {
+        FieldAssignmentExpression fieldAssign = (FieldAssignmentExpression) astNode;
+        Expression objectExpr = fieldAssign.getObject();
+        String fieldName = fieldAssign.getFieldName().getId();
+        Expression valueExpr = fieldAssign.getValue();
+
+        // Compile object expression (leaves struct reference on stack)
+        AstCompilerFactory.getCompiler(objectExpr).compile(mv, ctx);
+
+        // Compile value expression (leaves new value on stack)
+        AstCompilerFactory.getCompiler(valueExpr).compile(mv, ctx);
+
+        // Determine struct type from the object expression
+        StructType structType = getStructTypeFromExpression(objectExpr, ctx);
+
+        if (structType == null) {
+            throw new IllegalArgumentException("Cannot determine struct type for field assignment: " + fieldName);
+        }
+
+        String structName = structType.getName();
+
+        // Look up the field to get its type
+        StructFieldDef fieldDef = structType.getField(fieldName);
+        if (fieldDef == null) {
+            throw new IllegalArgumentException(
+                "Struct " + structName + " has no field: " + fieldName);
+        }
+
+        // Type checking would happen here at compile time if we had full type inference
+        // For now, we trust the value type matches the field type
+        // TODO: Add compile-time type checking when type inference is implemented
+
+        // Get field descriptor
+        String fieldDescriptor = TypeMapper.toDescriptor(fieldDef.getDataType());
+
+        // Emit PUTFIELD instruction
+        mv.visitFieldInsn(
+            Opcodes.PUTFIELD,
+            structName,
+            fieldName,
+            fieldDescriptor
+        );
+
+        // Result: void (field is modified, nothing left on stack)
+        // Note: In eval mode, FieldAssignmentEvaluator returns the value
+        // If we want the same behavior, we'd need to DUP the value before PUTFIELD
+    }
+
+    /**
+     * Determine the struct type from an expression.
+     * This is a helper method to figure out what struct type an expression returns.
+     */
+    private StructType getStructTypeFromExpression(Expression expr, CompileContext ctx) {
+        // If it's an identifier (variable), look it up in the context
+        if (expr instanceof com.elminster.jcp.ast.Identifier) {
+            String varName = ((com.elminster.jcp.ast.Identifier) expr).getId();
+            CompileContext.LocalVariable local = ctx.getLocal(varName);
+            if (local != null && local.getType() instanceof StructType) {
+                return (StructType) local.getType();
+            }
+        }
+
+        // If it's an identifier expression, look it up
+        if (expr instanceof com.elminster.jcp.ast.expression.operation.IdentifierExpression) {
+            String varName = ((com.elminster.jcp.ast.expression.operation.IdentifierExpression) expr).getId();
+            CompileContext.LocalVariable local = ctx.getLocal(varName);
+            if (local != null && local.getType() instanceof StructType) {
+                return (StructType) local.getType();
+            }
+        }
+
+        // If it's a variable expression, look it up
+        if (expr instanceof com.elminster.jcp.ast.expression.base.VariableExpression) {
+            String varName = ((com.elminster.jcp.ast.expression.base.VariableExpression) expr).getId().getId();
+            CompileContext.LocalVariable local = ctx.getLocal(varName);
+            if (local != null && local.getType() instanceof StructType) {
+                return (StructType) local.getType();
+            }
+        }
+
+        // If it's a struct instantiation, get the type from the instantiation node
+        if (expr instanceof com.elminster.jcp.ast.expression.StructInstantiation) {
+            com.elminster.jcp.ast.expression.StructInstantiation structInst =
+                (com.elminster.jcp.ast.expression.StructInstantiation) expr;
+            String structName = structInst.getStructType().getId();
+            return (StructType) ctx.getDataType(structName);
+        }
+
+        // If it's a nested field access, get the type of that field
+        if (expr instanceof com.elminster.jcp.ast.expression.FieldAccessExpression) {
+            com.elminster.jcp.ast.expression.FieldAccessExpression nestedAccess =
+                (com.elminster.jcp.ast.expression.FieldAccessExpression) expr;
+            StructType parentType = getStructTypeFromExpression(nestedAccess.getObject(), ctx);
+            if (parentType != null) {
+                String fieldName = nestedAccess.getFieldName().getId();
+                StructFieldDef field = parentType.getField(fieldName);
+                if (field != null && field.getDataType() instanceof StructType) {
+                    return (StructType) field.getDataType();
+                }
+            }
+        }
+
+        return null;
+    }
+}

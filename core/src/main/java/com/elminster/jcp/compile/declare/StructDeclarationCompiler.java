@@ -22,6 +22,12 @@ public class StructDeclarationCompiler extends AbstractAstCompiler {
         StructDeclaration structDecl = (StructDeclaration) astNode;
         String structName = structDecl.getId().getId();
 
+        // Create and register the struct type in the context
+        // This is needed so that StructInstantiationCompiler can look up the type
+        com.elminster.jcp.eval.data.StructType structType =
+            new com.elminster.jcp.eval.data.StructType(structName, structDecl.getFields());
+        ctx.addDataType(structType);
+
         // Generate the struct class bytecode
         StructClassGenerator generator = new StructClassGenerator();
         byte[] structBytecode = generator.generateStructClass(structName, structDecl.getFields());
