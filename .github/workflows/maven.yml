@@ -29,6 +29,9 @@ jobs:
     - name: Build with Maven
       run: mvn clean install -B
 
+    - name: Verify coverage thresholds
+      run: mvn verify -pl core -DskipTests
+
     - name: Upload coverage reports
       if: matrix.java == '11'
       uses: actions/upload-artifact@v4
@@ -36,3 +39,21 @@ jobs:
         name: coverage-report
         path: '**/target/site/jacoco/'
         retention-days: 7
+
+    - name: Generate JaCoCo Badge
+      if: matrix.java == '11' && github.ref == 'refs/heads/master'
+      uses: cicirello/jacoco-badge-generator@v2
+      with:
+        jacoco-csv-file: core/target/site/jacoco/jacoco.csv
+        badges-directory: .github/badges
+        generate-coverage-badge: true
+        coverage-badge-filename: jacoco.svg
+        generate-branches-badge: true
+        branches-badge-filename: branches.svg
+
+    - name: Commit badge
+      if: matrix.java == '11' && github.ref == 'refs/heads/master'
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: 'chore: Update coverage badges'
+        file_pattern: '.github/badges/*.svg'

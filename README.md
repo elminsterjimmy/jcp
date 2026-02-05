@@ -1,6 +1,8 @@
 # JCP - Java Compiler Platform
 
 ![Build Status](https://img.shields.io/github/actions/workflow/status/elminsterjimmy/jcp/maven.yml?branch=master)
+![Coverage](https://raw.githubusercontent.com/elminsterjimmy/jcp/master/.github/badges/jacoco.svg)
+![Branches](https://raw.githubusercontent.com/elminsterjimmy/jcp/master/.github/badges/branches.svg)
 ![Java Version](https://img.shields.io/badge/Java-11%2B-blue)
 ![License](https://img.shields.io/badge/License-TBD-lightgrey)
 
