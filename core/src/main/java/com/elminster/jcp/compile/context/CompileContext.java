@@ -1,19 +1,98 @@
 package com.elminster.jcp.compile.context;
 
+import com.elminster.jcp.ast.statement.function.ParameterDef;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import org.objectweb.asm.Label;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Compilation context that tracks local variables, types, and control flow labels.
  * Similar to {@link com.elminster.jcp.eval.context.EvalContext} but for compilation.
  */
 public class CompileContext {
+
+    /**
+     * Represents a function signature for overload resolution and bytecode generation.
+     */
+    public static class FunctionSignature {
+        private final String name;
+        private final ParameterDef[] parameters;
+        private final DataType returnType;
+        private final String descriptor;
+
+        public FunctionSignature(String name, ParameterDef[] parameters, DataType returnType) {
+            this.name = name;
+            this.parameters = parameters != null ? parameters : new ParameterDef[0];
+            this.returnType = returnType;
+            this.descriptor = TypeMapper.buildMethodDescriptor(this.parameters, returnType);
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public ParameterDef[] getParameters() {
+            return parameters;
+        }
+
+        public DataType getReturnType() {
+            return returnType;
+        }
+
+        public String getDescriptor() {
+            return descriptor;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FunctionSignature that = (FunctionSignature) o;
+            return Objects.equals(name, that.name) && Objects.equals(descriptor, that.descriptor);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, descriptor);
+        }
+    }
+
+    /**
+     * Key for function registry using name + parameter descriptor for O(1) lookup.
+     */
+    private static class FunctionSignatureKey {
+        private final String name;
+        private final String paramDescriptor;
+
+        public FunctionSignatureKey(String name, String paramDescriptor) {
+            this.name = name;
+            this.paramDescriptor = paramDescriptor;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FunctionSignatureKey that = (FunctionSignatureKey) o;
+            return Objects.equals(name, that.name) && Objects.equals(paramDescriptor, that.paramDescriptor);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, paramDescriptor);
+        }
+    }
 
     /**
      * Represents a local variable in the JVM local variable table.
@@ -83,6 +162,13 @@ public class CompileContext {
 
     // Generated classes (for structs and other auxiliary classes)
     private final Map<String, byte[]> generatedClasses = new HashMap<>();
+
+    // Function registry for forward reference and overload resolution
+    private final Map<FunctionSignatureKey, FunctionSignature> functionRegistry = new HashMap<>();
+    private final Map<String, Set<FunctionSignature>> functionsByName = new HashMap<>();
+
+    // Current function return type (for ReturnCompiler)
+    private DataType currentFunctionReturnType;
 
     public CompileContext() {
         this(null);
@@ -261,5 +347,130 @@ public class CompileContext {
             return parent.getGeneratedClasses();
         }
         return generatedClasses;
+    }
+
+    /**
+     * Register a function signature for forward reference and overload resolution.
+     *
+     * @param name       the function name
+     * @param params     the parameter definitions
+     * @param returnType the return type
+     */
+    public void registerFunction(String name, ParameterDef[] params, DataType returnType) {
+        if (parent != null) {
+            parent.registerFunction(name, params, returnType);
+            return;
+        }
+        FunctionSignature sig = new FunctionSignature(name, params, returnType);
+        String paramDescriptor = buildParamDescriptor(params);
+        FunctionSignatureKey key = new FunctionSignatureKey(name, paramDescriptor);
+        functionRegistry.put(key, sig);
+        functionsByName.computeIfAbsent(name, k -> new HashSet<>()).add(sig);
+    }
+
+    /**
+     * Lookup a function by name and argument types.
+     *
+     * @param name     the function name
+     * @param argTypes the argument types
+     * @return the matching function signature, or null if not found
+     */
+    public FunctionSignature lookupFunction(String name, DataType[] argTypes) {
+        if (parent != null) {
+            return parent.lookupFunction(name, argTypes);
+        }
+
+        // Try exact match first (O(1))
+        String paramDescriptor = buildParamDescriptor(argTypes);
+        FunctionSignatureKey key = new FunctionSignatureKey(name, paramDescriptor);
+        FunctionSignature exact = functionRegistry.get(key);
+        if (exact != null) {
+            return exact;
+        }
+
+        // Fallback: find compatible signature with type coercion
+        Set<FunctionSignature> candidates = functionsByName.get(name);
+        if (candidates != null) {
+            for (FunctionSignature sig : candidates) {
+                if (isCompatible(sig.getParameters(), argTypes)) {
+                    return sig;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Check if argument types are compatible with parameter types.
+     */
+    private boolean isCompatible(ParameterDef[] params, DataType[] argTypes) {
+        if (params == null && argTypes == null) return true;
+        if (params == null || argTypes == null) return false;
+        if (params.length != argTypes.length) return false;
+
+        for (int i = 0; i < params.length; i++) {
+            DataType paramType = params[i].getDataType();
+            DataType argType = argTypes[i];
+            // Handle null argType (unknown type at compile time)
+            if (argType == null) {
+                continue;  // Assume compatible, runtime will verify
+            }
+            if (!argType.isCastableTo(paramType)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Build parameter descriptor from parameter definitions.
+     */
+    private String buildParamDescriptor(ParameterDef[] params) {
+        StringBuilder sb = new StringBuilder("(");
+        if (params != null) {
+            for (ParameterDef param : params) {
+                sb.append(TypeMapper.toDescriptor(param.getDataType()));
+            }
+        }
+        sb.append(")");
+        return sb.toString();
+    }
+
+    /**
+     * Build parameter descriptor from argument types.
+     */
+    private String buildParamDescriptor(DataType[] argTypes) {
+        StringBuilder sb = new StringBuilder("(");
+        if (argTypes != null) {
+            for (DataType argType : argTypes) {
+                sb.append(TypeMapper.toDescriptor(argType));
+            }
+        }
+        sb.append(")");
+        return sb.toString();
+    }
+
+    /**
+     * Get the current function's return type.
+     *
+     * @return the return type, or null if not in a function
+     */
+    public DataType getCurrentFunctionReturnType() {
+        if (currentFunctionReturnType != null) {
+            return currentFunctionReturnType;
+        }
+        if (parent != null) {
+            return parent.getCurrentFunctionReturnType();
+        }
+        return null;
+    }
+
+    /**
+     * Set the current function's return type.
+     *
+     * @param type the return type
+     */
+    public void setCurrentFunctionReturnType(DataType type) {
+        this.currentFunctionReturnType = type;
     }
 }

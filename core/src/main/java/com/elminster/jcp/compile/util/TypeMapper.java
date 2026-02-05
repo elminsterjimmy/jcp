@@ -4,11 +4,15 @@ import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.expression.BinaryExpression;
 import com.elminster.jcp.ast.expression.LiteralExpression;
+import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
+import com.elminster.jcp.ast.expression.base.VariableExpression;
 import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
 import com.elminster.jcp.ast.expression.literal.DoubleLiteral;
 import com.elminster.jcp.ast.expression.literal.IntLiteral;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
+import com.elminster.jcp.ast.statement.function.ParameterDef;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.context.CompileContext.FunctionSignature;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.objectweb.asm.Opcodes;
@@ -20,6 +24,48 @@ import org.objectweb.asm.Type;
 public final class TypeMapper {
 
     private TypeMapper() {
+    }
+
+    /**
+     * Build a JVM method descriptor from parameter definitions and return type.
+     * Example: (II)I for func add(int a, int b) -> int
+     *
+     * @param params     the parameter definitions
+     * @param returnType the return type
+     * @return the JVM method descriptor
+     */
+    public static String buildMethodDescriptor(ParameterDef[] params, DataType returnType) {
+        StringBuilder sb = new StringBuilder("(");
+        if (params != null) {
+            for (ParameterDef param : params) {
+                sb.append(toDescriptor(param.getDataType()));
+            }
+        }
+        sb.append(")");
+        sb.append(toDescriptor(returnType));
+        return sb.toString();
+    }
+
+    /**
+     * Build a JVM method descriptor from argument types and return type.
+     * Used for overload resolution when we only have types, not parameter definitions.
+     *
+     * @param argTypes   the argument types
+     * @param returnType the return type (can be null for partial descriptor)
+     * @return the JVM method descriptor
+     */
+    public static String buildMethodDescriptor(DataType[] argTypes, DataType returnType) {
+        StringBuilder sb = new StringBuilder("(");
+        if (argTypes != null) {
+            for (DataType argType : argTypes) {
+                sb.append(toDescriptor(argType));
+            }
+        }
+        sb.append(")");
+        if (returnType != null) {
+            sb.append(toDescriptor(returnType));
+        }
+        return sb.toString();
     }
 
     /**
@@ -199,6 +245,24 @@ public final class TypeMapper {
         if (expr instanceof Identifier) {
             CompileContext.LocalVariable local = ctx.getLocal(((Identifier) expr).getId());
             return local != null ? local.getType() : null;
+        }
+        // Handle VariableExpression (wraps Identifier)
+        if (expr instanceof VariableExpression) {
+            VariableExpression varExpr = (VariableExpression) expr;
+            CompileContext.LocalVariable local = ctx.getLocal(varExpr.getId().getId());
+            return local != null ? local.getType() : null;
+        }
+        // Handle function call expressions - return type from function signature
+        if (expr instanceof FunctionCallExpression) {
+            FunctionCallExpression call = (FunctionCallExpression) expr;
+            String funcName = call.getId().getId();
+            Expression[] args = call.getArguments();
+            DataType[] argTypes = new DataType[args.length];
+            for (int i = 0; i < args.length; i++) {
+                argTypes[i] = getExpressionType(args[i], ctx);
+            }
+            FunctionSignature sig = ctx.lookupFunction(funcName, argTypes);
+            return sig != null ? sig.getReturnType() : null;
         }
         // For binary expressions, determine result type based on operands
         if (expr instanceof BinaryExpression) {
