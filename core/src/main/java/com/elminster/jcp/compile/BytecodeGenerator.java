@@ -196,13 +196,14 @@ public class BytecodeGenerator implements Opcodes {
 
         mv.visitCode();
 
-        // Create compilation context
-        CompileContext ctx = new CompileContext();
-        ctx.setClassName(className);
-        ctx.setNextLocalIndex(0);  // No args parameter in static evaluate()
+        // Create compilation context and store as rootContext
+        // This ensures generated classes (like structs) are tracked
+        rootContext = new CompileContext();
+        rootContext.setClassName(className);
+        rootContext.setNextLocalIndex(0);  // No args parameter in static evaluate()
 
         // Use visitor pattern for compilation
-        CompileVisitor visitor = new CompileVisitor(mv, ctx);
+        CompileVisitor visitor = new CompileVisitor(mv, rootContext);
 
         // Compile the program statements directly (not as a block to avoid child context)
         if (program != null) {

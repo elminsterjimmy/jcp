@@ -329,8 +329,8 @@ public class StructCompileTest extends AbstractCompileTest {
         assertTrue(allClasses.containsKey("Point"), "Should have Point class");
         assertTrue(allClasses.containsKey("Size"), "Should have Size class");
 
-        // Load and execute with return
-        Class<?> clazz = loadWithReturn(allClasses, className, sum, SystemDataType.INT);
+        // Use the fixed helper to compile with return
+        Class<?> clazz = compileAndLoadWithReturn(program, sum, SystemDataType.INT, uniqueClassName("TestMultipleStructTypesWithReturn"));
 
         Method evaluate = clazz.getMethod("evaluate");
         int result = (int) evaluate.invoke(null);
@@ -386,46 +386,37 @@ public class StructCompileTest extends AbstractCompileTest {
 
     /**
      * Helper method to compile with return using MultiClassLoader.
-     * Similar to compileAndLoadWithReturn but handles multiple classes.
+     * Ensures struct classes are loaded before the main class.
      */
     private Class<?> compileAndLoadWithReturn(Block program, com.elminster.jcp.ast.Expression expression,
                                                DataType returnType, String className) throws Exception {
-        // First compile the program with return
+        // Create bytecode generator
         com.elminster.jcp.compile.BytecodeGenerator generator = new com.elminster.jcp.compile.BytecodeGenerator(className);
+
+        // Compile the program with return expression
         byte[] mainBytecode = generator.compileWithReturn(program, expression, returnType);
 
-        // Get struct classes
+        // Get all generated classes (struct classes)
         Map<String, byte[]> structClasses = generator.getGeneratedClasses();
 
-        // Load all classes
+        // Create class loader and define all classes
         MultiClassLoader loader = new MultiClassLoader();
 
-        // Load struct classes first
+        // Register all struct classes in the loader
         for (Map.Entry<String, byte[]> entry : structClasses.entrySet()) {
             loader.defineClass(entry.getKey(), entry.getValue());
         }
 
-        // Load main class
+        // Register the main class
         loader.defineClass(className, mainBytecode);
 
+        // IMPORTANT: Explicitly load all struct classes BEFORE loading main class
+        // This ensures they're available when the main class is loaded and linked
+        for (String structClassName : structClasses.keySet()) {
+            loader.loadClass(structClassName);
+        }
+
+        // Now load the main class
         return loader.loadClass(className);
-    }
-
-    /**
-     * Helper to load classes with a return expression.
-     * Used when we already have the compiled classes.
-     */
-    private Class<?> loadWithReturn(Map<String, byte[]> allClasses, String mainClassName,
-                                     com.elminster.jcp.ast.Expression expression, DataType returnType) throws Exception {
-        // Need to recompile the main class with the return expression
-        // This is a bit of a workaround - we'll get the program from context
-        // For now, create a simple wrapper that returns the expression
-
-        // Actually, this is complex - let's simplify by just loading the classes
-        // and calling main. For this test, we'll need to modify the approach.
-
-        // Alternative: compile fresh with return
-        Block emptyProgram = new BlockImpl();
-        return compileAndLoadWithReturn(emptyProgram, expression, returnType, mainClassName + "_WithReturn");
     }
 }
