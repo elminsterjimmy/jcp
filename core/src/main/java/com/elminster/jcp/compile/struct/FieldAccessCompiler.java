@@ -73,6 +73,14 @@ public class FieldAccessCompiler extends AbstractAstCompiler {
      * This is a helper method to figure out what struct type an expression returns.
      */
     private StructType getStructTypeFromExpression(Expression expr, CompileContext ctx) {
+        // Handle 'this' expression - look up the local variable 'this' in context
+        if (expr instanceof com.elminster.jcp.ast.expression.ThisExpression) {
+            CompileContext.LocalVariable local = ctx.getLocal("this");
+            if (local != null && local.getType() instanceof StructType) {
+                return (StructType) local.getType();
+            }
+        }
+
         // If it's an identifier (variable), look it up in the context
         if (expr instanceof com.elminster.jcp.ast.Identifier) {
             String varName = ((com.elminster.jcp.ast.Identifier) expr).getId();

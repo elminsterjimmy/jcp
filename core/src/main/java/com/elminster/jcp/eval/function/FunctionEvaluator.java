@@ -65,7 +65,13 @@ public class FunctionEvaluator extends BlockEvaluator {
       throw new FunctionArgumentsLengthException();
     }
     for (int i = 0, len = parameterDefs.length; i< len; i++) {
-      evalContext.addVariable(cloneArgument(arguments[i], parameterDefs[i]));
+      // For 'this' parameter, bind the instance directly (don't clone)
+      // This preserves StructData identity for field access
+      if ("this".equals(parameterDefs[i].getId())) {
+        evalContext.getVariables().put("this", arguments[i]);
+      } else {
+        evalContext.addVariable(cloneArgument(arguments[i], parameterDefs[i]));
+      }
     }
     List<Statement> body = function.getBody();
     Data rtn = null;

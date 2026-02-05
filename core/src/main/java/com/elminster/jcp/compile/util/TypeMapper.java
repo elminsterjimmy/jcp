@@ -4,6 +4,7 @@ import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.expression.BinaryExpression;
 import com.elminster.jcp.ast.expression.LiteralExpression;
+import com.elminster.jcp.ast.expression.ThisExpression;
 import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
 import com.elminster.jcp.ast.expression.base.VariableExpression;
 import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
@@ -241,6 +242,19 @@ public final class TypeMapper {
             if (literal instanceof DoubleLiteral) return SystemDataType.DOUBLE;
             if (literal instanceof BooleanLiteral) return SystemDataType.BOOLEAN;
             if (literal instanceof StringLiteral) return SystemDataType.STRING;
+            // Handle generic Literal created by Literal.of() - check value type
+            if (literal instanceof com.elminster.jcp.ast.expression.literal.Literal) {
+                Object value = ((com.elminster.jcp.ast.expression.literal.Literal<?>) literal).getValue();
+                if (value instanceof Integer) return SystemDataType.INT;
+                if (value instanceof Double) return SystemDataType.DOUBLE;
+                if (value instanceof Boolean) return SystemDataType.BOOLEAN;
+                if (value instanceof String) return SystemDataType.STRING;
+            }
+        }
+        // Handle 'this' expression
+        if (expr instanceof ThisExpression) {
+            CompileContext.LocalVariable local = ctx.getLocal("this");
+            return local != null ? local.getType() : null;
         }
         if (expr instanceof Identifier) {
             CompileContext.LocalVariable local = ctx.getLocal(((Identifier) expr).getId());
