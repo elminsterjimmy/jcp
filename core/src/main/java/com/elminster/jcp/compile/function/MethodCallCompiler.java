@@ -13,6 +13,8 @@ import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
+import com.elminster.jcp.eval.data.ExternalClassType;
+import com.elminster.jcp.eval.data.ExternalMethodDef;
 import com.elminster.jcp.eval.data.StructType;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -40,12 +42,8 @@ public class MethodCallCompiler extends AbstractAstCompiler {
         Compilable targetCompiler = AstCompilerFactory.getCompiler(targetExpr);
         targetCompiler.compile(mv, ctx);
 
-        // 2. Determine the struct type of the target
+        // 2. Determine the type of the target
         DataType targetType = TypeMapper.getExpressionType(targetExpr, ctx);
-        if (!(targetType instanceof StructType)) {
-            throw new CompileException("Cannot call method on non-struct type: " + targetType);
-        }
-        StructType structType = (StructType) targetType;
 
         // 3. Determine argument types for overload resolution
         DataType[] argTypes = new DataType[args.length];
@@ -53,7 +51,64 @@ public class MethodCallCompiler extends AbstractAstCompiler {
             argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
         }
 
-        // 4. Look up method with overload resolution (supports type hierarchy)
+        // 4. Handle different type kinds
+        if (targetType instanceof ExternalClassType) {
+            compileExternalClassCall(mv, ctx, (ExternalClassType) targetType, methodName, args, argTypes);
+        } else if (targetType instanceof StructType) {
+            compileStructTypeCall(mv, ctx, (StructType) targetType, methodName, args, argTypes);
+        } else {
+            throw new CompileException("Cannot call method on type: " + targetType);
+        }
+    }
+
+    /**
+     * Compile instance method call on ExternalClassType (external Java class).
+     */
+    private void compileExternalClassCall(MethodVisitor mv, CompileContext ctx,
+                                          ExternalClassType extType, String methodName,
+                                          Expression[] args, DataType[] argTypes) {
+        // Look up instance method with overload resolution
+        ExternalMethodDef method = extType.getInstanceMethod(methodName, argTypes);
+        if (method == null) {
+            throw new CompileException("Method '" + methodName +
+                "' with argument types " + Arrays.toString(argTypes) +
+                " not found in type '" + extType.getName() + "'");
+        }
+
+        // Compile arguments (push values onto stack)
+        DataType[] paramTypes = method.getParameterTypes();
+        for (int i = 0; i < args.length; i++) {
+            Compilable argCompiler = AstCompilerFactory.getCompiler(args[i]);
+            argCompiler.compile(mv, ctx);
+
+            // Type promotion and boxing
+            DataType argType = argTypes[i];
+            DataType paramType = paramTypes[i];
+            if (paramType == SystemDataType.DOUBLE && argType == SystemDataType.INT) {
+                mv.visitInsn(Opcodes.I2D);
+            } else if (paramType == SystemDataType.ANY) {
+                // Box primitives when passing to Object parameter
+                boxPrimitive(mv, argType);
+            }
+        }
+
+        // Emit INVOKEVIRTUAL with actual Java class internal name
+        mv.visitMethodInsn(
+            Opcodes.INVOKEVIRTUAL,
+            extType.getInternalName(),
+            methodName,
+            method.getDescriptor(),
+            false
+        );
+    }
+
+    /**
+     * Compile instance method call on StructType (user-defined type).
+     */
+    private void compileStructTypeCall(MethodVisitor mv, CompileContext ctx,
+                                       StructType structType, String methodName,
+                                       Expression[] args, DataType[] argTypes) {
+        // Look up method with overload resolution (supports type hierarchy)
         MethodDef method = structType.getInstanceMethod(methodName, argTypes);
         if (method == null) {
             throw new CompileException("Method '" + methodName +
@@ -61,7 +116,7 @@ public class MethodCallCompiler extends AbstractAstCompiler {
                 " not found in type '" + structType.getName() + "'");
         }
 
-        // 5. Compile arguments (push values onto stack)
+        // Compile arguments (push values onto stack)
         ParameterDef[] params = method.getParameters();
         for (int i = 0; i < args.length; i++) {
             Compilable argCompiler = AstCompilerFactory.getCompiler(args[i]);
@@ -75,10 +130,10 @@ public class MethodCallCompiler extends AbstractAstCompiler {
             }
         }
 
-        // 6. Build method descriptor
+        // Build method descriptor
         String descriptor = buildMethodDescriptor(params, method.getReturnType());
 
-        // 7. Emit INVOKEVIRTUAL
+        // Emit INVOKEVIRTUAL
         mv.visitMethodInsn(
             Opcodes.INVOKEVIRTUAL,
             structType.getName(),
@@ -86,7 +141,6 @@ public class MethodCallCompiler extends AbstractAstCompiler {
             descriptor,
             false
         );
-        // Result (if any) is now on stack
     }
 
     /**
@@ -102,5 +156,23 @@ public class MethodCallCompiler extends AbstractAstCompiler {
         sb.append(")");
         sb.append(TypeMapper.toDescriptor(returnType));
         return sb.toString();
+    }
+
+    /**
+     * Box a primitive type to its wrapper class.
+     * INT -> Integer, BOOLEAN -> Boolean, DOUBLE -> Double
+     */
+    private void boxPrimitive(MethodVisitor mv, DataType type) {
+        if (type == SystemDataType.INT) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf",
+                "(I)Ljava/lang/Integer;", false);
+        } else if (type == SystemDataType.BOOLEAN) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf",
+                "(Z)Ljava/lang/Boolean;", false);
+        } else if (type == SystemDataType.DOUBLE) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Double", "valueOf",
+                "(D)Ljava/lang/Double;", false);
+        }
+        // String and Object types don't need boxing
     }
 }

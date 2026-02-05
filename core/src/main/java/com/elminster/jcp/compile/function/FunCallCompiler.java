@@ -13,6 +13,8 @@ import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
+import com.elminster.jcp.eval.data.ExternalClassType;
+import com.elminster.jcp.eval.data.ExternalMethodDef;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -33,6 +35,16 @@ public class FunCallCompiler extends AbstractAstCompiler {
         FunctionCallExpression call = (FunctionCallExpression) astNode;
         String funcName = call.getId().getId();
         Expression[] args = call.getArguments();
+
+        // Check if this is an external class constructor call (TypeName.new)
+        if (funcName.endsWith(".new")) {
+            String typeName = funcName.substring(0, funcName.length() - 4);
+            DataType dataType = ctx.getDataType(typeName);
+            if (dataType instanceof ExternalClassType) {
+                compileExternalClassConstructor(mv, ctx, (ExternalClassType) dataType, args);
+                return;
+            }
+        }
 
         // Determine argument types for overload resolution
         DataType[] argTypes = new DataType[args.length];
@@ -70,5 +82,72 @@ public class FunCallCompiler extends AbstractAstCompiler {
             false
         );
         // Result (if any) is now on stack
+    }
+
+    /**
+     * Compile external class constructor call: TypeName.new(args)
+     */
+    private void compileExternalClassConstructor(MethodVisitor mv, CompileContext ctx,
+                                                  ExternalClassType extType, Expression[] args) {
+        // Determine argument types for overload resolution
+        DataType[] argTypes = new DataType[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
+        }
+
+        // Look up constructor with overload resolution
+        ExternalMethodDef constructor = extType.getConstructor(argTypes);
+        if (constructor == null) {
+            throw new CompileException("Constructor for '" + extType.getName() +
+                "' with argument types " + Arrays.toString(argTypes) + " not found");
+        }
+
+        // Emit NEW instruction
+        mv.visitTypeInsn(Opcodes.NEW, extType.getInternalName());
+
+        // Emit DUP to have reference for constructor call
+        mv.visitInsn(Opcodes.DUP);
+
+        // Compile arguments (push values onto stack)
+        DataType[] paramTypes = constructor.getParameterTypes();
+        for (int i = 0; i < args.length; i++) {
+            Compilable argCompiler = AstCompilerFactory.getCompiler(args[i]);
+            argCompiler.compile(mv, ctx);
+
+            // Type promotion and boxing
+            DataType argType = argTypes[i];
+            DataType paramType = paramTypes[i];
+            if (paramType == SystemDataType.DOUBLE && argType == SystemDataType.INT) {
+                mv.visitInsn(Opcodes.I2D);
+            } else if (paramType == SystemDataType.ANY) {
+                boxPrimitive(mv, argType);
+            }
+        }
+
+        // Emit INVOKESPECIAL to call constructor
+        mv.visitMethodInsn(
+            Opcodes.INVOKESPECIAL,
+            extType.getInternalName(),
+            "<init>",
+            constructor.getDescriptor(),
+            false
+        );
+        // Result: new instance reference is on the stack
+    }
+
+    /**
+     * Box a primitive type to its wrapper class.
+     */
+    private void boxPrimitive(MethodVisitor mv, DataType type) {
+        if (type == SystemDataType.INT) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf",
+                "(I)Ljava/lang/Integer;", false);
+        } else if (type == SystemDataType.BOOLEAN) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf",
+                "(Z)Ljava/lang/Boolean;", false);
+        } else if (type == SystemDataType.DOUBLE) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Double", "valueOf",
+                "(D)Ljava/lang/Double;", false);
+        }
     }
 }

@@ -13,6 +13,8 @@ import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
+import com.elminster.jcp.eval.data.ExternalClassType;
+import com.elminster.jcp.eval.data.ExternalMethodDef;
 import com.elminster.jcp.eval.data.StructType;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -38,10 +40,9 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
 
         // 1. Look up the type
         DataType dataType = ctx.getDataType(typeName);
-        if (!(dataType instanceof StructType)) {
-            throw new CompileException("Type not found or not a struct type: " + typeName);
+        if (dataType == null) {
+            throw new CompileException("Type not found: " + typeName);
         }
-        StructType structType = (StructType) dataType;
 
         // 2. Determine argument types for overload resolution
         DataType[] argTypes = new DataType[args.length];
@@ -49,7 +50,64 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
             argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
         }
 
-        // 3. Look up static method with overload resolution
+        // 3. Handle different type kinds
+        if (dataType instanceof ExternalClassType) {
+            compileExternalClassCall(mv, ctx, (ExternalClassType) dataType, methodName, args, argTypes);
+        } else if (dataType instanceof StructType) {
+            compileStructTypeCall(mv, ctx, (StructType) dataType, typeName, methodName, args, argTypes);
+        } else {
+            throw new CompileException("Type does not support static methods: " + typeName);
+        }
+    }
+
+    /**
+     * Compile static method call on ExternalClassType (external Java class).
+     */
+    private void compileExternalClassCall(MethodVisitor mv, CompileContext ctx,
+                                          ExternalClassType extType, String methodName,
+                                          Expression[] args, DataType[] argTypes) {
+        // Look up static method with overload resolution
+        ExternalMethodDef method = extType.getStaticMethod(methodName, argTypes);
+        if (method == null) {
+            throw new CompileException("Static method '" + methodName +
+                "' with argument types " + Arrays.toString(argTypes) +
+                " not found in type '" + extType.getName() + "'");
+        }
+
+        // Compile arguments (push values onto stack)
+        DataType[] paramTypes = method.getParameterTypes();
+        for (int i = 0; i < args.length; i++) {
+            Compilable argCompiler = AstCompilerFactory.getCompiler(args[i]);
+            argCompiler.compile(mv, ctx);
+
+            // Type promotion and boxing
+            DataType argType = argTypes[i];
+            DataType paramType = paramTypes[i];
+            if (paramType == SystemDataType.DOUBLE && argType == SystemDataType.INT) {
+                mv.visitInsn(Opcodes.I2D);
+            } else if (paramType == SystemDataType.ANY) {
+                // Box primitives when passing to Object parameter
+                boxPrimitive(mv, argType);
+            }
+        }
+
+        // Emit INVOKESTATIC with actual Java class internal name
+        mv.visitMethodInsn(
+            Opcodes.INVOKESTATIC,
+            extType.getInternalName(),
+            methodName,
+            method.getDescriptor(),
+            false
+        );
+    }
+
+    /**
+     * Compile static method call on StructType (user-defined type).
+     */
+    private void compileStructTypeCall(MethodVisitor mv, CompileContext ctx,
+                                       StructType structType, String typeName,
+                                       String methodName, Expression[] args, DataType[] argTypes) {
+        // Look up static method with overload resolution
         MethodDef method = structType.getStaticMethod(methodName, argTypes);
         if (method == null) {
             throw new CompileException("Static method '" + methodName +
@@ -57,7 +115,7 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
                 " not found in type '" + typeName + "'");
         }
 
-        // 4. Compile arguments (push values onto stack)
+        // Compile arguments (push values onto stack)
         ParameterDef[] params = method.getParameters();
         for (int i = 0; i < args.length; i++) {
             Compilable argCompiler = AstCompilerFactory.getCompiler(args[i]);
@@ -71,10 +129,10 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
             }
         }
 
-        // 5. Build method descriptor
+        // Build method descriptor
         String descriptor = buildMethodDescriptor(params, method.getReturnType());
 
-        // 6. Emit INVOKESTATIC
+        // Emit INVOKESTATIC
         mv.visitMethodInsn(
             Opcodes.INVOKESTATIC,
             typeName,
@@ -82,7 +140,6 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
             descriptor,
             false
         );
-        // Result (if any) is now on stack
     }
 
     /**
@@ -98,5 +155,23 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
         sb.append(")");
         sb.append(TypeMapper.toDescriptor(returnType));
         return sb.toString();
+    }
+
+    /**
+     * Box a primitive type to its wrapper class.
+     * INT -> Integer, BOOLEAN -> Boolean, DOUBLE -> Double
+     */
+    private void boxPrimitive(MethodVisitor mv, DataType type) {
+        if (type == SystemDataType.INT) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf",
+                "(I)Ljava/lang/Integer;", false);
+        } else if (type == SystemDataType.BOOLEAN) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf",
+                "(Z)Ljava/lang/Boolean;", false);
+        } else if (type == SystemDataType.DOUBLE) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Double", "valueOf",
+                "(D)Ljava/lang/Double;", false);
+        }
+        // String and Object types don't need boxing
     }
 }
