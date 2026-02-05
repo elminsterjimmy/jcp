@@ -84,8 +84,11 @@ public class ClassConverter {
                 Object result = null;
                 try {
                     result = ReflectUtil.invoke(null, method, argValues);
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    throwInvokeException(e);
+                } catch (Exception e) {
+                    if (e instanceof RuntimeException) {
+                        throw (RuntimeException) e;
+                    }
+                    throw new RuntimeException("Invoke failed", e);
                 }
                 return new AnyData(result, returnDataType);
             }
@@ -180,8 +183,11 @@ public class ClassConverter {
                 Object result = null;
                 try {
                     result = ReflectUtil.invoke(target, methodName, args);
-                } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                    throwInvokeException(e);
+                } catch (Exception e) {
+                    if (e instanceof RuntimeException) {
+                        throw (RuntimeException) e;
+                    }
+                    throw new RuntimeException("Invoke failed", e);
                 }
                 return new AnyData(result, returnDt);
             }

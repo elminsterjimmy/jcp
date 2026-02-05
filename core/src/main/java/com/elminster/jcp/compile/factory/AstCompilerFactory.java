@@ -52,8 +52,7 @@ public abstract class AstCompilerFactory {
             Constructor<Compilable> constructor = (Constructor<Compilable>) ReflectUtil.getConstructor(clazz, Node.class);
             return constructor.newInstance(astNode);
         } catch (NullPointerException | IllegalAccessException
-                | InstantiationException | InvocationTargetException
-                | NoSuchMethodException e) {
+                | InstantiationException | InvocationTargetException e) {
             throw new RuntimeException(String.format("cannot get compiler for node: %s", astNode), e);
         }
     }
