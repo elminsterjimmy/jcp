@@ -107,6 +107,12 @@ public final class TypeMapper {
         if (type instanceof com.elminster.jcp.eval.data.StructType) {
             return "L" + type.getName() + ";";
         }
+        // For external Java classes, use the actual JVM internal name
+        if (type instanceof com.elminster.jcp.eval.data.ExternalClassType) {
+            com.elminster.jcp.eval.data.ExternalClassType extType =
+                (com.elminster.jcp.eval.data.ExternalClassType) type;
+            return "L" + extType.getInternalName() + ";";
+        }
         // Default to Object for ANY or unknown types
         return "Ljava/lang/Object;";
     }

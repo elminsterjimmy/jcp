@@ -7,8 +7,10 @@ import com.elminster.jcp.ast.statement.declaration.FunctionDeclaration;
 import com.elminster.jcp.ast.statement.function.ParameterDef;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.declare.FunctionDeclarationCompiler;
+import com.elminster.jcp.compile.util.CompileModeClassConverter;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.module.base.BaseModuleRegister;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -70,6 +72,9 @@ public class BytecodeGenerator implements Opcodes {
         // Create root context for compilation
         rootContext = new CompileContext();
         rootContext.setClassName(className);
+
+        // Register module types for external class method calls
+        registerModuleTypes(rootContext);
 
         // Collect function declarations
         List<FunctionDeclaration> functions = new ArrayList<>();
@@ -250,6 +255,9 @@ public class BytecodeGenerator implements Opcodes {
         rootContext = new CompileContext();
         rootContext.setClassName(className);
 
+        // Register module types for external class method calls
+        registerModuleTypes(rootContext);
+
         // Collect function declarations and other statements
         List<FunctionDeclaration> functions = new ArrayList<>();
         List<Statement> evalStatements = new ArrayList<>();
@@ -326,5 +334,16 @@ public class BytecodeGenerator implements Opcodes {
 
         mv.visitMaxs(0, 0);
         mv.visitEnd();
+    }
+
+    /**
+     * Register built-in module types (Logger, Assertions, ValueBuffer) for compile-time use.
+     * This allows compiled JCP code to call methods on these external Java classes.
+     */
+    private void registerModuleTypes(CompileContext ctx) {
+        List<Class<?>> moduleClasses = BaseModuleRegister.classToRegister();
+        for (Class<?> clazz : moduleClasses) {
+            CompileModeClassConverter.registerClass(clazz, ctx, "base");
+        }
     }
 }
