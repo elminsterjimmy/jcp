@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-JCP (Java Command Processor) is a custom programming language implementation with **dual-mode execution**: a tree-walking interpreter (`eval/`) and a JVM bytecode compiler (`compile/`). Both modes share the same AST representation.
+JCP (Java Compiler Platform) is a **middleware platform** that bridges Domain-Specific Languages (DSLs) and the JVM. It provides AST representation, type system, and **dual-mode execution**: a tree-walking interpreter (`eval/`) and a JVM bytecode compiler (`compile/`).
+
+Users define their DSL syntax using tools like ANTLR for lexical analysis and parsing, then build JCP AST nodes from their parse tree. JCP handles semantic analysis and execution, while the JVM provides IR optimization and runtime.
 
 ## Build Commands
 

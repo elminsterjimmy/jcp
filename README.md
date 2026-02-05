@@ -1,14 +1,32 @@
-# JCP - Java Command Processor
+# JCP - Java Compiler Platform
 
 ![Build Status](https://img.shields.io/github/actions/workflow/status/elminsterjimmy/jcp/maven.yml?branch=master)
 ![Java Version](https://img.shields.io/badge/Java-11%2B-blue)
 ![License](https://img.shields.io/badge/License-TBD-lightgrey)
 
-A custom programming language implementation with **dual-mode execution**: a tree-walking interpreter and a JVM bytecode compiler. Both modes share the same AST representation.
+A **middleware platform** that bridges Domain-Specific Languages (DSLs) and the JVM. JCP handles the semantic analysis, type checking, and code generation phases of compilation, allowing you to focus on defining your language's syntax using tools like ANTLR while leveraging the JVM for execution and optimization.
+
+## What is JCP?
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Your DSL      │     │      JCP        │     │      JVM        │
+│                 │     │   (Middleware)  │     │                 │
+│  - Syntax       │────▶│  - AST          │────▶│  - IR/Bytecode  │
+│  - Lexer        │     │  - Type System  │     │  - Optimization │
+│  - Parser       │     │  - Eval/Compile │     │  - Execution    │
+│  (ANTLR, etc.)  │     │  - Modules      │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+**You define**: Lexical analysis and parsing (using ANTLR, JavaCC, or hand-written parsers)
+**JCP provides**: AST representation, type system, interpreter, and bytecode compiler
+**JVM handles**: IR optimization, JIT compilation, and runtime execution
 
 ## Features
 
-- **Dual Execution Modes**: Run programs via interpreter (eval) or compile to JVM bytecode
+- **DSL Middleware**: Connect your custom parser to JVM execution with minimal effort
+- **Dual Execution Modes**: Run via tree-walking interpreter (eval) or compile to JVM bytecode
 - **Unified AST**: Same abstract syntax tree works with both execution backends
 - **Type System**: Hierarchical type system with `ANY`, `NUMERIC`, `INT`, `BOOLEAN`, `STRING`, and more
 - **Custom Structs**: Define and use custom data structures
@@ -38,32 +56,73 @@ mvn test
 
 ## Architecture
 
-JCP implements a dual-mode execution architecture:
+JCP sits between your DSL frontend and the JVM backend:
 
 ```
-                    ┌─────────────┐
-                    │  JCP Script │
-                    └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │   Parser    │
-                    │  (Shared)   │
-                    └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │     AST     │
-                    └──────┬──────┘
-                           │
-           ┌───────────────┴───────────────┐
-           │                               │
-    ┌──────▼──────┐                 ┌──────▼──────┐
-    │  EVAL MODE  │                 │COMPILE MODE │
-    │ Interpreter │                 │  Bytecode   │
-    └──────┬──────┘                 └──────┬──────┘
-           │                               │
-    ┌──────▼──────┐                 ┌──────▼──────┐
-    │   Result    │                 │  JVM Class  │
-    └─────────────┘                 └─────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                           YOUR DSL FRONTEND                              │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                  │
+│  │   Source    │───▶│   Lexer     │───▶│   Parser    │                  │
+│  │   Code      │    │  (ANTLR)    │    │  (ANTLR)    │                  │
+│  └─────────────┘    └─────────────┘    └──────┬──────┘                  │
+└──────────────────────────────────────────────┬───────────────────────────┘
+                                               │
+                              Build JCP AST from parse tree
+                                               │
+┌──────────────────────────────────────────────▼───────────────────────────┐
+│                           JCP MIDDLEWARE                                 │
+│                                                                          │
+│                         ┌─────────────┐                                  │
+│                         │   JCP AST   │                                  │
+│                         └──────┬──────┘                                  │
+│                                │                                         │
+│            ┌───────────────────┴───────────────────┐                    │
+│            │                                       │                    │
+│     ┌──────▼──────┐                         ┌──────▼──────┐             │
+│     │  EVAL MODE  │                         │COMPILE MODE │             │
+│     │ Interpreter │                         │  Bytecode   │             │
+│     └──────┬──────┘                         └──────┬──────┘             │
+│            │                                       │                    │
+└────────────┼───────────────────────────────────────┼────────────────────┘
+             │                                       │
+      ┌──────▼──────┐                         ┌──────▼──────┐
+      │   Result    │                         │  JVM Class  │
+      └─────────────┘                         └──────┬──────┘
+                                                     │
+                                              ┌──────▼──────┐
+                                              │     JVM     │
+                                              │  Execution  │
+                                              └─────────────┘
+```
+
+## Integrating Your DSL
+
+To use JCP with your custom DSL:
+
+1. **Define your language grammar** using ANTLR, JavaCC, or another parser generator
+2. **Build JCP AST nodes** from your parse tree in a visitor/listener
+3. **Execute via JCP** using either eval mode (interpreter) or compile mode (bytecode)
+
+```java
+// Example: Converting your parse tree to JCP AST
+public class MyDslVisitor extends MyDslBaseVisitor<AstNode> {
+
+    @Override
+    public AstNode visitAddExpr(MyDslParser.AddExprContext ctx) {
+        Expression left = (Expression) visit(ctx.left);
+        Expression right = (Expression) visit(ctx.right);
+        return new Plus(left, right);  // JCP AST node
+    }
+
+    @Override
+    public AstNode visitProgram(MyDslParser.ProgramContext ctx) {
+        Block block = new BlockImpl();
+        for (var stmt : ctx.statement()) {
+            block.addStatement((Statement) visit(stmt));
+        }
+        return block;
+    }
+}
 ```
 
 ### Eval Mode (Interpreter)
