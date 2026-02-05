@@ -13,7 +13,7 @@
   </parent>
 
   <properties>
-    <java.compile.version>8</java.compile.version>
+    <java.compile.version>11</java.compile.version>
   </properties>
 
   <dependencies>
