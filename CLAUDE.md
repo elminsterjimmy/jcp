@@ -124,6 +124,10 @@ mvn verify -pl core
 - Use `javap -c -v output/ClassName.class` to verify compiled output
 - AspectJ module intercepts `Evaluable.eval()` calls for tracing
 
+## Implementation Guidelines
+
+See [GUIDELINES.md](GUIDELINES.md) for KISS and SOLID principles with concrete code examples. AI assistants MUST follow these guidelines when generating code.
+
 ## Current Development
 
 Branch `compiler-with-asm` - active work on bytecode generation. See `docs/brainstorms/` for planned features:
