@@ -294,4 +294,31 @@ class FieldAssignmentEvaluatorTest {
         StructData cData = (StructData) context.getVariable("c");
         assertEquals(3, cData.getField("value").get());
     }
+
+    @Test
+    void testFieldAssignment_NonStruct_ThrowsException() {
+        // Try to assign a field on a non-struct value (e.g., int)
+        Block program = new BlockImpl();
+
+        // int x = 42;
+        program.addStatement(new VariableDeclarationImpl(
+            "x",
+            DataType.SystemDataType.INT,
+            LiteralExpression.of(IntLiteral.of(42))
+        ));
+
+        // x.field = 100;  // x is not a struct
+        FieldAssignmentExpression fieldAssign = new FieldAssignmentExpression(
+            new VariableExpression(Identifier.fromName("x")),
+            "field",
+            LiteralExpression.of(IntLiteral.of(100))
+        );
+        program.addStatement(ExpressionStatement.of(fieldAssign));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            new EvalVisitor(context).visit(program);
+        });
+
+        assertTrue(ex.getMessage().contains("Field assignment requires a struct instance"));
+    }
 }
