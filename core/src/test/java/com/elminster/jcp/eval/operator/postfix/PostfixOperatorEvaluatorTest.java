@@ -267,4 +267,74 @@ class PostfixOperatorEvaluatorTest {
             assertEquals(9, context.getVariable("b").get());
         }
     }
+
+    @Nested
+    class ErrorCaseTests {
+
+        @Test
+        void testPlusPlus_NonInteger_ThrowsException() {
+            // String s = "hello";
+            // s++;  // Should throw UnsupportedOperationException
+
+            Block program = new BlockImpl();
+
+            program.addStatement(new VariableDeclarationImpl(
+                "s",
+                com.elminster.jcp.eval.data.DataType.SystemDataType.STRING,
+                com.elminster.jcp.ast.expression.LiteralExpression.of("hello")
+            ));
+
+            program.addStatement(ExpressionStatement.of(
+                new PlusPlus(new VariableExpression(Identifier.fromName("s")))
+            ));
+
+            assertThrows(UnsupportedOperationException.class, () -> {
+                new EvalVisitor(context).visit(program);
+            });
+        }
+
+        @Test
+        void testMinusMinus_NonInteger_ThrowsException() {
+            // String s = "hello";
+            // s--;  // Should throw UnsupportedOperationException
+
+            Block program = new BlockImpl();
+
+            program.addStatement(new VariableDeclarationImpl(
+                "s",
+                com.elminster.jcp.eval.data.DataType.SystemDataType.STRING,
+                com.elminster.jcp.ast.expression.LiteralExpression.of("hello")
+            ));
+
+            program.addStatement(ExpressionStatement.of(
+                new MinusMinus(new VariableExpression(Identifier.fromName("s")))
+            ));
+
+            assertThrows(UnsupportedOperationException.class, () -> {
+                new EvalVisitor(context).visit(program);
+            });
+        }
+
+        @Test
+        void testPlusPlus_Boolean_ThrowsException() {
+            // boolean b = true;
+            // b++;  // Should throw UnsupportedOperationException
+
+            Block program = new BlockImpl();
+
+            program.addStatement(new VariableDeclarationImpl(
+                "b",
+                com.elminster.jcp.eval.data.DataType.SystemDataType.BOOLEAN,
+                com.elminster.jcp.ast.expression.LiteralExpression.of(true)
+            ));
+
+            program.addStatement(ExpressionStatement.of(
+                new PlusPlus(new VariableExpression(Identifier.fromName("b")))
+            ));
+
+            assertThrows(UnsupportedOperationException.class, () -> {
+                new EvalVisitor(context).visit(program);
+            });
+        }
+    }
 }

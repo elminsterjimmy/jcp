@@ -2,6 +2,7 @@ package com.elminster.jcp.compile.operator.postfix;
 
 import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.expression.LiteralExpression;
+import com.elminster.jcp.ast.expression.base.VariableExpression;
 import com.elminster.jcp.ast.expression.operation.AssignmentExpression;
 import com.elminster.jcp.ast.expression.operation.IdentifierExpression;
 import com.elminster.jcp.ast.expression.operation.MinusMinus;
@@ -12,6 +13,7 @@ import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
 import com.elminster.jcp.compile.AbstractCompileTest;
+import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -247,6 +249,118 @@ public class PostfixOperatorCompileTest extends AbstractCompileTest {
             ));
 
             byte[] bytecode = compiler.compileToBytes(program, uniqueClassName("TestConsecutiveIncrements"));
+            assertNotNull(bytecode);
+        }
+    }
+
+    @Nested
+    class ErrorCaseTests {
+
+        @Test
+        void testPlusPlus_UndefinedVariable_ThrowsCompileException() {
+            // z++; // z is not defined
+            Block program = new BlockImpl();
+            program.addStatement(ExpressionStatement.of(
+                new PlusPlus(IdentifierExpression.of("undefinedVar"))
+            ));
+
+            CompileException ex = assertThrows(CompileException.class, () -> {
+                compiler.compileToBytes(program, uniqueClassName("TestPlusPlusUndefined"));
+            });
+
+            assertTrue(ex.getMessage().contains("Undefined variable"));
+        }
+
+        @Test
+        void testMinusMinus_UndefinedVariable_ThrowsCompileException() {
+            // z--; // z is not defined
+            Block program = new BlockImpl();
+            program.addStatement(ExpressionStatement.of(
+                new MinusMinus(IdentifierExpression.of("undefinedVar"))
+            ));
+
+            CompileException ex = assertThrows(CompileException.class, () -> {
+                compiler.compileToBytes(program, uniqueClassName("TestMinusMinusUndefined"));
+            });
+
+            assertTrue(ex.getMessage().contains("Undefined variable"));
+        }
+
+        @Test
+        void testPlusPlus_InvalidTarget_ThrowsCompileException() {
+            // 5++; // Cannot increment a literal
+            Block program = new BlockImpl();
+            program.addStatement(ExpressionStatement.of(
+                new PlusPlus(LiteralExpression.of(5))
+            ));
+
+            CompileException ex = assertThrows(CompileException.class, () -> {
+                compiler.compileToBytes(program, uniqueClassName("TestPlusPlusLiteral"));
+            });
+
+            assertTrue(ex.getMessage().contains("Invalid increment target"));
+        }
+
+        @Test
+        void testMinusMinus_InvalidTarget_ThrowsCompileException() {
+            // 5--; // Cannot decrement a literal
+            Block program = new BlockImpl();
+            program.addStatement(ExpressionStatement.of(
+                new MinusMinus(LiteralExpression.of(5))
+            ));
+
+            CompileException ex = assertThrows(CompileException.class, () -> {
+                compiler.compileToBytes(program, uniqueClassName("TestMinusMinusLiteral"));
+            });
+
+            assertTrue(ex.getMessage().contains("Invalid decrement target"));
+        }
+    }
+
+    @Nested
+    class VariableExpressionTests {
+
+        @Test
+        void testPlusPlus_WithVariableExpression() throws Exception {
+            // Test using VariableExpression instead of IdentifierExpression
+            // int x = 5;
+            // x++;
+            Block program = new BlockImpl();
+
+            program.addStatement(new VariableDeclarationImpl(
+                "x",
+                SystemDataType.INT,
+                LiteralExpression.of(5)
+            ));
+
+            // Use VariableExpression to cover that branch
+            program.addStatement(ExpressionStatement.of(
+                new PlusPlus(new VariableExpression(Identifier.fromName("x")))
+            ));
+
+            byte[] bytecode = compiler.compileToBytes(program, uniqueClassName("TestPlusPlusVarExpr"));
+            assertNotNull(bytecode);
+        }
+
+        @Test
+        void testMinusMinus_WithVariableExpression() throws Exception {
+            // Test using VariableExpression instead of IdentifierExpression
+            // int x = 10;
+            // x--;
+            Block program = new BlockImpl();
+
+            program.addStatement(new VariableDeclarationImpl(
+                "x",
+                SystemDataType.INT,
+                LiteralExpression.of(10)
+            ));
+
+            // Use VariableExpression to cover that branch
+            program.addStatement(ExpressionStatement.of(
+                new MinusMinus(new VariableExpression(Identifier.fromName("x")))
+            ));
+
+            byte[] bytecode = compiler.compileToBytes(program, uniqueClassName("TestMinusMinusVarExpr"));
             assertNotNull(bytecode);
         }
     }

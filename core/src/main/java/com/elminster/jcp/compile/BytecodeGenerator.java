@@ -33,6 +33,9 @@ public class BytecodeGenerator implements Opcodes {
     private final ClassWriter classWriter;
     private CompileContext rootContext;
 
+    // Additional external classes to register before compilation
+    private final List<Class<?>> additionalExternalClasses = new ArrayList<>();
+
     /**
      * Create a new bytecode generator.
      *
@@ -41,6 +44,16 @@ public class BytecodeGenerator implements Opcodes {
     public BytecodeGenerator(String className) {
         this.className = className;
         this.classWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+    }
+
+    /**
+     * Register an external Java class for use in compiled JCP code.
+     * Must be called before compile() or compileWithReturn().
+     *
+     * @param clazz the Java class to register
+     */
+    public void registerExternalClass(Class<?> clazz) {
+        additionalExternalClasses.add(clazz);
     }
 
     /**
@@ -344,6 +357,11 @@ public class BytecodeGenerator implements Opcodes {
         List<Class<?>> moduleClasses = BaseModuleRegister.classToRegister();
         for (Class<?> clazz : moduleClasses) {
             CompileModeClassConverter.registerClass(clazz, ctx, "base");
+        }
+
+        // Register additional external classes
+        for (Class<?> clazz : additionalExternalClasses) {
+            CompileModeClassConverter.registerClass(clazz, ctx, "external");
         }
     }
 }

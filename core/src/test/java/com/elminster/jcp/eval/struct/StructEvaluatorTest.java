@@ -373,6 +373,101 @@ class StructEvaluatorTest {
   }
 
   @Nested
+  class FieldAccessErrorTests {
+
+    /**
+     * Tests that accessing a field on a non-struct value throws IllegalArgumentException.
+     * <pre>
+     * int x = 42;
+     * x.field  // throws: Field access requires a struct instance
+     * </pre>
+     */
+    @Test
+    void testFieldAccessOnNonStruct_ThrowsException() {
+      Block program = new BlockImpl();
+
+      // Declare an integer variable
+      program.addStatement(new VariableDeclarationImpl(
+          "x",
+          DataType.SystemDataType.INT,
+          LiteralExpression.of(IntLiteral.of(42))
+      ));
+
+      // Try to access a field on the integer
+      FieldAccessExpression fieldAccess = new FieldAccessExpression(
+          new VariableExpression(Identifier.fromName("x")),
+          "field"
+      );
+      VariableDeclarationImpl resultDecl = new VariableDeclarationImpl(
+          "result",
+          DataType.SystemDataType.ANY,
+          fieldAccess
+      );
+      program.addStatement(resultDecl);
+
+      RootEvalContext context = new RootEvalContext();
+
+      IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+          new EvalVisitor(context).visit(program)
+      );
+
+      assertTrue(ex.getMessage().contains("Field access requires a struct instance"));
+    }
+
+    /**
+     * Tests that accessing a non-existent field throws IllegalArgumentException.
+     * <pre>
+     * struct Point { x: Int, y: Int }
+     * Point p = Point(10, 20)
+     * p.z  // throws: Struct Point has no field: z
+     * </pre>
+     */
+    @Test
+    void testFieldAccessNonExistentField_ThrowsException() {
+      Block program = new BlockImpl();
+
+      // Declare struct
+      StructDeclarationImpl structDecl = new StructDeclarationImpl("Point", Arrays.asList(
+          new StructFieldDef("x", DataType.SystemDataType.INT),
+          new StructFieldDef("y", DataType.SystemDataType.INT)
+      ));
+      program.addStatement(structDecl);
+
+      // Create struct instance
+      StructInstantiation structInst = new StructInstantiation("Point",
+          LiteralExpression.of(IntLiteral.of(10)),
+          LiteralExpression.of(IntLiteral.of(20))
+      );
+      VariableDeclarationImpl pDecl = new VariableDeclarationImpl(
+          "p",
+          new DataTypeImpl("Point"),
+          structInst
+      );
+      program.addStatement(pDecl);
+
+      // Try to access non-existent field 'z'
+      FieldAccessExpression fieldAccess = new FieldAccessExpression(
+          new VariableExpression(Identifier.fromName("p")),
+          "z"
+      );
+      VariableDeclarationImpl resultDecl = new VariableDeclarationImpl(
+          "result",
+          DataType.SystemDataType.ANY,
+          fieldAccess
+      );
+      program.addStatement(resultDecl);
+
+      RootEvalContext context = new RootEvalContext();
+
+      IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+          new EvalVisitor(context).visit(program)
+      );
+
+      assertTrue(ex.getMessage().contains("has no field: z"));
+    }
+  }
+
+  @Nested
   class ExplicitConstructorTests {
 
     /**

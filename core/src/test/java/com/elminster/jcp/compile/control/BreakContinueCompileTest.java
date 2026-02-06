@@ -17,6 +17,7 @@ import com.elminster.jcp.ast.statement.control.WhileStatement;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
 import com.elminster.jcp.ast.expression.operation.Equal;
 import com.elminster.jcp.compile.AbstractCompileTest;
+import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.junit.jupiter.api.Test;
 
@@ -288,5 +289,33 @@ public class BreakContinueCompileTest extends AbstractCompileTest {
 
         byte[] bytecode = compiler.compileToBytes(program, uniqueClassName("TestBreakContinueCombined"));
         assertNotNull(bytecode);
+    }
+
+    @Test
+    void testBreakOutsideLoop_ThrowsCompileException() {
+        // break; // Not in loop context - should throw CompileException
+        Block program = new BlockImpl();
+        program.addStatement(new BreakStatement());
+
+        CompileException exception = assertThrows(CompileException.class, () -> {
+            compiler.compileToBytes(program, uniqueClassName("TestBreakOutsideLoop"));
+        });
+
+        assertTrue(exception.getMessage().contains("break"));
+        assertTrue(exception.getMessage().contains("outside"));
+    }
+
+    @Test
+    void testContinueOutsideLoop_ThrowsCompileException() {
+        // continue; // Not in loop context - should throw CompileException
+        Block program = new BlockImpl();
+        program.addStatement(new ContinueStatement());
+
+        CompileException exception = assertThrows(CompileException.class, () -> {
+            compiler.compileToBytes(program, uniqueClassName("TestContinueOutsideLoop"));
+        });
+
+        assertTrue(exception.getMessage().contains("continue"));
+        assertTrue(exception.getMessage().contains("outside"));
     }
 }

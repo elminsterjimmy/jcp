@@ -131,6 +131,28 @@ public class DoubleArithmeticCompileTest extends AbstractCompileTest {
     }
 
     @Test
+    void testMixedDoubleIntAddition() throws Exception {
+        // double a = 2.5; return a + 5  => 7.5  (right operand is int)
+        Block program = new BlockImpl();
+        program.addStatement(new VariableDeclarationImpl("a", SystemDataType.DOUBLE,
+            LiteralExpression.of(DoubleLiteral.of(2.5))));
+
+        Class<?> clazz = compiler.compileAndLoadWithReturn(
+                program,
+                new Plus(
+                        IdentifierExpression.of("a"),
+                        LiteralExpression.of(5)  // int literal
+                ),
+                SystemDataType.DOUBLE,
+                uniqueClassName("TestMixedDoubleInt")
+        );
+
+        Method evaluate = clazz.getMethod("evaluate");
+        double result = (double) evaluate.invoke(null);
+        assertEquals(7.5, result, 0.001);
+    }
+
+    @Test
     void testComplexDoubleExpression() throws Exception {
         // return (3.0 + 2.0) * 4.0 - 10.0 / 2.0  => 5.0 * 4.0 - 5.0 = 15.0
         Class<?> clazz = compiler.compileAndLoadWithReturn(

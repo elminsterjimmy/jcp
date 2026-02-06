@@ -150,4 +150,56 @@ class TypeDeclarationEvaluatorTest {
         assertNotNull(type);
         assertEquals("Math", type.getName());
     }
+
+    /**
+     * Tests type declaration with instance method with null parameters array.
+     * This covers the branch where getParameters() returns null.
+     */
+    @Test
+    void testTypeWithInstanceMethod_NullParams() {
+        RootEvalContext context = new RootEvalContext();
+
+        Block methodBody = new BlockImpl();
+        // Create method with null parameters using direct constructor
+        MethodDef getValueMethod = new MethodDef("getValue", SystemDataType.INT, methodBody, (ParameterDef[]) null);
+
+        StructDeclarationImpl typeDecl = new StructDeclarationImpl(
+            "Counter",
+            Arrays.asList(new StructFieldDef("count", SystemDataType.INT)),
+            null,
+            Arrays.asList(getValueMethod),
+            Collections.emptyList()
+        );
+
+        new EvalVisitor(context).visit(new BlockImpl(typeDecl));
+
+        StructType type = (StructType) context.getDataType("Counter");
+        assertNotNull(type);
+    }
+
+    /**
+     * Tests type declaration with static method with null parameters array.
+     * This covers the branch where getParameters() returns null.
+     */
+    @Test
+    void testTypeWithStaticMethod_NullParams() {
+        RootEvalContext context = new RootEvalContext();
+
+        Block methodBody = new BlockImpl();
+        // Create static method with null parameters
+        MethodDef zeroMethod = MethodDef.staticMethod("zero", SystemDataType.INT, methodBody, (ParameterDef[]) null);
+
+        StructDeclarationImpl typeDecl = new StructDeclarationImpl(
+            "Math",
+            Collections.emptyList(),
+            null,
+            Collections.emptyList(),
+            Arrays.asList(zeroMethod)
+        );
+
+        new EvalVisitor(context).visit(new BlockImpl(typeDecl));
+
+        StructType type = (StructType) context.getDataType("Math");
+        assertNotNull(type);
+    }
 }

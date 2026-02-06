@@ -146,5 +146,6 @@ class ReturnCompilerTest {
             // Should not throw
             assertDoesNotThrow(() -> compiler.compile(mv, ctx));
         }
+
     }
 }

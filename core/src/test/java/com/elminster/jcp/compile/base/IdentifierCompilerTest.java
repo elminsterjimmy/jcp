@@ -10,9 +10,14 @@ import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
 import com.elminster.jcp.compile.AbstractCompileTest;
 import com.elminster.jcp.compile.MultiClassLoader;
+import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.junit.jupiter.api.Test;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -144,5 +149,47 @@ public class IdentifierCompilerTest extends AbstractCompileTest {
         }
 
         return loader.loadClass(className);
+    }
+
+    /**
+     * Tests that compiling an undefined variable throws CompileException.
+     */
+    @Test
+    void testUndefinedVariable_ThrowsCompileException() {
+        CompileContext ctx = new CompileContext();
+        ctx.setClassName("TestClass");
+        // Don't allocate 'undefinedVar'
+
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, "TestClass", null, "java/lang/Object", null);
+        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "test", "()I", null, null);
+        mv.visitCode();
+
+        IdentifierExpression idExpr = new IdentifierExpression("undefinedVar");
+        IdentifierCompiler idCompiler = new IdentifierCompiler(idExpr);
+
+        CompileException ex = assertThrows(CompileException.class, () -> idCompiler.compile(mv, ctx));
+        assertTrue(ex.getMessage().contains("Undefined variable"));
+    }
+
+    /**
+     * Tests that compiling an unknown node type throws CompileException.
+     */
+    @Test
+    void testUnknownNodeType_ThrowsCompileException() {
+        CompileContext ctx = new CompileContext();
+        ctx.setClassName("TestClass");
+
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, "TestClass", null, "java/lang/Object", null);
+        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "test", "()I", null, null);
+        mv.visitCode();
+
+        // Use an incompatible node type (LiteralExpression is not an Identifier)
+        LiteralExpression literal = LiteralExpression.of(42);
+        IdentifierCompiler idCompiler = new IdentifierCompiler(literal);
+
+        CompileException ex = assertThrows(CompileException.class, () -> idCompiler.compile(mv, ctx));
+        assertTrue(ex.getMessage().contains("Unknown identifier type"));
     }
 }
