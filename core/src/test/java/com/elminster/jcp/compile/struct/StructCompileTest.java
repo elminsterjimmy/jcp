@@ -13,6 +13,7 @@ import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.ast.statement.declaration.StructDeclarationImpl;
 import com.elminster.jcp.ast.statement.declaration.StructFieldDef;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
+import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.compile.AbstractCompileTest;
 import com.elminster.jcp.compile.MultiClassLoader;
 import com.elminster.jcp.eval.data.DataType;
@@ -382,6 +383,443 @@ public class StructCompileTest extends AbstractCompileTest {
 
         // Verify constructor exists: Point(int, int)
         assertNotNull(pointClass.getConstructor(int.class, int.class));
+    }
+
+    /**
+     * Tests struct with boolean and string fields.
+     * <pre>
+     * struct Config { enabled: Boolean, name: String }
+     * Config c = Config(true, "test")
+     * // c.enabled = true, c.name = "test"
+     * </pre>
+     */
+    @Test
+    void testStructWithMixedTypes() throws Exception {
+        Block program = new BlockImpl();
+
+        StructDeclarationImpl structDecl = new StructDeclarationImpl("Config", Arrays.asList(
+            new StructFieldDef("enabled", SystemDataType.BOOLEAN),
+            new StructFieldDef("name", SystemDataType.STRING)
+        ));
+        program.addStatement(structDecl);
+
+        // Create instance
+        StructInstantiation structInst = new StructInstantiation("Config",
+            LiteralExpression.of(true),
+            LiteralExpression.of("test")
+        );
+        VariableDeclarationImpl varDecl = new VariableDeclarationImpl(
+            "c",
+            new DataTypeImpl("Config"),
+            structInst
+        );
+        program.addStatement(varDecl);
+
+        String className = uniqueClassName("TestMixedTypes");
+        Map<String, byte[]> allClasses = compiler.compileToMultipleClasses(program, className);
+
+        assertTrue(allClasses.containsKey("Config"));
+
+        MultiClassLoader loader = new MultiClassLoader();
+        for (Map.Entry<String, byte[]> entry : allClasses.entrySet()) {
+            loader.defineClass(entry.getKey(), entry.getValue());
+        }
+
+        // Verify Config class has the right fields
+        Class<?> configClass = loader.loadClass("Config");
+        assertNotNull(configClass.getDeclaredField("enabled"));
+        assertNotNull(configClass.getDeclaredField("name"));
+        assertNotNull(configClass.getConstructor(boolean.class, String.class));
+    }
+
+    /**
+     * Tests struct with double field.
+     * <pre>
+     * struct Measurement { value: Double }
+     * Measurement m = Measurement(3.14)
+     * // m.value = 3.14
+     * </pre>
+     */
+    @Test
+    void testStructWithDoubleField() throws Exception {
+        Block program = new BlockImpl();
+
+        StructDeclarationImpl structDecl = new StructDeclarationImpl("Measurement", Arrays.asList(
+            new StructFieldDef("value", SystemDataType.DOUBLE)
+        ));
+        program.addStatement(structDecl);
+
+        String className = uniqueClassName("TestDoubleField");
+        Map<String, byte[]> allClasses = compiler.compileToMultipleClasses(program, className);
+
+        assertTrue(allClasses.containsKey("Measurement"));
+
+        MultiClassLoader loader = new MultiClassLoader();
+        for (Map.Entry<String, byte[]> entry : allClasses.entrySet()) {
+            loader.defineClass(entry.getKey(), entry.getValue());
+        }
+
+        // Verify Measurement class has double field
+        Class<?> measurementClass = loader.loadClass("Measurement");
+        assertEquals(double.class, measurementClass.getDeclaredField("value").getType());
+    }
+
+    /**
+     * Tests nested struct field access.
+     * <pre>
+     * struct Inner { val: Int }
+     * struct Outer { inner: Inner }
+     * Inner i = Inner(42)
+     * Outer o = Outer(i)
+     * // Access: o.inner.val = 42
+     * </pre>
+     */
+    @Test
+    void testNestedStructTypes() throws Exception {
+        Block program = new BlockImpl();
+
+        // Inner struct
+        StructDeclarationImpl innerDecl = new StructDeclarationImpl("Inner", Arrays.asList(
+            new StructFieldDef("val", SystemDataType.INT)
+        ));
+        program.addStatement(innerDecl);
+
+        // Outer struct with Inner field
+        StructDeclarationImpl outerDecl = new StructDeclarationImpl("Outer", Arrays.asList(
+            new StructFieldDef("inner", new DataTypeImpl("Inner"))
+        ));
+        program.addStatement(outerDecl);
+
+        String className = uniqueClassName("TestNestedStruct");
+        Map<String, byte[]> allClasses = compiler.compileToMultipleClasses(program, className);
+
+        assertTrue(allClasses.containsKey("Inner"));
+        assertTrue(allClasses.containsKey("Outer"));
+
+        MultiClassLoader loader = new MultiClassLoader();
+        for (Map.Entry<String, byte[]> entry : allClasses.entrySet()) {
+            loader.defineClass(entry.getKey(), entry.getValue());
+        }
+
+        // Verify classes exist
+        Class<?> innerClass = loader.loadClass("Inner");
+        Class<?> outerClass = loader.loadClass("Outer");
+
+        assertNotNull(innerClass);
+        assertNotNull(outerClass);
+        assertNotNull(outerClass.getDeclaredField("inner"));
+    }
+
+    /**
+     * Tests field assignment: p.x = 50.
+     * <pre>
+     * struct Point { x: Int, y: Int }
+     * Point p = Point(10, 20)
+     * p.x = 50
+     * return p.x  // => 50
+     * </pre>
+     */
+    @Test
+    void testFieldAssignment() throws Exception {
+        Block program = new BlockImpl();
+
+        // Struct declaration
+        StructDeclarationImpl structDecl = new StructDeclarationImpl("Point", Arrays.asList(
+            new StructFieldDef("x", SystemDataType.INT),
+            new StructFieldDef("y", SystemDataType.INT)
+        ));
+        program.addStatement(structDecl);
+
+        // Create struct instance
+        StructInstantiation structInst = new StructInstantiation("Point",
+            LiteralExpression.of(IntLiteral.of(10)),
+            LiteralExpression.of(IntLiteral.of(20))
+        );
+        VariableDeclarationImpl pDecl = new VariableDeclarationImpl(
+            "p",
+            new DataTypeImpl("Point"),
+            structInst
+        );
+        program.addStatement(pDecl);
+
+        // Field assignment: p.x = 50
+        com.elminster.jcp.ast.expression.FieldAssignmentExpression fieldAssign =
+            new com.elminster.jcp.ast.expression.FieldAssignmentExpression(
+                new VariableExpression(Identifier.fromName("p")),
+                "x",
+                LiteralExpression.of(IntLiteral.of(50))
+            );
+        program.addStatement(ExpressionStatement.of(fieldAssign));
+
+        // Field access expression to return: p.x
+        FieldAccessExpression xAccess = new FieldAccessExpression(
+            new VariableExpression(Identifier.fromName("p")),
+            "x"
+        );
+
+        // Compile and load
+        String className = uniqueClassName("TestFieldAssignment");
+        Class<?> clazz = compileAndLoadWithReturn(program, xAccess, SystemDataType.INT, className);
+
+        Method evaluate = clazz.getMethod("evaluate");
+        int result = (int) evaluate.invoke(null);
+        assertEquals(50, result);
+    }
+
+    /**
+     * Tests field assignment with different type: p.y = 100.
+     * <pre>
+     * struct Point { x: Int, y: Int }
+     * Point p = Point(10, 20)
+     * p.y = 100
+     * return p.y  // => 100
+     * </pre>
+     */
+    @Test
+    void testFieldAssignmentSecondField() throws Exception {
+        Block program = new BlockImpl();
+
+        // Struct declaration
+        StructDeclarationImpl structDecl = new StructDeclarationImpl("Point", Arrays.asList(
+            new StructFieldDef("x", SystemDataType.INT),
+            new StructFieldDef("y", SystemDataType.INT)
+        ));
+        program.addStatement(structDecl);
+
+        // Create struct instance
+        StructInstantiation structInst = new StructInstantiation("Point",
+            LiteralExpression.of(IntLiteral.of(10)),
+            LiteralExpression.of(IntLiteral.of(20))
+        );
+        VariableDeclarationImpl pDecl = new VariableDeclarationImpl(
+            "p",
+            new DataTypeImpl("Point"),
+            structInst
+        );
+        program.addStatement(pDecl);
+
+        // Field assignment: p.y = 100
+        com.elminster.jcp.ast.expression.FieldAssignmentExpression fieldAssign =
+            new com.elminster.jcp.ast.expression.FieldAssignmentExpression(
+                new VariableExpression(Identifier.fromName("p")),
+                "y",
+                LiteralExpression.of(IntLiteral.of(100))
+            );
+        program.addStatement(ExpressionStatement.of(fieldAssign));
+
+        // Field access expression to return: p.y
+        FieldAccessExpression yAccess = new FieldAccessExpression(
+            new VariableExpression(Identifier.fromName("p")),
+            "y"
+        );
+
+        // Compile and load
+        String className = uniqueClassName("TestFieldAssignmentSecond");
+        Class<?> clazz = compileAndLoadWithReturn(program, yAccess, SystemDataType.INT, className);
+
+        Method evaluate = clazz.getMethod("evaluate");
+        int result = (int) evaluate.invoke(null);
+        assertEquals(100, result);
+    }
+
+    /**
+     * Tests field access using IdentifierExpression.
+     * <pre>
+     * struct Point { x: Int, y: Int }
+     * Point p = Point(10, 20)
+     * return p.x  // => 10 using IdentifierExpression
+     * </pre>
+     */
+    @Test
+    void testFieldAccessWithIdentifierExpression() throws Exception {
+        Block program = new BlockImpl();
+
+        // Struct declaration
+        StructDeclarationImpl structDecl = new StructDeclarationImpl("Point", Arrays.asList(
+            new StructFieldDef("x", SystemDataType.INT),
+            new StructFieldDef("y", SystemDataType.INT)
+        ));
+        program.addStatement(structDecl);
+
+        // Create struct instance
+        StructInstantiation structInst = new StructInstantiation("Point",
+            LiteralExpression.of(IntLiteral.of(10)),
+            LiteralExpression.of(IntLiteral.of(20))
+        );
+        VariableDeclarationImpl pDecl = new VariableDeclarationImpl(
+            "p",
+            new DataTypeImpl("Point"),
+            structInst
+        );
+        program.addStatement(pDecl);
+
+        // Field access expression using IdentifierExpression: p.x
+        FieldAccessExpression xAccess = new FieldAccessExpression(
+            new IdentifierExpression("p"),
+            "x"
+        );
+
+        // Compile and load
+        String className = uniqueClassName("TestFieldAccessIdentifier");
+        Class<?> clazz = compileAndLoadWithReturn(program, xAccess, SystemDataType.INT, className);
+
+        Method evaluate = clazz.getMethod("evaluate");
+        int result = (int) evaluate.invoke(null);
+        assertEquals(10, result);
+    }
+
+    /**
+     * Tests field access on inline struct instantiation.
+     * <pre>
+     * struct Point { x: Int, y: Int }
+     * return Point(15, 25).x  // => 15
+     * </pre>
+     */
+    @Test
+    void testFieldAccessOnInstantiation() throws Exception {
+        Block program = new BlockImpl();
+
+        // Struct declaration
+        StructDeclarationImpl structDecl = new StructDeclarationImpl("Point", Arrays.asList(
+            new StructFieldDef("x", SystemDataType.INT),
+            new StructFieldDef("y", SystemDataType.INT)
+        ));
+        program.addStatement(structDecl);
+
+        // Inline field access: Point(15, 25).x
+        StructInstantiation structInst = new StructInstantiation("Point",
+            LiteralExpression.of(IntLiteral.of(15)),
+            LiteralExpression.of(IntLiteral.of(25))
+        );
+        FieldAccessExpression xAccess = new FieldAccessExpression(
+            structInst,
+            "x"
+        );
+
+        // Compile and load
+        String className = uniqueClassName("TestFieldAccessOnInst");
+        Class<?> clazz = compileAndLoadWithReturn(program, xAccess, SystemDataType.INT, className);
+
+        Method evaluate = clazz.getMethod("evaluate");
+        int result = (int) evaluate.invoke(null);
+        assertEquals(15, result);
+    }
+
+    /**
+     * Tests field assignment with expression as value.
+     * <pre>
+     * struct Point { x: Int, y: Int }
+     * Point p = Point(10, 20)
+     * p.x = p.y + 5
+     * return p.x  // => 25
+     * </pre>
+     */
+    @Test
+    void testFieldAssignmentWithExpression() throws Exception {
+        Block program = new BlockImpl();
+
+        // Struct declaration
+        StructDeclarationImpl structDecl = new StructDeclarationImpl("Point", Arrays.asList(
+            new StructFieldDef("x", SystemDataType.INT),
+            new StructFieldDef("y", SystemDataType.INT)
+        ));
+        program.addStatement(structDecl);
+
+        // Create struct instance
+        StructInstantiation structInst = new StructInstantiation("Point",
+            LiteralExpression.of(IntLiteral.of(10)),
+            LiteralExpression.of(IntLiteral.of(20))
+        );
+        VariableDeclarationImpl pDecl = new VariableDeclarationImpl(
+            "p",
+            new DataTypeImpl("Point"),
+            structInst
+        );
+        program.addStatement(pDecl);
+
+        // Field assignment: p.x = p.y + 5
+        FieldAccessExpression yAccess = new FieldAccessExpression(
+            new VariableExpression(Identifier.fromName("p")),
+            "y"
+        );
+        Plus sum = new Plus(yAccess, LiteralExpression.of(IntLiteral.of(5)));
+        com.elminster.jcp.ast.expression.FieldAssignmentExpression fieldAssign =
+            new com.elminster.jcp.ast.expression.FieldAssignmentExpression(
+                new VariableExpression(Identifier.fromName("p")),
+                "x",
+                sum
+            );
+        program.addStatement(ExpressionStatement.of(fieldAssign));
+
+        // Field access expression to return: p.x
+        FieldAccessExpression xAccess = new FieldAccessExpression(
+            new VariableExpression(Identifier.fromName("p")),
+            "x"
+        );
+
+        // Compile and load
+        String className = uniqueClassName("TestFieldAssignExpr");
+        Class<?> clazz = compileAndLoadWithReturn(program, xAccess, SystemDataType.INT, className);
+
+        Method evaluate = clazz.getMethod("evaluate");
+        int result = (int) evaluate.invoke(null);
+        assertEquals(25, result);  // 20 + 5 = 25
+    }
+
+    /**
+     * Tests field assignment using IdentifierExpression.
+     * <pre>
+     * struct Point { x: Int, y: Int }
+     * Point p = Point(10, 20)
+     * p.x = 77  // using IdentifierExpression for "p"
+     * return p.x  // => 77
+     * </pre>
+     */
+    @Test
+    void testFieldAssignmentWithIdentifierExpression() throws Exception {
+        Block program = new BlockImpl();
+
+        // Struct declaration
+        StructDeclarationImpl structDecl = new StructDeclarationImpl("Point", Arrays.asList(
+            new StructFieldDef("x", SystemDataType.INT),
+            new StructFieldDef("y", SystemDataType.INT)
+        ));
+        program.addStatement(structDecl);
+
+        // Create struct instance
+        StructInstantiation structInst = new StructInstantiation("Point",
+            LiteralExpression.of(IntLiteral.of(10)),
+            LiteralExpression.of(IntLiteral.of(20))
+        );
+        VariableDeclarationImpl pDecl = new VariableDeclarationImpl(
+            "p",
+            new DataTypeImpl("Point"),
+            structInst
+        );
+        program.addStatement(pDecl);
+
+        // Field assignment using IdentifierExpression: p.x = 77
+        com.elminster.jcp.ast.expression.FieldAssignmentExpression fieldAssign =
+            new com.elminster.jcp.ast.expression.FieldAssignmentExpression(
+                new IdentifierExpression("p"),
+                "x",
+                LiteralExpression.of(IntLiteral.of(77))
+            );
+        program.addStatement(ExpressionStatement.of(fieldAssign));
+
+        // Field access expression to return: p.x
+        FieldAccessExpression xAccess = new FieldAccessExpression(
+            new VariableExpression(Identifier.fromName("p")),
+            "x"
+        );
+
+        // Compile and load
+        String className = uniqueClassName("TestFieldAssignIdentifier");
+        Class<?> clazz = compileAndLoadWithReturn(program, xAccess, SystemDataType.INT, className);
+
+        Method evaluate = clazz.getMethod("evaluate");
+        int result = (int) evaluate.invoke(null);
+        assertEquals(77, result);
     }
 
     /**

@@ -13,12 +13,15 @@ import com.elminster.jcp.ast.statement.declaration.StructFieldDef;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
 import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.RootEvalContext;
+import com.elminster.jcp.ast.statement.declaration.MethodDef;
+import com.elminster.jcp.ast.statement.function.ParameterDef;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataTypeImpl;
 import com.elminster.jcp.eval.data.IntegerData;
 import com.elminster.jcp.eval.data.StructData;
 import com.elminster.jcp.eval.data.StructType;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -212,6 +215,13 @@ class StructEvaluatorTest {
     assertEquals(30, yData.get());
   }
 
+  /**
+   * Tests that creating struct with wrong field count throws IllegalArgumentException.
+   * <pre>
+   * struct Point { x: Int, y: Int }
+   * Point p = Point(10)  // throws: expects 2 fields, got 1
+   * </pre>
+   */
   @Test
   void testStructWithWrongFieldCount() {
     // Try to create Point(10) when it expects 2 fields
@@ -240,5 +250,310 @@ class StructEvaluatorTest {
     assertThrows(IllegalArgumentException.class, () -> {
       new EvalVisitor(context).visit(program);
     });
+  }
+
+  /**
+   * Tests that instantiating an unknown struct type throws IllegalArgumentException.
+   * <pre>
+   * UnknownType x = UnknownType()  // throws: Unknown struct type
+   * </pre>
+   */
+  @Test
+  void testUnknownStructType() {
+    RootEvalContext context = new RootEvalContext();
+
+    // Try to instantiate a type that doesn't exist
+    StructInstantiation structInst = new StructInstantiation("UnknownType");
+
+    StructInstantiationEvaluator evaluator = new StructInstantiationEvaluator(structInst);
+
+    assertThrows(IllegalArgumentException.class, () -> evaluator.eval(context));
+  }
+
+  /**
+   * Tests struct with type incompatible field values throws CannotCastException.
+   * <pre>
+   * struct Point { x: Int, y: Int }
+   * Point p = Point("hello", 20)  // throws: String not castable to Int
+   * </pre>
+   */
+  @Test
+  void testStructWithIncompatibleFieldType() {
+    RootEvalContext context = new RootEvalContext();
+
+    // Register struct type
+    StructType pointType = new StructType("Point", Arrays.asList(
+        new StructFieldDef("x", DataType.SystemDataType.INT),
+        new StructFieldDef("y", DataType.SystemDataType.INT)
+    ));
+    context.addDataType(pointType);
+
+    // Create struct instance with string where int expected
+    StructInstantiation structInst = new StructInstantiation("Point",
+        LiteralExpression.of(com.elminster.jcp.ast.expression.literal.StringLiteral.of("hello")),
+        LiteralExpression.of(IntLiteral.of(20))
+    );
+
+    StructInstantiationEvaluator evaluator = new StructInstantiationEvaluator(structInst);
+
+    assertThrows(com.elminster.jcp.eval.excpetion.CannotCastException.class, () ->
+        evaluator.eval(context));
+  }
+
+  /**
+   * Tests struct with boolean field and default value.
+   * <pre>
+   * struct Flags { enabled: Boolean, active: Boolean }
+   * Flags f = Flags(true, false)
+   * // f.enabled = true, f.active = false
+   * </pre>
+   */
+  @Test
+  void testStructWithBooleanFields() {
+    RootEvalContext context = new RootEvalContext();
+
+    // Register struct type with boolean fields
+    StructType flagsType = new StructType("Flags", Arrays.asList(
+        new StructFieldDef("enabled", DataType.SystemDataType.BOOLEAN),
+        new StructFieldDef("active", DataType.SystemDataType.BOOLEAN)
+    ));
+    context.addDataType(flagsType);
+
+    // Create struct instance
+    StructInstantiation structInst = new StructInstantiation("Flags",
+        LiteralExpression.of(com.elminster.jcp.ast.expression.literal.BooleanLiteral.of(true)),
+        LiteralExpression.of(com.elminster.jcp.ast.expression.literal.BooleanLiteral.of(false))
+    );
+
+    StructInstantiationEvaluator evaluator = new StructInstantiationEvaluator(structInst);
+    Data result = evaluator.eval(context);
+
+    assertNotNull(result);
+    assertTrue(result instanceof StructData);
+
+    StructData structData = (StructData) result;
+    assertEquals(true, structData.getField("enabled").get());
+    assertEquals(false, structData.getField("active").get());
+  }
+
+  /**
+   * Tests struct with string field.
+   * <pre>
+   * struct Person { name: String, age: Int }
+   * Person p = Person("Alice", 30)
+   * // p.name = "Alice", p.age = 30
+   * </pre>
+   */
+  @Test
+  void testStructWithStringField() {
+    RootEvalContext context = new RootEvalContext();
+
+    // Register struct type with string field
+    StructType personType = new StructType("Person", Arrays.asList(
+        new StructFieldDef("name", DataType.SystemDataType.STRING),
+        new StructFieldDef("age", DataType.SystemDataType.INT)
+    ));
+    context.addDataType(personType);
+
+    // Create struct instance
+    StructInstantiation structInst = new StructInstantiation("Person",
+        LiteralExpression.of(com.elminster.jcp.ast.expression.literal.StringLiteral.of("Alice")),
+        LiteralExpression.of(IntLiteral.of(30))
+    );
+
+    StructInstantiationEvaluator evaluator = new StructInstantiationEvaluator(structInst);
+    Data result = evaluator.eval(context);
+
+    assertNotNull(result);
+    assertTrue(result instanceof StructData);
+
+    StructData structData = (StructData) result;
+    assertEquals("Alice", structData.getField("name").get());
+    assertEquals(30, structData.getField("age").get());
+  }
+
+  @Nested
+  class ExplicitConstructorTests {
+
+    /**
+     * Tests explicit constructor with wrong argument count throws exception.
+     * <pre>
+     * type Counter {
+     *   count: Int
+     *   constructor(start: Int) { }
+     * }
+     * Counter c = Counter()  // throws: expects 1 argument
+     * </pre>
+     */
+    @Test
+    void testExplicitConstructor_WrongArgCount() {
+      RootEvalContext context = new RootEvalContext();
+
+      Block constructorBody = new BlockImpl();
+      MethodDef constructor = MethodDef.constructor(
+          constructorBody,
+          ParameterDef.of("start", DataType.SystemDataType.INT)
+      );
+
+      StructType counterType = new StructType("Counter", Arrays.asList(
+          new StructFieldDef("count", DataType.SystemDataType.INT)
+      ), constructor);
+      context.addDataType(counterType);
+
+      // Try to instantiate with no arguments (constructor expects 1)
+      StructInstantiation structInst = new StructInstantiation("Counter");
+
+      StructInstantiationEvaluator evaluator = new StructInstantiationEvaluator(structInst);
+
+      assertThrows(IllegalArgumentException.class, () -> evaluator.eval(context));
+    }
+
+    /**
+     * Tests explicit constructor with wrong argument type throws CannotCastException.
+     * <pre>
+     * type Counter {
+     *   count: Int
+     *   constructor(start: Int) { }
+     * }
+     * Counter c = Counter("hello")  // throws: String not castable to Int
+     * </pre>
+     */
+    @Test
+    void testExplicitConstructor_WrongArgType() {
+      RootEvalContext context = new RootEvalContext();
+
+      Block constructorBody = new BlockImpl();
+      MethodDef constructor = MethodDef.constructor(
+          constructorBody,
+          ParameterDef.of("start", DataType.SystemDataType.INT)
+      );
+
+      StructType counterType = new StructType("Counter", Arrays.asList(
+          new StructFieldDef("count", DataType.SystemDataType.INT)
+      ), constructor);
+      context.addDataType(counterType);
+
+      // Try to instantiate with wrong type
+      StructInstantiation structInst = new StructInstantiation("Counter",
+          LiteralExpression.of(com.elminster.jcp.ast.expression.literal.StringLiteral.of("hello"))
+      );
+
+      StructInstantiationEvaluator evaluator = new StructInstantiationEvaluator(structInst);
+
+      assertThrows(com.elminster.jcp.eval.excpetion.CannotCastException.class, () -> evaluator.eval(context));
+    }
+
+    /**
+     * Tests explicit constructor with String field getting default value.
+     * <pre>
+     * type Named {
+     *   name: String
+     *   constructor() { }
+     * }
+     * Named n = Named()  // name gets default ""
+     * </pre>
+     */
+    @Test
+    void testExplicitConstructor_StringFieldDefault() {
+      RootEvalContext context = new RootEvalContext();
+
+      Block constructorBody = new BlockImpl();  // Empty constructor body
+      MethodDef constructor = MethodDef.constructor(constructorBody);  // No parameters
+
+      StructType namedType = new StructType("Named", Arrays.asList(
+          new StructFieldDef("name", DataType.SystemDataType.STRING)
+      ), constructor);
+      context.addDataType(namedType);
+
+      // Instantiate with no arguments
+      StructInstantiation structInst = new StructInstantiation("Named");
+
+      StructInstantiationEvaluator evaluator = new StructInstantiationEvaluator(structInst);
+      Data result = evaluator.eval(context);
+
+      assertNotNull(result);
+      assertTrue(result instanceof StructData);
+
+      StructData structData = (StructData) result;
+      assertEquals("", structData.getField("name").get());  // Default string value
+    }
+
+    /**
+     * Tests explicit constructor with Boolean field getting default value.
+     * <pre>
+     * type Flags {
+     *   enabled: Boolean
+     *   constructor() { }
+     * }
+     * Flags f = Flags()  // enabled gets default false
+     * </pre>
+     */
+    @Test
+    void testExplicitConstructor_BooleanFieldDefault() {
+      RootEvalContext context = new RootEvalContext();
+
+      Block constructorBody = new BlockImpl();  // Empty constructor body
+      MethodDef constructor = MethodDef.constructor(constructorBody);  // No parameters
+
+      StructType flagsType = new StructType("Flags", Arrays.asList(
+          new StructFieldDef("enabled", DataType.SystemDataType.BOOLEAN)
+      ), constructor);
+      context.addDataType(flagsType);
+
+      // Instantiate with no arguments
+      StructInstantiation structInst = new StructInstantiation("Flags");
+
+      StructInstantiationEvaluator evaluator = new StructInstantiationEvaluator(structInst);
+      Data result = evaluator.eval(context);
+
+      assertNotNull(result);
+      assertTrue(result instanceof StructData);
+
+      StructData structData = (StructData) result;
+      assertEquals(false, structData.getField("enabled").get());  // Default boolean value
+    }
+
+    /**
+     * Tests explicit constructor with custom type field getting null default.
+     * <pre>
+     * type Container {
+     *   data: AnotherType
+     *   constructor() { }
+     * }
+     * Container c = Container()  // data gets null
+     * </pre>
+     */
+    @Test
+    void testExplicitConstructor_CustomTypeFieldDefault() {
+      RootEvalContext context = new RootEvalContext();
+
+      // First register a custom type
+      StructType innerType = new StructType("Inner", Arrays.asList(
+          new StructFieldDef("val", DataType.SystemDataType.INT)
+      ));
+      context.addDataType(innerType);
+
+      // Now create a type with custom type field
+      Block constructorBody = new BlockImpl();  // Empty constructor body
+      MethodDef constructor = MethodDef.constructor(constructorBody);  // No parameters
+
+      StructType containerType = new StructType("Container", Arrays.asList(
+          new StructFieldDef("data", innerType)
+      ), constructor);
+      context.addDataType(containerType);
+
+      // Instantiate with no arguments
+      StructInstantiation structInst = new StructInstantiation("Container");
+
+      StructInstantiationEvaluator evaluator = new StructInstantiationEvaluator(structInst);
+      Data result = evaluator.eval(context);
+
+      assertNotNull(result);
+      assertTrue(result instanceof StructData);
+
+      StructData structData = (StructData) result;
+      // Custom type defaults to null
+      assertNull(structData.getField("data").get());
+    }
   }
 }

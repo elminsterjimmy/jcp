@@ -21,12 +21,16 @@ import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.excpetion.CannotCastException;
+import com.elminster.jcp.eval.excpetion.UndeclaredException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class AssignmentEvaluatorTest {
 
@@ -42,9 +46,19 @@ class AssignmentEvaluatorTest {
     }
 
     /**
-     * int i = 10;
-     * i op 2;
-     * Assertions.assertTrue(expected, i);
+     * Tests all assignment operators with integer operands.
+     * <pre>
+     * var i: Int = 10
+     * i op 2
+     * Assertions.assertTrue(expected, i)
+     *
+     * ASSIGNMENT:        i = 2   // result = 2
+     * PLUS_ASSIGNMENT:   i += 2  // result = 12
+     * MINUS_ASSIGNMENT:  i -= 2  // result = 8
+     * MULTI_ASSIGNMENT:  i *= 2  // result = 20
+     * DIVIDE_ASSIGNMENT: i /= 2  // result = 5
+     * MOD_ASSIGNMENT:    i %= 2  // result = 0
+     * </pre>
      */
     @MethodSource("assignments")
     @ParameterizedTest
@@ -69,5 +83,66 @@ class AssignmentEvaluatorTest {
 
         EvalVisitor visitor = new EvalVisitor(context);
         visitor.visit(block);
+    }
+
+    /**
+     * Tests that assigning to an undeclared variable throws UndeclaredException.
+     * <pre>
+     * undeclaredVar = 10  // throws UndeclaredException
+     * </pre>
+     */
+    @Test
+    void testAssignToUndeclaredVariable() {
+        Block block = new BlockImpl();
+
+        // Assign to a variable that doesn't exist
+        AssignmentExpression assignmentExpression = new AssignmentExpression(
+            Identifier.fromName("undeclaredVar"),
+            AssignmentOperator.ASSIGNMENT,
+            new LiteralExpression(IntLiteral.of(10))
+        );
+
+        block.addStatement(new ExpressionStatement(assignmentExpression));
+
+        EvalContext context = new RootEvalContext();
+
+        assertThrows(UndeclaredException.class, () ->
+            new EvalVisitor(context).visit(block)
+        );
+    }
+
+    /**
+     * Tests that assigning incompatible types throws CannotCastException.
+     * <pre>
+     * var x: Int = 10
+     * x = "hello"  // throws CannotCastException (String cannot be cast to Int)
+     * </pre>
+     */
+    @Test
+    void testCannotCastAssignment() {
+        Block block = new BlockImpl();
+
+        // var x: Int = 10
+        VariableDeclaration variableDeclaration = new VariableDeclarationImpl(
+            Identifier.fromName("x"),
+            DataType.SystemDataType.INT,
+            new LiteralExpression(IntLiteral.of(10))
+        );
+
+        // x = "hello" (String cannot be cast to Int)
+        AssignmentExpression assignmentExpression = new AssignmentExpression(
+            Identifier.fromName("x"),
+            AssignmentOperator.ASSIGNMENT,
+            new LiteralExpression(StringLiteral.of("hello"))
+        );
+
+        block.addStatement(variableDeclaration);
+        block.addStatement(new ExpressionStatement(assignmentExpression));
+
+        EvalContext context = new RootEvalContext();
+
+        assertThrows(CannotCastException.class, () ->
+            new EvalVisitor(context).visit(block)
+        );
     }
 }

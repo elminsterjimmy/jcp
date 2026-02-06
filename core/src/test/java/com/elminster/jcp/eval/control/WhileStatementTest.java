@@ -25,6 +25,8 @@ import com.elminster.jcp.eval.data.DataType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class WhileStatementTest {
 
   @BeforeAll
@@ -86,5 +88,123 @@ public class WhileStatementTest {
 
     EvalVisitor visitor = new EvalVisitor(context);
     visitor.visit(block);
+  }
+
+  /**
+   * Tests nested while loops.
+   * <pre>
+   * int outer = 0
+   * int inner = 0
+   * while (outer < 2) {
+   *   while (inner < 3) {
+   *     inner++
+   *   }
+   *   outer++
+   * }
+   * // outer = 2, inner = 3
+   * </pre>
+   */
+  @Test
+  public void testNestedWhileLoops() {
+    Block block = new BlockImpl();
+
+    // int outer = 0
+    VariableDeclaration outerVar = new VariableDeclarationImpl(
+        new IdentifierExpression("outer"),
+        DataType.SystemDataType.INT,
+        new LiteralExpression(Literal.of(0))
+    );
+    block.addStatement(outerVar);
+
+    // int inner = 0
+    VariableDeclaration innerVar = new VariableDeclarationImpl(
+        new IdentifierExpression("inner"),
+        DataType.SystemDataType.INT,
+        new LiteralExpression(Literal.of(0))
+    );
+    block.addStatement(innerVar);
+
+    // Inner while body: inner++
+    Block innerBody = new BlockImpl();
+    innerBody.addStatement(new ExpressionStatement(
+        new PlusPlus(new VariableExpression(new IdentifierExpression("inner")))
+    ));
+
+    // Inner while condition: inner < 3
+    Expression innerCondition = new LessThan(
+        new VariableExpression(new IdentifierExpression("inner")),
+        new LiteralExpression(Literal.of(3))
+    );
+
+    // Inner while loop
+    WhileStatement innerWhile = new WhileStatement(innerCondition, innerBody);
+
+    // Outer while body: inner loop + outer++
+    Block outerBody = new BlockImpl();
+    outerBody.addStatement(innerWhile);
+    outerBody.addStatement(new ExpressionStatement(
+        new PlusPlus(new VariableExpression(new IdentifierExpression("outer")))
+    ));
+
+    // Outer while condition: outer < 2
+    Expression outerCondition = new LessThan(
+        new VariableExpression(new IdentifierExpression("outer")),
+        new LiteralExpression(Literal.of(2))
+    );
+
+    // Outer while loop
+    WhileStatement outerWhile = new WhileStatement(outerCondition, outerBody);
+    block.addStatement(outerWhile);
+
+    EvalContext context = new RootEvalContext();
+    new EvalVisitor(context).visit(block);
+
+    assertEquals(2, context.getVariable("outer").get());
+    // Inner only runs once because it's reset between outer iterations
+    assertEquals(3, context.getVariable("inner").get());
+  }
+
+  /**
+   * Tests simple while loop with counter.
+   * <pre>
+   * int count = 0
+   * while (count < 5) {
+   *   count++
+   * }
+   * // count = 5
+   * </pre>
+   */
+  @Test
+  public void testSimpleWhileLoop() {
+    Block block = new BlockImpl();
+
+    // int count = 0
+    VariableDeclaration countVar = new VariableDeclarationImpl(
+        new IdentifierExpression("count"),
+        DataType.SystemDataType.INT,
+        new LiteralExpression(Literal.of(0))
+    );
+    block.addStatement(countVar);
+
+    // while body: count++
+    Block whileBody = new BlockImpl();
+    whileBody.addStatement(new ExpressionStatement(
+        new PlusPlus(new VariableExpression(new IdentifierExpression("count")))
+    ));
+
+    // while condition: count < 5
+    Expression condition = new LessThan(
+        new VariableExpression(new IdentifierExpression("count")),
+        new LiteralExpression(Literal.of(5))
+    );
+
+    // while loop
+    WhileStatement whileStmt = new WhileStatement(condition, whileBody);
+    block.addStatement(whileStmt);
+
+    EvalContext context = new RootEvalContext();
+    new EvalVisitor(context).visit(block);
+
+    assertEquals(5, context.getVariable("count").get());
   }
 }

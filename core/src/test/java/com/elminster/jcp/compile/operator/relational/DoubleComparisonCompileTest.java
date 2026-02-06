@@ -159,4 +159,52 @@ public class DoubleComparisonCompileTest extends AbstractCompileTest {
         boolean result = (boolean) evaluate.invoke(null);
         assertFalse(result);
     }
+
+    /**
+     * Tests int-to-double promotion on left operand.
+     * <pre>
+     * return 5 < 3.14  // => false (5.0 is not < 3.14)
+     * </pre>
+     */
+    @Test
+    void testMixedIntDoubleComparison_IntLeftDoubleRight() throws Exception {
+        // return 5 (int) < 3.14 (double)  => false (promotes int to double)
+        Class<?> clazz = compiler.compileAndLoadWithReturn(
+                null,
+                new LessThan(
+                        LiteralExpression.of(5),  // int
+                        LiteralExpression.of(DoubleLiteral.of(3.14))  // double
+                ),
+                SystemDataType.BOOLEAN,
+                uniqueClassName("TestMixedIntLeftDoubleLT")
+        );
+
+        Method evaluate = clazz.getMethod("evaluate");
+        boolean result = (boolean) evaluate.invoke(null);
+        assertFalse(result);  // 5.0 < 3.14 is false
+    }
+
+    /**
+     * Tests int-to-double promotion on right operand.
+     * <pre>
+     * return 3.14 < 5  // => true (3.14 is < 5.0)
+     * </pre>
+     */
+    @Test
+    void testMixedIntDoubleComparison_DoubleLeftIntRight() throws Exception {
+        // return 3.14 (double) < 5 (int)  => true (promotes int to double)
+        Class<?> clazz = compiler.compileAndLoadWithReturn(
+                null,
+                new LessThan(
+                        LiteralExpression.of(DoubleLiteral.of(3.14)),  // double
+                        LiteralExpression.of(5)  // int
+                ),
+                SystemDataType.BOOLEAN,
+                uniqueClassName("TestMixedDoubleLeftIntLT")
+        );
+
+        Method evaluate = clazz.getMethod("evaluate");
+        boolean result = (boolean) evaluate.invoke(null);
+        assertTrue(result);  // 3.14 < 5.0 is true
+    }
 }

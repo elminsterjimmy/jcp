@@ -409,6 +409,87 @@ public class FunctionCompileTest extends AbstractCompileTest {
     }
 
     /**
+     * Tests function with Double parameter and return type.
+     * <pre>
+     * fn doubleIt(x: Double) -> Double { return x * 2.0 }
+     * return doubleIt(3.14)  // returns 6.28
+     * </pre>
+     */
+    @Test
+    void testFunctionWithDouble() throws Exception {
+        Block funcBody = new BlockImpl();
+        funcBody.addStatement(new ReturnStatement(
+            new com.elminster.jcp.ast.expression.operation.Multi(
+                VariableExpression.of("x"),
+                LiteralExpression.of(2.0)
+            )
+        ));
+
+        FunctionDeclaration doubleFunc = new FunctionDeclarationImpl(
+            Identifier.fromName("doubleIt"),
+            SystemDataType.DOUBLE,
+            new ParameterDef[]{ParameterDef.of("x", SystemDataType.DOUBLE)},
+            funcBody
+        );
+
+        Block program = new BlockImpl();
+        program.addStatement(doubleFunc);
+
+        FunctionCallExpression call = new FunctionCallExpression(
+            Identifier.fromName("doubleIt"),
+            LiteralExpression.of(3.0)
+        );
+
+        String className = uniqueClassName("TestDouble");
+        BytecodeGenerator generator = new BytecodeGenerator(className);
+        byte[] bytecode = generator.compileWithReturn(program, call, SystemDataType.DOUBLE);
+
+        Class<?> clazz = loadClass(className, bytecode);
+        Method evaluate = clazz.getMethod("evaluate");
+        double result = (double) evaluate.invoke(null);
+        assertEquals(6.0, result, 0.001);
+    }
+
+    /**
+     * Tests function with boolean parameter that returns the same value.
+     * <pre>
+     * fn identity(b: Boolean) -> Boolean { return b }
+     * return identity(true)  // returns true
+     * </pre>
+     */
+    @Test
+    void testFunctionWithBoolean() throws Exception {
+        Block funcBody = new BlockImpl();
+        funcBody.addStatement(new ReturnStatement(
+            VariableExpression.of("b")
+        ));
+
+        FunctionDeclaration identityFunc = new FunctionDeclarationImpl(
+            Identifier.fromName("identity"),
+            SystemDataType.BOOLEAN,
+            new ParameterDef[]{ParameterDef.of("b", SystemDataType.BOOLEAN)},
+            funcBody
+        );
+
+        Block program = new BlockImpl();
+        program.addStatement(identityFunc);
+
+        FunctionCallExpression call = new FunctionCallExpression(
+            Identifier.fromName("identity"),
+            LiteralExpression.of(true)
+        );
+
+        String className = uniqueClassName("TestBoolean");
+        BytecodeGenerator generator = new BytecodeGenerator(className);
+        byte[] bytecode = generator.compileWithReturn(program, call, SystemDataType.BOOLEAN);
+
+        Class<?> clazz = loadClass(className, bytecode);
+        Method evaluate = clazz.getMethod("evaluate");
+        boolean result = (boolean) evaluate.invoke(null);
+        assertTrue(result);
+    }
+
+    /**
      * Helper method to load a class from bytecode using a custom class loader.
      */
     private Class<?> loadClass(String name, byte[] bytecode) {
