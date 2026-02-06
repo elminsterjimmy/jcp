@@ -31,3 +31,6 @@ bin/
 .clover
 
 .idea
+
+### Claude
+.claude/settings.local.json
