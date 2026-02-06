@@ -103,6 +103,21 @@ Class<?> clazz = compiler.compileAndLoad(program, "ClassName");
 clazz.getMethod("main", String[].class).invoke(null, (Object) new String[]{});
 ```
 
+## Test Coverage
+
+JaCoCo enforces minimum **80% instruction and 80% branch coverage** on the core module. The build will fail if coverage drops below these thresholds.
+
+```bash
+# Run tests with coverage report
+mvn test -pl core
+
+# View coverage report
+open core/target/site/jacoco/index.html
+
+# Verify coverage thresholds pass
+mvn verify -pl core
+```
+
 ## Debugging
 
 - Use `compiler.printBytecode(bytecode)` to view generated ASM instructions
