@@ -59,39 +59,6 @@ class JcpExceptionTest {
     assertNull(ex.getLocation());
   }
 
-  // ==================== setLocation() Tests ====================
-
-  @Test
-  void testSetLocationOnExceptionWithoutLocation() {
-    JcpException ex = new JcpException("error");
-    SourceLocation loc = SourceLocation.of("test.jcp", 10, 5);
-
-    ex.setLocation(loc);
-
-    assertEquals(loc, ex.getLocation());
-    assertEquals("error at test.jcp:10:5", ex.getMessage());
-  }
-
-  @Test
-  void testSetLocationDoesNotOverrideExisting() {
-    SourceLocation loc1 = SourceLocation.of("first.jcp", 1, 1);
-    SourceLocation loc2 = SourceLocation.of("second.jcp", 2, 2);
-    JcpException ex = new JcpException("error", loc1);
-
-    ex.setLocation(loc2);
-
-    assertEquals(loc1, ex.getLocation());
-  }
-
-  @Test
-  void testSetLocationNullIsAllowed() {
-    JcpException ex = new JcpException("error");
-
-    ex.setLocation(null);
-
-    assertNull(ex.getLocation());
-  }
-
   // ==================== withLocation() Tests ====================
 
   @Test

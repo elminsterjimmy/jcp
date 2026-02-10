@@ -47,9 +47,7 @@ public class FunctionEvaluator extends BlockEvaluator {
     try {
       Data result = doFunc(function, evalContext);
       if (!resultDataType.isCastableTo(result.getDataType())) {
-        CannotCastException ex = new CannotCastException(result.getDataType(), resultDataType);
-        ex.setLocation(getSourceLocation());
-        throw ex;
+        throw new CannotCastException(result.getDataType(), resultDataType, getSourceLocation());
       }
       return result;
     } finally {
@@ -64,9 +62,7 @@ public class FunctionEvaluator extends BlockEvaluator {
     Data[] arguments = function.getArguments();
     ParameterDef[] parameterDefs = function.getParameterDefs();
     if (parameterDefs.length != arguments.length) {
-      FunctionArgumentsLengthException ex = new FunctionArgumentsLengthException();
-      ex.setLocation(getSourceLocation());
-      throw ex;
+      throw new FunctionArgumentsLengthException(getSourceLocation());
     }
     for (int i = 0, len = parameterDefs.length; i< len; i++) {
       // For 'this' parameter, bind the instance directly (don't clone)

@@ -10,26 +10,28 @@ import java.util.StringJoiner;
 
 public class AlreadyDeclaredException extends DeclarationException {
 
+  protected AlreadyDeclaredException() {
+    super();
+  }
+
+  protected AlreadyDeclaredException(String message, SourceLocation location) {
+    super(message, location);
+  }
+
   private static SourceLocation getLocationSafe(Object obj) {
     return obj instanceof Locatable ? ((Locatable) obj).getLocation() : null;
   }
 
   public static void throwFunctionAlreadyDeclaredException(Function function) {
-    FunctionAlreadyDeclaredException ex = new FunctionAlreadyDeclaredException(function);
-    ex.setLocation(getLocationSafe(function));
-    throw ex;
+    throw new FunctionAlreadyDeclaredException(function, getLocationSafe(function));
   }
 
   public static void throwVariableAlreadyDeclaredException(Identifier identifier) {
-    VariableAlreadyDeclaredException ex = new VariableAlreadyDeclaredException(identifier);
-    ex.setLocation(getLocationSafe(identifier));
-    throw ex;
+    throw new VariableAlreadyDeclaredException(identifier, getLocationSafe(identifier));
   }
 
   public static void throwDataTypeAlreadyDeclaredException(Identifier identifier) {
-    DataTypeAlreadyDeclaredException ex = new DataTypeAlreadyDeclaredException(identifier);
-    ex.setLocation(getLocationSafe(identifier));
-    throw ex;
+    throw new DataTypeAlreadyDeclaredException(identifier, getLocationSafe(identifier));
   }
 
   public static class FunctionAlreadyDeclaredException extends AlreadyDeclaredException {
@@ -38,7 +40,11 @@ public class AlreadyDeclaredException extends DeclarationException {
     private final Function function;
 
     public FunctionAlreadyDeclaredException(Function function) {
-      super();
+      this(function, null);
+    }
+
+    public FunctionAlreadyDeclaredException(Function function, SourceLocation location) {
+      super(null, location);
       this.function = function;
     }
 
@@ -61,7 +67,11 @@ public class AlreadyDeclaredException extends DeclarationException {
     private final Identifier identifier;
 
     public VariableAlreadyDeclaredException(Identifier identifier) {
-      super();
+      this(identifier, null);
+    }
+
+    public VariableAlreadyDeclaredException(Identifier identifier, SourceLocation location) {
+      super(null, location);
       this.identifier = identifier;
     }
 
@@ -77,7 +87,11 @@ public class AlreadyDeclaredException extends DeclarationException {
     private final Identifier identifier;
 
     public DataTypeAlreadyDeclaredException(Identifier identifier) {
-      super();
+      this(identifier, null);
+    }
+
+    public DataTypeAlreadyDeclaredException(Identifier identifier, SourceLocation location) {
+      super(null, location);
       this.identifier = identifier;
     }
 

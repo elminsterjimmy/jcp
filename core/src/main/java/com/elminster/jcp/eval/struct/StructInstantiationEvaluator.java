@@ -93,9 +93,7 @@ public class StructInstantiationEvaluator extends AbstractAstEvaluator {
 
         // Type check
         if (!argValue.getDataType().isCastableTo(params[i].getDataType())) {
-          CannotCastException ex = new CannotCastException(argValue.getDataType(), params[i].getDataType());
-          ex.setLocation(getSourceLocation());
-          throw ex;
+          throw new CannotCastException(argValue.getDataType(), params[i].getDataType(), getSourceLocation());
         }
 
         Data paramData = new AnyData<>(Identifier.fromName(params[i].getId()),
@@ -136,9 +134,7 @@ public class StructInstantiationEvaluator extends AbstractAstEvaluator {
 
       // Type check
       if (!value.getDataType().isCastableTo(fieldDef.getDataType())) {
-        CannotCastException ex = new CannotCastException(value.getDataType(), fieldDef.getDataType());
-        ex.setLocation(getSourceLocation());
-        throw ex;
+        throw new CannotCastException(value.getDataType(), fieldDef.getDataType(), getSourceLocation());
       }
 
       fieldValues.put(fieldDef.getName().getId(), value);

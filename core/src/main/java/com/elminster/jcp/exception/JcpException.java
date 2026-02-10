@@ -25,7 +25,7 @@ import com.elminster.jcp.ast.SourceLocation;
  */
 public class JcpException extends RuntimeException {
 
-  private SourceLocation location;
+  private final SourceLocation location;
 
   /**
    * Creates an exception with message and source location.
@@ -79,40 +79,35 @@ public class JcpException extends RuntimeException {
   }
 
   /**
-   * Sets the source location for this exception.
-   *
-   * <p>This method allows attaching location after construction while
-   * preserving the exception subclass type. It's preferred over
-   * {@link #withLocation(SourceLocation)} when you need to preserve
-   * the specific exception type.
-   *
-   * @param location source location to attach (may be null)
-   */
-  public void setLocation(SourceLocation location) {
-    if (this.location == null) {
-      this.location = location;
-    }
-  }
-
-  /**
-   * Returns a new exception with the specified location.
+   * Returns a new exception with the specified location, preserving the subclass type.
    *
    * <p>If this exception already has a location, returns this instance unchanged.
    * The returned exception preserves the original stack trace and cause chain.
    *
-   * <p>Note: This method returns a new JcpException instance, losing subclass type.
-   * For subclasses, prefer using {@link #setLocation(SourceLocation)} instead.
+   * <p>Subclasses should override this method to return their own type:
+   * <pre>{@code
+   * @Override
+   * @SuppressWarnings("unchecked")
+   * public <T extends JcpException> T withLocation(SourceLocation location) {
+   *     if (getLocation() != null) return (T) this;
+   *     MyException newEx = new MyException(getBaseMessage(), location);
+   *     newEx.setStackTrace(this.getStackTrace());
+   *     return (T) newEx;
+   * }
+   * }</pre>
    *
+   * @param <T>      the exception type
    * @param location source location to attach
    * @return new exception with location, or this if location already set
    */
-  public JcpException withLocation(SourceLocation location) {
+  @SuppressWarnings("unchecked")
+  public <T extends JcpException> T withLocation(SourceLocation location) {
     if (this.location != null) {
-      return this;
+      return (T) this;
     }
     JcpException newEx = new JcpException(super.getMessage(), location, getCause());
     newEx.setStackTrace(this.getStackTrace());
-    return newEx;
+    return (T) newEx;
   }
 
   /**
@@ -167,16 +162,9 @@ public class JcpException extends RuntimeException {
    * @return formatted message with source context, or simple message if no location
    */
   public String getFormattedMessage() {
-    String msg = getMessage();
     if (location == null) {
-      return msg;
+      return getMessage();
     }
-    // Remove the " at location" suffix since we'll add full source context
-    String baseMsg = msg;
-    String locationStr = " at " + location.toString();
-    if (msg.endsWith(locationStr)) {
-      baseMsg = msg.substring(0, msg.length() - locationStr.length());
-    }
-    return String.format("%s at %s\n%s", baseMsg, location.toString(), location.formatWithSource());
+    return String.format("%s\n%s", getMessage(), location.formatWithSource());
   }
 }

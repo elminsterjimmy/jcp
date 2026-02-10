@@ -10,26 +10,28 @@ import java.util.StringJoiner;
 
 public class UndeclaredException extends DeclarationException {
 
+  protected UndeclaredException() {
+    super();
+  }
+
+  protected UndeclaredException(String message, SourceLocation location) {
+    super(message, location);
+  }
+
   private static SourceLocation getLocationSafe(Object obj) {
     return obj instanceof Locatable ? ((Locatable) obj).getLocation() : null;
   }
 
   public static void throwFunctionUndeclaredException(Identifier identifier, DataType... dataTypes) {
-    FunctionUndeclaredException ex = new FunctionUndeclaredException(identifier, dataTypes);
-    ex.setLocation(getLocationSafe(identifier));
-    throw ex;
+    throw new FunctionUndeclaredException(identifier, getLocationSafe(identifier), dataTypes);
   }
 
   public static void throwVariableUndeclaredException(Identifier identifier) {
-    VariableUndeclaredException ex = new VariableUndeclaredException(identifier);
-    ex.setLocation(getLocationSafe(identifier));
-    throw ex;
+    throw new VariableUndeclaredException(identifier, getLocationSafe(identifier));
   }
 
   public static void throwDataTypeUndeclaredException(Identifier identifier) {
-    DataTypeUndeclaredException ex = new DataTypeUndeclaredException(identifier);
-    ex.setLocation(getLocationSafe(identifier));
-    throw ex;
+    throw new DataTypeUndeclaredException(identifier, getLocationSafe(identifier));
   }
 
   public static class FunctionUndeclaredException extends UndeclaredException {
@@ -39,7 +41,11 @@ public class UndeclaredException extends DeclarationException {
     private final DataType[] dataTypes;
 
     public FunctionUndeclaredException(Identifier identifier, DataType... dataTypes) {
-      super();
+      this(identifier, null, dataTypes);
+    }
+
+    public FunctionUndeclaredException(Identifier identifier, SourceLocation location, DataType... dataTypes) {
+      super(null, location);
       this.identifier = identifier;
       this.dataTypes = dataTypes;
     }
@@ -62,7 +68,11 @@ public class UndeclaredException extends DeclarationException {
     private final Identifier identifier;
 
     public VariableUndeclaredException(Identifier identifier) {
-      super();
+      this(identifier, null);
+    }
+
+    public VariableUndeclaredException(Identifier identifier, SourceLocation location) {
+      super(null, location);
       this.identifier = identifier;
     }
 
@@ -78,7 +88,11 @@ public class UndeclaredException extends DeclarationException {
     private final Identifier identifier;
 
     public DataTypeUndeclaredException(Identifier identifier) {
-      super();
+      this(identifier, null);
+    }
+
+    public DataTypeUndeclaredException(Identifier identifier, SourceLocation location) {
+      super(null, location);
       this.identifier = identifier;
     }
 

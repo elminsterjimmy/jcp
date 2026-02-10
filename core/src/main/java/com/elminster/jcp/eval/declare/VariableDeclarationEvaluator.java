@@ -30,9 +30,7 @@ public class VariableDeclarationEvaluator extends AbstractAstEvaluator {
     if (null != initExpress) {
       Data initValue = AstEvaluatorFactory.getEvaluator(initExpress).eval(evalContext);
       if (!initValue.getDataType().isCastableTo(variable.getDataType())) {
-        CannotCastException ex = new CannotCastException(initValue.getDataType(), variable.getDataType());
-        ex.setLocation(getSourceLocation());
-        throw ex;
+        throw new CannotCastException(initValue.getDataType(), variable.getDataType(), getSourceLocation());
       }
 
       // For custom types (like structs), use the instance directly instead of wrapping
