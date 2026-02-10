@@ -172,6 +172,129 @@ clazz.getMethod("main", String[].class)
      .invoke(null, (Object) new String[]{});
 ```
 
+## Error Handling with Source Location
+
+JCP provides enhanced error messages with GCC-style source location tracking. When errors occur, you'll see exactly where in your source code the problem is:
+
+```
+RuntimeError: Division by zero at math.jcp:15:12
+math.jcp:15:12
+  15 |   return a / b;
+              ^~~~~
+```
+
+### Integrating Source Location with ANTLR
+
+When building JCP AST nodes from your ANTLR parse tree, attach source location information from the parser context:
+
+```java
+import com.elminster.jcp.ast.SourceLocation;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
+
+public class MyDslVisitor extends MyDslBaseVisitor<AstNode> {
+
+    private final String sourceFile;
+    private final String[] sourceLines;  // Original source split by lines
+
+    public MyDslVisitor(String sourceFile, String source) {
+        this.sourceFile = sourceFile;
+        this.sourceLines = source.split("\n");
+    }
+
+    /**
+     * Creates a SourceLocation from an ANTLR parser context.
+     */
+    private SourceLocation locationFrom(ParserRuleContext ctx) {
+        Token start = ctx.getStart();
+        Token stop = ctx.getStop();
+        int line = start.getLine();
+        String sourceLine = (line > 0 && line <= sourceLines.length)
+            ? sourceLines[line - 1] : null;
+
+        if (start.getLine() == stop.getLine()) {
+            // Single-line span
+            return SourceLocation.span(
+                sourceFile,
+                line, start.getCharPositionInLine() + 1,
+                line, stop.getCharPositionInLine() + stop.getText().length(),
+                sourceLine
+            );
+        } else {
+            // Multi-line - just use start position
+            return SourceLocation.of(
+                sourceFile,
+                line, start.getCharPositionInLine() + 1,
+                sourceLine
+            );
+        }
+    }
+
+    @Override
+    public AstNode visitAddExpr(MyDslParser.AddExprContext ctx) {
+        Expression left = (Expression) visit(ctx.left);
+        Expression right = (Expression) visit(ctx.right);
+        Plus node = new Plus(left, right);
+        node.setLocation(locationFrom(ctx));  // Attach source location
+        return node;
+    }
+
+    @Override
+    public AstNode visitVariableDecl(MyDslParser.VariableDeclContext ctx) {
+        String name = ctx.ID().getText();
+        Expression init = (Expression) visit(ctx.expression());
+        VariableDeclaration decl = new VariableDeclaration(
+            Identifier.fromName(name),
+            init
+        );
+        decl.setLocation(locationFrom(ctx));
+        return decl;
+    }
+}
+```
+
+### Handling JCP Exceptions
+
+All JCP exceptions extend `JcpException` and include source location information:
+
+```java
+try {
+    new EvalVisitor(context).visit(program);
+} catch (JcpException e) {
+    // Simple message with location suffix
+    System.err.println(e.getMessage());
+    // Output: Division by zero at math.jcp:15:12
+
+    // Full message with source context
+    System.err.println(e.getFormattedMessage());
+    // Output:
+    // Division by zero at math.jcp:15:12
+    // math.jcp:15:12
+    //   15 |   return a / b;
+    //               ^~~~~
+
+    // Access location programmatically
+    SourceLocation loc = e.getLocation();
+    if (loc != null) {
+        System.err.printf("Error at line %d, column %d%n",
+            loc.getLine(), loc.getColumn());
+    }
+}
+```
+
+### Exception Hierarchy
+
+```
+JcpException (base)
+├── EvaluationException (interpreter errors)
+│   ├── DeclarationException
+│   │   ├── AlreadyDeclaredException
+│   │   └── UndeclaredException
+│   ├── CannotCastException
+│   └── FunctionAmbiguityException
+└── CompileException (bytecode compiler errors)
+```
+
 ## Language Features
 
 ### Variables and Types
