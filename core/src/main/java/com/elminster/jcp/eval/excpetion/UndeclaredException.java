@@ -1,6 +1,8 @@
 package com.elminster.jcp.eval.excpetion;
 
 import com.elminster.jcp.ast.Identifier;
+import com.elminster.jcp.ast.Locatable;
+import com.elminster.jcp.ast.SourceLocation;
 import com.elminster.jcp.eval.data.DataType;
 
 import java.util.Arrays;
@@ -8,16 +10,26 @@ import java.util.StringJoiner;
 
 public class UndeclaredException extends DeclarationException {
 
+  private static SourceLocation getLocationSafe(Object obj) {
+    return obj instanceof Locatable ? ((Locatable) obj).getLocation() : null;
+  }
+
   public static void throwFunctionUndeclaredException(Identifier identifier, DataType... dataTypes) {
-    throw new UndeclaredException.FunctionUndeclaredException(identifier, dataTypes);
+    FunctionUndeclaredException ex = new FunctionUndeclaredException(identifier, dataTypes);
+    ex.setLocation(getLocationSafe(identifier));
+    throw ex;
   }
 
   public static void throwVariableUndeclaredException(Identifier identifier) {
-    throw new UndeclaredException.VariableUndeclaredException(identifier);
+    VariableUndeclaredException ex = new VariableUndeclaredException(identifier);
+    ex.setLocation(getLocationSafe(identifier));
+    throw ex;
   }
 
   public static void throwDataTypeUndeclaredException(Identifier identifier) {
-    throw new UndeclaredException.DataTypeUndeclaredException(identifier);
+    DataTypeUndeclaredException ex = new DataTypeUndeclaredException(identifier);
+    ex.setLocation(getLocationSafe(identifier));
+    throw ex;
   }
 
   public static class FunctionUndeclaredException extends UndeclaredException {
@@ -34,7 +46,7 @@ public class UndeclaredException extends DeclarationException {
 
     @Override
     public String getMessage() {
-      return generateMessage(identifier, dataTypes);
+      return appendLocation(generateMessage(identifier, dataTypes));
     }
 
     private static String generateMessage(Identifier identifier, DataType... dataTypes) {
@@ -56,7 +68,7 @@ public class UndeclaredException extends DeclarationException {
 
     @Override
     public String getMessage() {
-      return String.format(MESSAGE_PATTERN, identifier.getId());
+      return appendLocation(String.format(MESSAGE_PATTERN, identifier.getId()));
     }
   }
 
@@ -72,7 +84,7 @@ public class UndeclaredException extends DeclarationException {
 
     @Override
     public String getMessage() {
-      return String.format(MESSAGE_PATTERN, identifier.getId());
+      return appendLocation(String.format(MESSAGE_PATTERN, identifier.getId()));
     }
   }
 }

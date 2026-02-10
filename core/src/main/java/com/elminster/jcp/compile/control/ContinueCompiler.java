@@ -22,7 +22,7 @@ public class ContinueCompiler extends AbstractAstCompiler {
     public void compile(MethodVisitor mv, CompileContext ctx) {
         LoopLabels loop = ctx.currentLoop();
         if (loop == null) {
-            throw new CompileException("continue statement outside of loop");
+            throw new CompileException("continue statement outside of loop", getSourceLocation());
         }
 
         // Jump to the start of the loop

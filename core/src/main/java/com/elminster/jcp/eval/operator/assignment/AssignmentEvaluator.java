@@ -41,7 +41,9 @@ public class AssignmentEvaluator extends AbstractAstEvaluator {
 
     protected Data doEval(EvalContext evalContext, Data eval, Data variable) {
         if (!eval.getDataType().isCastableTo(variable.getDataType())) {
-            throw new CannotCastException(eval.getDataType(), variable.getDataType());
+            CannotCastException ex = new CannotCastException(eval.getDataType(), variable.getDataType());
+            ex.setLocation(getSourceLocation());
+            throw ex;
         }
         return eval;
     }

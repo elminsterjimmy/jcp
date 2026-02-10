@@ -25,7 +25,7 @@ public class VariableCompiler extends AbstractAstCompiler {
 
         LocalVariable local = ctx.getLocal(varName);
         if (local == null) {
-            throw new CompileException("Undefined variable: " + varName);
+            throw new CompileException("Undefined variable: " + varName, getSourceLocation());
         }
 
         // Load the variable onto the stack

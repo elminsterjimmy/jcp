@@ -71,7 +71,9 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
       DataType[] dataTypes = Arrays.stream(argumentData).map(
               parameter -> parameter.getDataType()
       ).toArray(DataType[]::new);
-      throw new FunctionAmbiguityException(id, dataTypes);
+      FunctionAmbiguityException ex = new FunctionAmbiguityException(id, dataTypes);
+      ex.setLocation(getSourceLocation());
+      throw ex;
     }
 
     Function function = functionCandidates.get(0);

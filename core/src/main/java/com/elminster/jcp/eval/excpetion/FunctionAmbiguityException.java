@@ -18,6 +18,6 @@ public class FunctionAmbiguityException extends EvaluationException {
 
     @Override
     public String getMessage() {
-        return String.format(MESSAGE_PATTERN, FunctionUtils.functionToString(identifier, dataTypes));
+        return appendLocation(String.format(MESSAGE_PATTERN, FunctionUtils.functionToString(identifier, dataTypes)));
     }
 }

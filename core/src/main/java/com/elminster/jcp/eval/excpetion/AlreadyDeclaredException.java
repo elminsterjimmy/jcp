@@ -1,6 +1,8 @@
 package com.elminster.jcp.eval.excpetion;
 
 import com.elminster.jcp.ast.Identifier;
+import com.elminster.jcp.ast.Locatable;
+import com.elminster.jcp.ast.SourceLocation;
 import com.elminster.jcp.ast.statement.function.Function;
 
 import java.util.Arrays;
@@ -8,16 +10,26 @@ import java.util.StringJoiner;
 
 public class AlreadyDeclaredException extends DeclarationException {
 
+  private static SourceLocation getLocationSafe(Object obj) {
+    return obj instanceof Locatable ? ((Locatable) obj).getLocation() : null;
+  }
+
   public static void throwFunctionAlreadyDeclaredException(Function function) {
-    throw new FunctionAlreadyDeclaredException(function);
+    FunctionAlreadyDeclaredException ex = new FunctionAlreadyDeclaredException(function);
+    ex.setLocation(getLocationSafe(function));
+    throw ex;
   }
 
   public static void throwVariableAlreadyDeclaredException(Identifier identifier) {
-    throw new VariableAlreadyDeclaredException(identifier);
+    VariableAlreadyDeclaredException ex = new VariableAlreadyDeclaredException(identifier);
+    ex.setLocation(getLocationSafe(identifier));
+    throw ex;
   }
 
   public static void throwDataTypeAlreadyDeclaredException(Identifier identifier) {
-    throw new DataTypeAlreadyDeclaredException(identifier);
+    DataTypeAlreadyDeclaredException ex = new DataTypeAlreadyDeclaredException(identifier);
+    ex.setLocation(getLocationSafe(identifier));
+    throw ex;
   }
 
   public static class FunctionAlreadyDeclaredException extends AlreadyDeclaredException {
@@ -32,7 +44,7 @@ public class AlreadyDeclaredException extends DeclarationException {
 
     @Override
     public String getMessage() {
-      return generateMessage(function);
+      return appendLocation(generateMessage(function));
     }
 
     private static String generateMessage(Function function) {
@@ -55,7 +67,7 @@ public class AlreadyDeclaredException extends DeclarationException {
 
     @Override
     public String getMessage() {
-      return String.format(MESSAGE_PATTERN, identifier.getId());
+      return appendLocation(String.format(MESSAGE_PATTERN, identifier.getId()));
     }
   }
 
@@ -71,7 +83,7 @@ public class AlreadyDeclaredException extends DeclarationException {
 
     @Override
     public String getMessage() {
-      return String.format(MESSAGE_PATTERN, identifier.getId());
+      return appendLocation(String.format(MESSAGE_PATTERN, identifier.getId()));
     }
   }
 }

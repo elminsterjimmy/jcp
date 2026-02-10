@@ -33,7 +33,7 @@ public class AssignmentCompiler extends AbstractAstCompiler {
         String varName = id.getId();
         LocalVariable local = ctx.getLocal(varName);
         if (local == null) {
-            throw new CompileException("Undefined variable: " + varName);
+            throw new CompileException("Undefined variable: " + varName, getSourceLocation());
         }
 
         // Compile the right-hand side expression

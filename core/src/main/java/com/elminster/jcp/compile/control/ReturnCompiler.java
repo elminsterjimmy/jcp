@@ -34,15 +34,15 @@ public class ReturnCompiler extends AbstractAstCompiler {
 
         // Validate return type is set
         if (returnType == null) {
-            throw new CompileException("Return statement outside function context");
+            throw new CompileException("Return statement outside function context", getSourceLocation());
         }
 
         // Validate void/non-void consistency
         if (returnType == SystemDataType.VOID && returnExpr != null) {
-            throw new CompileException("Void function cannot return a value");
+            throw new CompileException("Void function cannot return a value", getSourceLocation());
         }
         if (returnType != SystemDataType.VOID && returnExpr == null) {
-            throw new CompileException("Non-void function must return a value");
+            throw new CompileException("Non-void function must return a value", getSourceLocation());
         }
 
         if (returnExpr != null) {
