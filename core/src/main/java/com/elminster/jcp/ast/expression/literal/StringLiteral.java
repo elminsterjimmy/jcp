@@ -1,12 +1,20 @@
 package com.elminster.jcp.ast.expression.literal;
 
-public interface StringLiteral extends Literal<String> {
+/**
+ * String literal value.
+ */
+public class StringLiteral extends Literal<String> {
 
-    default String getName() {
-        return "StringLiteral";
-    }
+  private StringLiteral(String value) {
+    super(value);
+  }
 
-    static StringLiteral of(String value) {
-        return () -> value;
-    }
+  public static StringLiteral of(String value) {
+    return new StringLiteral(value);
+  }
+
+  @Override
+  public String getName() {
+    return "StringLiteral";
+  }
 }

@@ -1,13 +1,20 @@
 package com.elminster.jcp.ast.expression.literal;
 
-public interface BooleanLiteral extends Literal<Boolean> {
+/**
+ * Boolean literal value.
+ */
+public class BooleanLiteral extends Literal<Boolean> {
 
+  private BooleanLiteral(Boolean value) {
+    super(value);
+  }
 
-    default String getName() {
-        return "BooleanLiteral";
-    }
+  public static BooleanLiteral of(Boolean value) {
+    return new BooleanLiteral(value);
+  }
 
-    static BooleanLiteral of(Boolean value) {
-        return () -> value;
-    }
+  @Override
+  public String getName() {
+    return "BooleanLiteral";
+  }
 }
