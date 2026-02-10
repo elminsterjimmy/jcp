@@ -1,8 +1,20 @@
 package com.elminster.jcp.ast.expression.literal;
 
-public interface DoubleLiteral extends Literal<Double> {
+/**
+ * Double literal value.
+ */
+public class DoubleLiteral extends Literal<Double> {
 
-    static DoubleLiteral of(Double value) {
-        return () -> value;
-    }
+  private DoubleLiteral(Double value) {
+    super(value);
+  }
+
+  public static DoubleLiteral of(Double value) {
+    return new DoubleLiteral(value);
+  }
+
+  @Override
+  public String getName() {
+    return "DoubleLiteral";
+  }
 }

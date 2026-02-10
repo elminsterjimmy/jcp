@@ -134,9 +134,9 @@ class SourceLocationTest {
   void testFormatWithSourceSinglePosition() {
     SourceLocation loc = SourceLocation.of("test.jcp", 10, 5, "int x = 5;");
 
-    String formatted = loc.formatWithSource("error", "Type mismatch");
+    String formatted = loc.formatWithSource();
 
-    assertTrue(formatted.contains("test.jcp:10:5: error: Type mismatch"));
+    assertTrue(formatted.contains("test.jcp:10:5"));
     assertTrue(formatted.contains("10 | int x = 5;"));
     assertTrue(formatted.contains("^"));
   }
@@ -145,9 +145,9 @@ class SourceLocationTest {
   void testFormatWithSourceRange() {
     SourceLocation loc = SourceLocation.span("test.jcp", 10, 5, 10, 10, "int x = 5;");
 
-    String formatted = loc.formatWithSource("error", "Invalid expression");
+    String formatted = loc.formatWithSource();
 
-    assertTrue(formatted.contains("test.jcp:10:5: error: Invalid expression"));
+    assertTrue(formatted.contains("test.jcp:10:5"));
     assertTrue(formatted.contains("^"));
     assertTrue(formatted.contains("~"));
   }
@@ -156,19 +156,10 @@ class SourceLocationTest {
   void testFormatWithSourceNoContent() {
     SourceLocation loc = SourceLocation.of("test.jcp", 10, 5);
 
-    String formatted = loc.formatWithSource("error", "Something wrong");
+    String formatted = loc.formatWithSource();
 
-    assertEquals("test.jcp:10:5: error: Something wrong", formatted);
+    assertEquals("test.jcp:10:5", formatted);
     assertFalse(formatted.contains("\n"));
-  }
-
-  @Test
-  void testFormatWithSourceWarning() {
-    SourceLocation loc = SourceLocation.of("test.jcp", 10, 5, "int x;");
-
-    String formatted = loc.formatWithSource("warning", "Unused variable");
-
-    assertTrue(formatted.contains("warning:"));
   }
 
   // ==================== Helper Method Tests ====================

@@ -4,6 +4,7 @@ import com.elminster.jcp.ast.expression.LiteralExpression;
 import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
 import com.elminster.jcp.ast.expression.literal.DoubleLiteral;
 import com.elminster.jcp.ast.expression.literal.IntLiteral;
+import com.elminster.jcp.ast.expression.literal.Literal;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataTypeImpl;
@@ -49,16 +50,17 @@ public class DataTypeUtils {
   }
 
   public static DataType getDataTypeAndCreateOnMissing(LiteralExpression literalExpression) {
-    if (literalExpression instanceof StringLiteral) {
+    Literal<?> literal = literalExpression.getLiteral();
+    if (literal instanceof StringLiteral) {
       return DataType.SystemDataType.STRING;
     }
-    if (literalExpression instanceof BooleanLiteral) {
+    if (literal instanceof BooleanLiteral) {
       return DataType.SystemDataType.BOOLEAN;
     }
-    if (literalExpression instanceof IntLiteral) {
+    if (literal instanceof IntLiteral) {
       return DataType.SystemDataType.INT;
     }
-    if (literalExpression instanceof DoubleLiteral) {
+    if (literal instanceof DoubleLiteral) {
       return DataType.SystemDataType.DOUBLE;
     }
     return DataType.SystemDataType.ANY;

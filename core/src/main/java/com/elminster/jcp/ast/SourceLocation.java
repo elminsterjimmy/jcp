@@ -25,9 +25,9 @@ import java.util.Objects;
  * // Simple format for logs
  * System.out.println(loc);  // "file.jcp:10:5"
  *
- * // Detailed format for error messages
- * System.out.println(loc.formatWithSource("error", "Type mismatch"));
- * // file.jcp:10:5: error: Type mismatch
+ * // Detailed format with source context
+ * System.out.println(loc.formatWithSource());
+ * // file.jcp:10:5
  * //   10 | int x = 5;
  * //            ^~~~~
  * }</pre>
@@ -176,24 +176,25 @@ public final class SourceLocation {
   }
 
   /**
-   * Formats a detailed error message with source context.
+   * Formats source context for display.
+   *
+   * <p>Returns GCC-style location string plus source line with caret indicator.
+   * Does not include error level or message - those belong to error handling.
    *
    * <p>Example output:
    * <pre>
-   * math.jcp:15:8: error: Division by zero
+   * math.jcp:15:8
    *   15 |   return a / b;
    *               ^~~~~
    * </pre>
    *
-   * @param level   the error level (e.g., "error", "warning", "note")
-   * @param message the error message
-   * @return formatted error string with source context
+   * @return formatted location string with source context, or just location if no source
    */
-  public String formatWithSource(String level, String message) {
+  public String formatWithSource() {
     StringBuilder sb = new StringBuilder();
 
-    // Header: file:line:col: level: message
-    sb.append(toString()).append(": ").append(level).append(": ").append(message);
+    // GCC-style location: file:line:col
+    sb.append(toString());
 
     // Source context if available
     if (sourceLineContent != null) {

@@ -92,11 +92,14 @@ class LocatableTest {
   @Test
   void testLocationOnLiteral() {
     IntLiteral literal = IntLiteral.of(42);
+    SourceLocation loc = SourceLocation.of("test.jcp", 5, 10, "int x = 42;");
 
-    // IntLiteral uses lambda implementation, test that it doesn't break
-    // (may or may not support location depending on implementation)
-    // This test verifies compatibility
-    assertNotNull(literal);
+    literal.setLocation(loc);
+
+    assertEquals(loc, literal.getLocation());
+    assertEquals("test.jcp", literal.getLocation().getFilepath());
+    assertEquals(5, literal.getLocation().getStartLine());
+    assertEquals(10, literal.getLocation().getStartColumn());
   }
 
   @Test
@@ -108,17 +111,16 @@ class LocatableTest {
   }
 
   @Test
-  void testLocationWithRangeForErrorFormatting() {
+  void testLocationWithRangeForSourceFormatting() {
     Plus plus = new Plus(IntLiteral.of(1), IntLiteral.of(2));
     SourceLocation loc = SourceLocation.span("test.jcp", 10, 5, 10, 10, "1 + 2");
 
     plus.setLocation(loc);
 
-    String errorMessage = plus.getLocation().formatWithSource("error", "Type mismatch");
+    String formatted = plus.getLocation().formatWithSource();
 
-    assertTrue(errorMessage.contains("test.jcp:10:5"));
-    assertTrue(errorMessage.contains("error"));
-    assertTrue(errorMessage.contains("Type mismatch"));
-    assertTrue(errorMessage.contains("1 + 2"));
+    assertTrue(formatted.contains("test.jcp:10:5"));
+    assertTrue(formatted.contains("1 + 2"));
+    assertTrue(formatted.contains("^"));
   }
 }
