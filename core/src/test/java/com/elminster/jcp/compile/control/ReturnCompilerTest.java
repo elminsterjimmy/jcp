@@ -1,151 +1,180 @@
 package com.elminster.jcp.compile.control;
 
+import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.expression.LiteralExpression;
+import com.elminster.jcp.ast.expression.base.VariableExpression;
+import com.elminster.jcp.ast.expression.operation.Plus;
+import com.elminster.jcp.ast.statement.Block;
+import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.ast.statement.control.ReturnStatement;
-import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.ast.statement.declaration.FunctionDeclaration;
+import com.elminster.jcp.ast.statement.declaration.FunctionDeclarationImpl;
+import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
+import com.elminster.jcp.ast.statement.function.ParameterDef;
+import com.elminster.jcp.compile.AbstractCompileTest;
+import com.elminster.jcp.compile.BytecodeGenerator;
 import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
+
+import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for ReturnCompiler.
+ * Tests for ReturnCompiler - return statement bytecode generation.
  */
-class ReturnCompilerTest {
+public class ReturnCompilerTest extends AbstractCompileTest {
 
-    private CompileContext ctx;
-    private MethodVisitor mv;
+    /**
+     * Tests void function returning a value throws CompileException.
+     * <pre>
+     * fn voidFunc() -> Void { return 42; }  // ERROR: void cannot return value
+     * </pre>
+     */
+    @Test
+    void testVoidFunctionReturningValueThrowsException() {
+        Block funcBody = new BlockImpl();
+        funcBody.addStatement(new ReturnStatement(LiteralExpression.of(42)));
 
-    @BeforeEach
-    void setUp() {
-        ctx = new CompileContext();
-        ctx.setClassName("TestClass");
+        FunctionDeclaration voidFunc = new FunctionDeclarationImpl(
+            Identifier.fromName("voidFunc"),
+            SystemDataType.VOID,
+            new ParameterDef[]{},
+            funcBody
+        );
 
-        // Create a dummy method visitor for testing
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-        cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, "TestClass", null, "java/lang/Object", null);
-        mv = cw.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "test", "()V", null, null);
-        mv.visitCode();
+        Block program = new BlockImpl();
+        program.addStatement(voidFunc);
+
+        String className = uniqueClassName("TestVoidReturnsValue");
+
+        assertThrows(CompileException.class, () ->
+            compiler.compileToBytes(program, className)
+        );
     }
 
-    @Nested
-    class ValidationTests {
 
-        /**
-         * Tests that return without function context throws CompileException.
-         * <pre>
-         * return 42  // throws: Return statement outside function context
-         * </pre>
-         */
-        @Test
-        void testReturnOutsideFunctionContext() {
-            // Return type not set - simulates return outside function
-            ReturnStatement returnStmt = new ReturnStatement(LiteralExpression.of(42));
-            ReturnCompiler compiler = new ReturnCompiler(returnStmt);
+    /**
+     * Tests return with double value.
+     * <pre>
+     * fn getDouble() -> Double { return 3.14; }
+     * return getDouble()  // returns 3.14
+     * </pre>
+     */
+    @Test
+    void testReturnDoubleValue() throws Exception {
+        Block funcBody = new BlockImpl();
+        funcBody.addStatement(new ReturnStatement(LiteralExpression.of(3.14)));
 
-            assertThrows(CompileException.class, () -> compiler.compile(mv, ctx));
-        }
+        FunctionDeclaration getDoubleFunc = new FunctionDeclarationImpl(
+            Identifier.fromName("getDouble"),
+            SystemDataType.DOUBLE,
+            new ParameterDef[]{},
+            funcBody
+        );
 
-        /**
-         * Tests that void function returning value throws CompileException.
-         * <pre>
-         * fn void test() {
-         *   return 42  // throws: Void function cannot return a value
-         * }
-         * </pre>
-         */
-        @Test
-        void testVoidFunctionReturningValue() {
-            ctx.setCurrentFunctionReturnType(SystemDataType.VOID);
+        Block program = new BlockImpl();
+        program.addStatement(getDoubleFunc);
 
-            ReturnStatement returnStmt = new ReturnStatement(LiteralExpression.of(42));
-            ReturnCompiler compiler = new ReturnCompiler(returnStmt);
+        com.elminster.jcp.ast.expression.base.FunctionCallExpression call =
+            new com.elminster.jcp.ast.expression.base.FunctionCallExpression(
+                Identifier.fromName("getDouble")
+            );
 
-            CompileException ex = assertThrows(CompileException.class, () -> compiler.compile(mv, ctx));
-            assertTrue(ex.getMessage().contains("Void function cannot return a value"));
-        }
+        String className = uniqueClassName("TestReturnDouble");
+        BytecodeGenerator generator = new BytecodeGenerator(className);
+        byte[] bytecode = generator.compileWithReturn(program, call, SystemDataType.DOUBLE);
 
-        /**
-         * Tests that value return in non-void function compiles without error.
-         * <pre>
-         * fn Int test() {
-         *   return 42  // OK
-         * }
-         * </pre>
-         */
-        @Test
-        void testValueReturnInNonVoidFunction() {
-            ctx.setCurrentFunctionReturnType(SystemDataType.INT);
+        Class<?> clazz = loadClass(className, bytecode);
+        Method evaluate = clazz.getMethod("evaluate");
+        double result = (double) evaluate.invoke(null);
+        assertEquals(3.14, result, 0.001);
+    }
 
-            ReturnStatement returnStmt = new ReturnStatement(LiteralExpression.of(42));
-            ReturnCompiler compiler = new ReturnCompiler(returnStmt);
+    /**
+     * Tests return with boolean value.
+     * <pre>
+     * fn getTrue() -> Boolean { return true; }
+     * return getTrue()  // returns true
+     * </pre>
+     */
+    @Test
+    void testReturnBooleanValue() throws Exception {
+        Block funcBody = new BlockImpl();
+        funcBody.addStatement(new ReturnStatement(LiteralExpression.of(true)));
 
-            // Should not throw
-            assertDoesNotThrow(() -> compiler.compile(mv, ctx));
-        }
+        FunctionDeclaration getTrueFunc = new FunctionDeclarationImpl(
+            Identifier.fromName("getTrue"),
+            SystemDataType.BOOLEAN,
+            new ParameterDef[]{},
+            funcBody
+        );
 
-        /**
-         * Tests double return compiles without error.
-         * <pre>
-         * fn Double test() {
-         *   return 3.14  // OK
-         * }
-         * </pre>
-         */
-        @Test
-        void testDoubleReturnCompiles() {
-            ctx.setCurrentFunctionReturnType(SystemDataType.DOUBLE);
+        Block program = new BlockImpl();
+        program.addStatement(getTrueFunc);
 
-            ReturnStatement returnStmt = new ReturnStatement(LiteralExpression.of(3.14));
-            ReturnCompiler compiler = new ReturnCompiler(returnStmt);
+        com.elminster.jcp.ast.expression.base.FunctionCallExpression call =
+            new com.elminster.jcp.ast.expression.base.FunctionCallExpression(
+                Identifier.fromName("getTrue")
+            );
 
-            // Should not throw
-            assertDoesNotThrow(() -> compiler.compile(mv, ctx));
-        }
+        String className = uniqueClassName("TestReturnBoolean");
+        BytecodeGenerator generator = new BytecodeGenerator(className);
+        byte[] bytecode = generator.compileWithReturn(program, call, SystemDataType.BOOLEAN);
 
-        /**
-         * Tests boolean return compiles without error.
-         * <pre>
-         * fn Boolean test() {
-         *   return true  // OK
-         * }
-         * </pre>
-         */
-        @Test
-        void testBooleanReturnCompiles() {
-            ctx.setCurrentFunctionReturnType(SystemDataType.BOOLEAN);
+        Class<?> clazz = loadClass(className, bytecode);
+        Method evaluate = clazz.getMethod("evaluate");
+        boolean result = (boolean) evaluate.invoke(null);
+        assertTrue(result);
+    }
 
-            ReturnStatement returnStmt = new ReturnStatement(LiteralExpression.of(true));
-            ReturnCompiler compiler = new ReturnCompiler(returnStmt);
+    /**
+     * Tests return with string value.
+     * <pre>
+     * fn getMessage() -> String { return "hello"; }
+     * return getMessage()  // returns "hello"
+     * </pre>
+     */
+    @Test
+    void testReturnStringValue() throws Exception {
+        Block funcBody = new BlockImpl();
+        funcBody.addStatement(new ReturnStatement(LiteralExpression.of("hello")));
 
-            // Should not throw
-            assertDoesNotThrow(() -> compiler.compile(mv, ctx));
-        }
+        FunctionDeclaration getMessageFunc = new FunctionDeclarationImpl(
+            Identifier.fromName("getMessage"),
+            SystemDataType.STRING,
+            new ParameterDef[]{},
+            funcBody
+        );
 
-        /**
-         * Tests string return compiles without error.
-         * <pre>
-         * fn String test() {
-         *   return "hello"  // OK
-         * }
-         * </pre>
-         */
-        @Test
-        void testStringReturnCompiles() {
-            ctx.setCurrentFunctionReturnType(SystemDataType.STRING);
+        Block program = new BlockImpl();
+        program.addStatement(getMessageFunc);
 
-            ReturnStatement returnStmt = new ReturnStatement(LiteralExpression.of("hello"));
-            ReturnCompiler compiler = new ReturnCompiler(returnStmt);
+        com.elminster.jcp.ast.expression.base.FunctionCallExpression call =
+            new com.elminster.jcp.ast.expression.base.FunctionCallExpression(
+                Identifier.fromName("getMessage")
+            );
 
-            // Should not throw
-            assertDoesNotThrow(() -> compiler.compile(mv, ctx));
-        }
+        String className = uniqueClassName("TestReturnString");
+        BytecodeGenerator generator = new BytecodeGenerator(className);
+        byte[] bytecode = generator.compileWithReturn(program, call, SystemDataType.STRING);
 
+        Class<?> clazz = loadClass(className, bytecode);
+        Method evaluate = clazz.getMethod("evaluate");
+        String result = (String) evaluate.invoke(null);
+        assertEquals("hello", result);
+    }
+
+
+    /**
+     * Helper method to load a class from bytecode.
+     */
+    private Class<?> loadClass(String name, byte[] bytecode) {
+        return new ClassLoader() {
+            public Class<?> defineClass() {
+                return defineClass(name, bytecode, 0, bytecode.length);
+            }
+        }.defineClass();
     }
 }
