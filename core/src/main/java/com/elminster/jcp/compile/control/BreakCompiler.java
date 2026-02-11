@@ -22,7 +22,7 @@ public class BreakCompiler extends AbstractAstCompiler {
     public void compile(MethodVisitor mv, CompileContext ctx) {
         LoopLabels loop = ctx.currentLoop();
         if (loop == null) {
-            throw new CompileException("break statement outside of loop");
+            throw new CompileException("break statement outside of loop", getSourceLocation());
         }
 
         // Jump to the end of the loop

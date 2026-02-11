@@ -27,12 +27,12 @@ public class IdentifierCompiler extends AbstractAstCompiler {
         } else if (astNode instanceof Identifier) {
             varName = ((Identifier) astNode).getId();
         } else {
-            throw new CompileException("Unknown identifier type: " + astNode.getClass().getSimpleName());
+            throw new CompileException("Unknown identifier type: " + astNode.getClass().getSimpleName(), getSourceLocation());
         }
 
         LocalVariable local = ctx.getLocal(varName);
         if (local == null) {
-            throw new CompileException("Undefined variable: " + varName);
+            throw new CompileException("Undefined variable: " + varName, getSourceLocation());
         }
 
         // Load the variable onto the stack

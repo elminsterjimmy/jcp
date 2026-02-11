@@ -56,7 +56,7 @@ public class FunCallCompiler extends AbstractAstCompiler {
         FunctionSignature sig = ctx.lookupFunction(funcName, argTypes);
         if (sig == null) {
             throw new CompileException("Undefined function: " + funcName +
-                " with argument types " + Arrays.toString(argTypes));
+                " with argument types " + Arrays.toString(argTypes), getSourceLocation());
         }
 
         // Compile arguments (push values onto stack)
@@ -99,7 +99,7 @@ public class FunCallCompiler extends AbstractAstCompiler {
         ExternalMethodDef constructor = extType.getConstructor(argTypes);
         if (constructor == null) {
             throw new CompileException("Constructor for '" + extType.getName() +
-                "' with argument types " + Arrays.toString(argTypes) + " not found");
+                "' with argument types " + Arrays.toString(argTypes) + " not found", getSourceLocation());
         }
 
         // Emit NEW instruction
