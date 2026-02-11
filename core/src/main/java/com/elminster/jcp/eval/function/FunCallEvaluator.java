@@ -11,6 +11,8 @@ import com.elminster.jcp.eval.base.AbstractAstEvaluator;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataType.SystemDataType;
+import com.elminster.jcp.eval.data.DoubleData;
 import com.elminster.jcp.eval.excpetion.FunctionAmbiguityException;
 import com.elminster.jcp.eval.excpetion.UndeclaredException;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
@@ -75,8 +77,36 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
     }
 
     Function function = functionCandidates.get(0);
-    function.setArguments(argumentData);
+    // Apply widening conversions to arguments if needed
+    Data[] convertedArgs = applyWideningConversions(argumentData, function.getParameterDefs());
+    function.setArguments(convertedArgs);
     return function;
+  }
+
+  /**
+   * Apply widening conversions to arguments where needed (e.g., int → double).
+   */
+  private Data[] applyWideningConversions(Data[] arguments, ParameterDef[] params) {
+    if (arguments == null || params == null) {
+      return arguments;
+    }
+    Data[] result = new Data[arguments.length];
+    for (int i = 0; i < arguments.length; i++) {
+      Data arg = arguments[i];
+      DataType argType = arg.getDataType();
+      DataType paramType = params[i].getDataType();
+      // Check if widening conversion needed
+      if (argType.isTypePromotableTo(paramType)) {
+        if (argType == SystemDataType.INT && paramType == SystemDataType.DOUBLE) {
+          // Convert IntegerData to DoubleData
+          Integer intValue = (Integer) arg.get();
+          result[i] = new DoubleData(intValue.doubleValue());
+          continue;
+        }
+      }
+      result[i] = arg;  // No conversion needed
+    }
+    return result;
   }
 
   private List<Function> getFunctionCandidates(final String functionName,
@@ -103,7 +133,10 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
     }
     if (parameterDefs.length == arguments.length) {
       for (int i = 0; i < parameterDefs.length; i++) {
-        if (!arguments[i].getDataType().isCastableTo(parameterDefs[i].getDataType())) {
+        DataType argType = arguments[i].getDataType();
+        DataType paramType = parameterDefs[i].getDataType();
+        // Check type compatibility (hierarchy + widening)
+        if (!argType.isCompatibleWith(paramType)) {
           return false;
         }
       }

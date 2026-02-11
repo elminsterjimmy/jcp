@@ -906,7 +906,8 @@ public class CompileContext {
             if (argType == null) {
                 continue;  // Assume compatible, runtime will verify
             }
-            if (!argType.isCastableTo(paramType)) {
+            // Check type compatibility (hierarchy + widening)
+            if (!argType.isCompatibleWith(paramType)) {
                 return false;
             }
         }

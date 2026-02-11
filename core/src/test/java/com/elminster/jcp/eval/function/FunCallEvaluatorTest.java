@@ -378,4 +378,172 @@ class FunCallEvaluatorTest {
             assertEquals(99, context.getVariable("result").get());
         }
     }
+
+    @Nested
+    class TypePromotionTests {
+
+        /**
+         * Tests int to double type promotion in function calls.
+         * This is the key test case for issue #13: Function lookup fails for numeric type promotion.
+         * <pre>
+         * fn doubleIt(x: Double) -> Double { return x * 2.0 }
+         * result = doubleIt(5)  // int argument, double parameter - should return 10.0
+         * </pre>
+         */
+        @Test
+        void testIntToDoublePromotion() {
+            // fn doubleIt(x: Double) -> Double { return x * 2.0 }
+            Function func = new AbstractFunction(
+                IdentifierExpression.of("doubleIt"),
+                new ParameterDef[]{ParameterDef.of("x", SystemDataType.DOUBLE)},
+                SystemDataType.DOUBLE,
+                new ReturnStatement(new Multi(
+                    new VariableExpression(IdentifierExpression.of("x")),
+                    LiteralExpression.of(2.0)
+                ))
+            );
+            context.addFunction(func);
+
+            // Call with int: doubleIt(5)
+            Block program = new BlockImpl();
+            program.addStatement(new VariableDeclarationImpl(
+                "result",
+                SystemDataType.DOUBLE,
+                new FunctionCallExpression(
+                    IdentifierExpression.of("doubleIt"),
+                    LiteralExpression.of(5)  // INT literal, not DOUBLE
+                )
+            ));
+
+            new EvalVisitor(context).visit(program);
+            assertEquals(10.0, (Double) context.getVariable("result").get(), 0.001);
+        }
+
+        /**
+         * Tests int to double promotion with multiple parameters.
+         * <pre>
+         * fn addDoubles(a: Double, b: Double) -> Double { return a + b }
+         * result = addDoubles(3, 5)  // both int args, double params - should return 8.0
+         * </pre>
+         */
+        @Test
+        void testIntToDoublePromotion_MultipleParams() {
+            // fn addDoubles(a: Double, b: Double) -> Double { return a + b }
+            Function func = new AbstractFunction(
+                IdentifierExpression.of("addDoubles"),
+                new ParameterDef[]{
+                    ParameterDef.of("a", SystemDataType.DOUBLE),
+                    ParameterDef.of("b", SystemDataType.DOUBLE)
+                },
+                SystemDataType.DOUBLE,
+                new ReturnStatement(new Plus(
+                    new VariableExpression(IdentifierExpression.of("a")),
+                    new VariableExpression(IdentifierExpression.of("b"))
+                ))
+            );
+            context.addFunction(func);
+
+            // Call with ints: addDoubles(3, 5)
+            Block program = new BlockImpl();
+            program.addStatement(new VariableDeclarationImpl(
+                "result",
+                SystemDataType.DOUBLE,
+                new FunctionCallExpression(
+                    IdentifierExpression.of("addDoubles"),
+                    LiteralExpression.of(3),  // INT
+                    LiteralExpression.of(5)   // INT
+                )
+            ));
+
+            new EvalVisitor(context).visit(program);
+            assertEquals(8.0, (Double) context.getVariable("result").get(), 0.001);
+        }
+
+        /**
+         * Tests that having both INT and DOUBLE overloads causes ambiguity when called with INT.
+         * This follows the plan's recommendation: when multiple widening paths exist, fail at compile time.
+         * <pre>
+         * fn process(x: Int) -> Int { return x * 2 }
+         * fn process(x: Double) -> Double { return x * 3.0 }
+         * result = process(5)  // throws FunctionAmbiguityException (both match)
+         * </pre>
+         */
+        @Test
+        void testOverloadResolution_IntDoubleAmbiguity() {
+            // INT version: process(int) -> int { return x * 2 }
+            Function intFunc = new AbstractFunction(
+                IdentifierExpression.of("process"),
+                new ParameterDef[]{ParameterDef.of("x", SystemDataType.INT)},
+                SystemDataType.INT,
+                new ReturnStatement(new Multi(
+                    new VariableExpression(IdentifierExpression.of("x")),
+                    LiteralExpression.of(2)
+                ))
+            );
+            context.addFunction(intFunc);
+
+            // DOUBLE version: process(double) -> double { return x * 3.0 }
+            Function doubleFunc = new AbstractFunction(
+                IdentifierExpression.of("process"),
+                new ParameterDef[]{ParameterDef.of("x", SystemDataType.DOUBLE)},
+                SystemDataType.DOUBLE,
+                new ReturnStatement(new Multi(
+                    new VariableExpression(IdentifierExpression.of("x")),
+                    LiteralExpression.of(3.0)
+                ))
+            );
+            context.addFunction(doubleFunc);
+
+            // Call with INT - both functions match (exact + widening), causes ambiguity
+            Block program = new BlockImpl();
+            program.addStatement(new VariableDeclarationImpl(
+                "result",
+                SystemDataType.INT,
+                new FunctionCallExpression(
+                    IdentifierExpression.of("process"),
+                    LiteralExpression.of(5)  // INT
+                )
+            ));
+
+            assertThrows(FunctionAmbiguityException.class, () ->
+                new EvalVisitor(context).visit(program)
+            );
+        }
+
+        /**
+         * Tests that only double parameter matches when INT version is not available.
+         * <pre>
+         * fn onlyDouble(x: Double) -> Double { return x * 3.0 }
+         * result = onlyDouble(5)  // int widened to double, returns 15.0
+         * </pre>
+         */
+        @Test
+        void testOnlyDoubleOverload_IntWidens() {
+            // DOUBLE version only: onlyDouble(double) -> double { return x * 3.0 }
+            Function doubleFunc = new AbstractFunction(
+                IdentifierExpression.of("onlyDouble"),
+                new ParameterDef[]{ParameterDef.of("x", SystemDataType.DOUBLE)},
+                SystemDataType.DOUBLE,
+                new ReturnStatement(new Multi(
+                    new VariableExpression(IdentifierExpression.of("x")),
+                    LiteralExpression.of(3.0)
+                ))
+            );
+            context.addFunction(doubleFunc);
+
+            // Call with INT - should widen to DOUBLE
+            Block program = new BlockImpl();
+            program.addStatement(new VariableDeclarationImpl(
+                "result",
+                SystemDataType.DOUBLE,
+                new FunctionCallExpression(
+                    IdentifierExpression.of("onlyDouble"),
+                    LiteralExpression.of(5)  // INT
+                )
+            ));
+
+            new EvalVisitor(context).visit(program);
+            assertEquals(15.0, (Double) context.getVariable("result").get(), 0.001);  // 5 * 3.0 = 15.0
+        }
+    }
 }

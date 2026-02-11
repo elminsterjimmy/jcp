@@ -15,6 +15,7 @@ import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.eval.data.ExternalMethodDef;
+import com.elminster.jcp.eval.data.TypePromotion;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -118,11 +119,12 @@ public class FunCallCompiler extends AbstractAstCompiler {
             Compilable argCompiler = AstCompilerFactory.getCompiler(args[i]);
             argCompiler.compile(mv, ctx);
 
-            // Type promotion if needed (int to double)
+            // Type promotion if needed (e.g., int to double)
             DataType argType = argTypes[i];
             DataType paramType = params[i].getDataType();
-            if (paramType == SystemDataType.DOUBLE && argType == SystemDataType.INT) {
-                mv.visitInsn(Opcodes.I2D);
+            int promotionOpcode = TypePromotion.getPromotionOpcode(argType, paramType);
+            if (promotionOpcode != TypePromotion.NO_PROMOTION_OPCODE) {
+                mv.visitInsn(promotionOpcode);
             }
         }
 
@@ -170,8 +172,9 @@ public class FunCallCompiler extends AbstractAstCompiler {
             // Type promotion and boxing
             DataType argType = argTypes[i];
             DataType paramType = paramTypes[i];
-            if (paramType == SystemDataType.DOUBLE && argType == SystemDataType.INT) {
-                mv.visitInsn(Opcodes.I2D);
+            int promotionOpcode = TypePromotion.getPromotionOpcode(argType, paramType);
+            if (promotionOpcode != TypePromotion.NO_PROMOTION_OPCODE) {
+                mv.visitInsn(promotionOpcode);
             } else if (paramType == SystemDataType.ANY) {
                 boxPrimitive(mv, argType);
             }

@@ -84,7 +84,10 @@ public class ExternalClassType implements DataType {
 
             boolean compatible = true;
             for (int i = 0; i < params.length; i++) {
-                if (!argTypes[i].isCastableTo(params[i])) {
+                DataType argType = argTypes[i];
+                DataType paramType = params[i];
+                // Check type compatibility (hierarchy + widening)
+                if (!argType.isCompatibleWith(paramType)) {
                     compatible = false;
                     break;
                 }
@@ -149,10 +152,13 @@ public class ExternalClassType implements DataType {
                 continue;
             }
 
-            // Filter by parameter compatibility (type hierarchy support)
+            // Filter by parameter compatibility (type hierarchy + widening conversions)
             boolean compatible = true;
             for (int i = 0; i < params.length; i++) {
-                if (!argTypes[i].isCastableTo(params[i])) {
+                DataType argType = argTypes[i];
+                DataType paramType = params[i];
+                // Check type compatibility (hierarchy + widening)
+                if (!argType.isCompatibleWith(paramType)) {
                     compatible = false;
                     break;
                 }

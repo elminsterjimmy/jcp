@@ -171,10 +171,13 @@ public class StructType implements DataType {
         continue;
       }
 
-      // Filter by parameter compatibility (type hierarchy support)
+      // Filter by parameter compatibility (type hierarchy + widening conversions)
       boolean compatible = true;
       for (int i = 0; i < params.length; i++) {
-        if (!argTypes[i].isCastableTo(params[i].getDataType())) {
+        DataType argType = argTypes[i];
+        DataType paramType = params[i].getDataType();
+        // Check type compatibility (hierarchy + widening)
+        if (!argType.isCompatibleWith(paramType)) {
           compatible = false;
           break;
         }
