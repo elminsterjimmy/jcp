@@ -24,6 +24,7 @@ public class WhileCompiler extends AbstractAstCompiler {
 
     @Override
     public void compile(MethodVisitor mv, CompileContext ctx) {
+        emitLineNumber(mv);
         WhileStatement whileStmt = (WhileStatement) astNode;
         Expression condition = whileStmt.getConditionExpression();
         Statement body = whileStmt.getBody();

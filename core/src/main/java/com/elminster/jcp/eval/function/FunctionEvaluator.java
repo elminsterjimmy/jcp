@@ -18,6 +18,7 @@ import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.excpetion.FunctionAmbiguityException;
 import com.elminster.jcp.eval.excpetion.FunctionArgumentsLengthException;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
+import com.elminster.jcp.exception.StackFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,9 +42,15 @@ public class FunctionEvaluator extends BlockEvaluator {
   public Data eval(EvalContext evalContext) {
     AbstractFunction function = (AbstractFunction) astNode;
     DataType resultDataType = function.getResultDataType();
-    FastStack funcStack = evalContext.getContextStack();
-    DefaultEvalContext defaultEvalContext = new DefaultEvalContext();
-    funcStack.push(defaultEvalContext);
+    FastStack<EvalContext> funcStack = evalContext.getContextStack();
+    DefaultEvalContext functionContext = new DefaultEvalContext();
+
+    // Set stack frame on the function context for call stack tracking
+    StackFrame frame = StackFrame.of(function.getName(), function.getLocation());
+    functionContext.setStackFrame(frame);
+
+    funcStack.push(functionContext);
+
     try {
       Data result = doFunc(function, evalContext);
       if (!resultDataType.isCastableTo(result.getDataType())) {

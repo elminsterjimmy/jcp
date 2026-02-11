@@ -26,6 +26,7 @@ public class ReturnCompiler extends AbstractAstCompiler {
 
     @Override
     public void compile(MethodVisitor mv, CompileContext ctx) {
+        emitLineNumber(mv);
         ReturnStatement returnStmt = (ReturnStatement) astNode;
         Expression returnExpr = returnStmt.getExpression();
 

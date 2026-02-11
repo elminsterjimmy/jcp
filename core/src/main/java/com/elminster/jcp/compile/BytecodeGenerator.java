@@ -28,10 +28,14 @@ import java.util.Map;
 public class BytecodeGenerator implements Opcodes {
 
     private static final Logger logger = LoggerFactory.getLogger(BytecodeGenerator.class);
+    private static final String DEFAULT_SOURCE_FILE = "program.jcp";
 
     private final String className;
     private final ClassWriter classWriter;
     private CompileContext rootContext;
+
+    // Source file name for debugging information
+    private String sourceFile = DEFAULT_SOURCE_FILE;
 
     // Additional external classes to register before compilation
     private final List<Class<?>> additionalExternalClasses = new ArrayList<>();
@@ -57,6 +61,25 @@ public class BytecodeGenerator implements Opcodes {
     }
 
     /**
+     * Set the source file name for debugging information.
+     * This appears in stack traces when exceptions occur.
+     *
+     * @param sourceFile the source file name (e.g., "main.jcp")
+     */
+    public void setSourceFile(String sourceFile) {
+        this.sourceFile = sourceFile != null ? sourceFile : DEFAULT_SOURCE_FILE;
+    }
+
+    /**
+     * Get the source file name.
+     *
+     * @return the source file name
+     */
+    public String getSourceFile() {
+        return sourceFile;
+    }
+
+    /**
      * Compile a program (Block) to bytecode.
      * Uses two-pass compilation to support forward references:
      * - Pass 1: Register all function signatures
@@ -78,6 +101,9 @@ public class BytecodeGenerator implements Opcodes {
                 "java/lang/Object",             // superclass
                 null                            // interfaces
         );
+
+        // Set source file attribute for stack traces
+        classWriter.visitSource(sourceFile, null);
 
         // Generate default constructor
         generateDefaultConstructor();
@@ -260,6 +286,9 @@ public class BytecodeGenerator implements Opcodes {
                 "java/lang/Object",
                 null
         );
+
+        // Set source file attribute for stack traces
+        classWriter.visitSource(sourceFile, null);
 
         // Generate default constructor
         generateDefaultConstructor();

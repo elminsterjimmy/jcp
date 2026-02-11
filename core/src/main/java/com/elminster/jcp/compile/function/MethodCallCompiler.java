@@ -33,6 +33,7 @@ public class MethodCallCompiler extends AbstractAstCompiler {
 
     @Override
     public void compile(MethodVisitor mv, CompileContext ctx) {
+        emitLineNumber(mv);
         MethodCallExpression call = (MethodCallExpression) astNode;
         String methodName = call.getMethodName();
         Expression targetExpr = call.getExpression();
