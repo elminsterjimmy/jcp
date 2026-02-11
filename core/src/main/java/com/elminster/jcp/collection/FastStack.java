@@ -55,4 +55,22 @@ public class FastStack<E> {
             }
         };
     }
+
+    /**
+     * Returns an iterator from bottom (oldest) to top (newest) of the stack.
+     *
+     * @return forward iterator through the stack
+     */
+    public Iterator<E> iterator() {
+        return list.iterator();
+    }
+
+    /**
+     * Check if the stack is empty.
+     *
+     * @return true if empty
+     */
+    public boolean isEmpty() {
+        return list.isEmpty();
+    }
 }

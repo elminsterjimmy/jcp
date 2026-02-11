@@ -12,6 +12,7 @@ import com.elminster.jcp.ast.statement.control.ReturnStatement;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
 import com.elminster.jcp.ast.statement.function.AbstractFunction;
 import com.elminster.jcp.ast.statement.function.ParameterDef;
+import com.elminster.jcp.eval.context.DefaultEvalContext;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
@@ -82,12 +83,19 @@ class StackTraceIntegrationTest {
     // Test that exceptions get call stack attached when thrown during execution
     // For now, we verify the exception type preservation and stack attachment mechanism
 
-    EvalContext context = new RootEvalContext();
+    RootEvalContext context = new RootEvalContext();
 
-    // Manually push frames to simulate function calls
-    context.getCallStack().push(StackFrame.of("main", SourceLocation.of("main.jcp", 1, 1)));
-    context.getCallStack().push(StackFrame.of("doWork", SourceLocation.of("work.jcp", 10, 5)));
+    // Push contexts with stack frames to simulate function calls
+    // (Now stack frames are embedded in EvalContext, not pushed to a separate CallStack)
+    DefaultEvalContext mainContext = new DefaultEvalContext();
+    mainContext.setStackFrame(StackFrame.of("main", SourceLocation.of("main.jcp", 1, 1)));
+    context.getContextStack().push(mainContext);
 
+    DefaultEvalContext workContext = new DefaultEvalContext();
+    workContext.setStackFrame(StackFrame.of("doWork", SourceLocation.of("work.jcp", 10, 5)));
+    context.getContextStack().push(workContext);
+
+    // getCallStack() now builds from context stack
     assertEquals(2, context.getCallStack().size());
 
     // Create exception and attach call stack
@@ -111,22 +119,26 @@ class StackTraceIntegrationTest {
   void testStackTracePreservedAcrossRethrow() {
     // Verify stack trace is not overwritten when withCallStack is called multiple times
 
-    EvalContext context = new RootEvalContext();
+    RootEvalContext context = new RootEvalContext();
 
-    // Push a frame
-    context.getCallStack().push(StackFrame.of("func1", SourceLocation.of("test.jcp", 1, 1)));
+    // Push a context with a frame
+    DefaultEvalContext func1Context = new DefaultEvalContext();
+    func1Context.setStackFrame(StackFrame.of("func1", SourceLocation.of("test.jcp", 1, 1)));
+    context.getContextStack().push(func1Context);
 
     // Create exception and attach stack
     JcpException ex = new JcpException("test error");
     ex.withCallStack(context.getCallStack());
 
-    // Push another frame
-    context.getCallStack().push(StackFrame.of("func2", SourceLocation.of("test.jcp", 2, 1)));
+    // Push another context with a frame
+    DefaultEvalContext func2Context = new DefaultEvalContext();
+    func2Context.setStackFrame(StackFrame.of("func2", SourceLocation.of("test.jcp", 2, 1)));
+    context.getContextStack().push(func2Context);
 
-    // Try to attach stack again - should be no-op
+    // Try to attach stack again - should be no-op (exception keeps original stack)
     ex.withCallStack(context.getCallStack());
 
-    // Exception should still have only one frame
+    // Exception should still have only one frame (the one captured at first attachment)
     assertEquals(1, ex.getCallStack().size());
     assertEquals("func1", ex.getCallStack().peek().getFunctionName());
   }
@@ -135,10 +147,20 @@ class StackTraceIntegrationTest {
   void testGetFullMessageWithStack() {
     // Verify getFullMessage() includes stack trace
 
-    EvalContext context = new RootEvalContext();
-    context.getCallStack().push(StackFrame.of("main", SourceLocation.of("main.jcp", 3, 1)));
-    context.getCallStack().push(StackFrame.of("calculate", SourceLocation.of("main.jcp", 8, 5)));
-    context.getCallStack().push(StackFrame.of("divide", SourceLocation.of("math.jcp", 15, 12)));
+    RootEvalContext context = new RootEvalContext();
+
+    // Push contexts with stack frames
+    DefaultEvalContext mainContext = new DefaultEvalContext();
+    mainContext.setStackFrame(StackFrame.of("main", SourceLocation.of("main.jcp", 3, 1)));
+    context.getContextStack().push(mainContext);
+
+    DefaultEvalContext calcContext = new DefaultEvalContext();
+    calcContext.setStackFrame(StackFrame.of("calculate", SourceLocation.of("main.jcp", 8, 5)));
+    context.getContextStack().push(calcContext);
+
+    DefaultEvalContext divContext = new DefaultEvalContext();
+    divContext.setStackFrame(StackFrame.of("divide", SourceLocation.of("math.jcp", 15, 12)));
+    context.getContextStack().push(divContext);
 
     SourceLocation errorLoc = SourceLocation.of("math.jcp", 15, 12, "  return a / b;");
     JcpException ex = new JcpException("Division by zero", errorLoc);

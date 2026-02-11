@@ -42,14 +42,14 @@ public class FunctionEvaluator extends BlockEvaluator {
   public Data eval(EvalContext evalContext) {
     AbstractFunction function = (AbstractFunction) astNode;
     DataType resultDataType = function.getResultDataType();
-    FastStack funcStack = evalContext.getContextStack();
-    DefaultEvalContext defaultEvalContext = new DefaultEvalContext();
-    funcStack.push(defaultEvalContext);
+    FastStack<EvalContext> funcStack = evalContext.getContextStack();
+    DefaultEvalContext functionContext = new DefaultEvalContext();
 
-    // Push stack frame for call stack tracking
-    // NOTE: Must be in eval() to cover return type check exceptions
+    // Set stack frame on the function context for call stack tracking
     StackFrame frame = StackFrame.of(function.getName(), function.getLocation());
-    evalContext.getCallStack().push(frame);
+    functionContext.setStackFrame(frame);
+
+    funcStack.push(functionContext);
 
     try {
       Data result = doFunc(function, evalContext);
@@ -59,7 +59,6 @@ public class FunctionEvaluator extends BlockEvaluator {
       return result;
     } finally {
       funcStack.pop();
-      evalContext.getCallStack().pop();
     }
   }
 

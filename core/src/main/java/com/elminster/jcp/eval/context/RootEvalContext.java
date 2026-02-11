@@ -4,6 +4,7 @@ import com.elminster.jcp.ast.statement.function.Function;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.exception.CallStack;
+import com.elminster.jcp.exception.StackFrame;
 import com.elminster.jcp.module.base.BaseModuleRegister;
 import com.elminster.jcp.util.ClassConverter;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -13,11 +14,8 @@ import java.util.List;
 
 public class RootEvalContext extends DefaultEvalContext {
 
-  private final CallStack callStack;
-
   public RootEvalContext() {
     super();
-    this.callStack = new CallStack();
     init();
   }
 
@@ -86,8 +84,27 @@ public class RootEvalContext extends DefaultEvalContext {
       getContextStack().peek().setReturn(isReturn);
   }
 
+  /**
+   * Builds a CallStack on-demand by traversing the context stack.
+   * Each context's StackFrame is collected to form the complete call stack.
+   *
+   * @return a new CallStack built from context stack frames
+   */
   @Override
   public CallStack getCallStack() {
+    CallStack callStack = new CallStack();
+    if (getContextStack().isEmpty()) {
+      return callStack;
+    }
+    // Iterate from bottom (oldest) to top (newest) and push each frame
+    Iterator<EvalContext> iterator = getContextStack().iterator();
+    while (iterator.hasNext()) {
+      EvalContext ctx = iterator.next();
+      StackFrame frame = ctx.getStackFrame();
+      if (frame != null) {
+        callStack.push(frame);
+      }
+    }
     return callStack;
   }
 

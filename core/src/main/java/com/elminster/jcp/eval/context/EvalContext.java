@@ -4,6 +4,7 @@ import com.elminster.jcp.collection.FastStack;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.exception.CallStack;
+import com.elminster.jcp.exception.StackFrame;
 import com.elminster.jcp.ast.statement.function.Function;
 
 import java.util.Map;
@@ -37,9 +38,25 @@ public interface EvalContext {
   void setReturn(boolean isReturn);
 
   /**
-   * Returns the call stack for tracking function invocations.
+   * Returns the stack frame associated with this context.
+   * Each function call context has its own stack frame for error reporting.
    *
-   * @return the call stack, never null
+   * @return the stack frame, or null for non-function contexts
+   */
+  StackFrame getStackFrame();
+
+  /**
+   * Sets the stack frame for this context.
+   *
+   * @param stackFrame the stack frame to associate with this context
+   */
+  void setStackFrame(StackFrame stackFrame);
+
+  /**
+   * Builds and returns the call stack by traversing the context stack.
+   * This is computed on-demand from the stack frames stored in each context.
+   *
+   * @return the call stack built from context stack frames, never null
    */
   CallStack getCallStack();
 }
