@@ -239,4 +239,204 @@ class JcpExceptionTest {
 
     assertTrue(ex instanceof RuntimeException);
   }
+
+  // ==================== CallStack Tests ====================
+
+  @Test
+  void testConstructionWithCallStack() {
+    SourceLocation loc = SourceLocation.of("test.jcp", 10, 5);
+    CallStack stack = new CallStack();
+    stack.push(StackFrame.of("func", loc));
+
+    JcpException ex = new JcpException("error", loc, stack);
+
+    assertNotNull(ex.getCallStack());
+    assertEquals(1, ex.getCallStack().size());
+  }
+
+  @Test
+  void testConstructionWithNullCallStack() {
+    SourceLocation loc = SourceLocation.of("test.jcp", 10, 5);
+    JcpException ex = new JcpException("error", loc, (CallStack) null);
+
+    assertNull(ex.getCallStack());
+  }
+
+  @Test
+  void testConstructionWithCallStackAndCause() {
+    SourceLocation loc = SourceLocation.of("test.jcp", 10, 5);
+    CallStack stack = new CallStack();
+    stack.push(StackFrame.of("func", loc));
+    Throwable cause = new RuntimeException("root cause");
+
+    JcpException ex = new JcpException("error", loc, stack, cause);
+
+    assertNotNull(ex.getCallStack());
+    assertSame(cause, ex.getCause());
+  }
+
+  @Test
+  void testCallStackIsCopiedOnConstruction() {
+    CallStack stack = new CallStack();
+    stack.push(StackFrame.of("func1", null));
+
+    JcpException ex = new JcpException("error", null, stack);
+
+    // Modify original stack
+    stack.push(StackFrame.of("func2", null));
+
+    // Exception's copy should be unaffected
+    assertEquals(1, ex.getCallStack().size());
+  }
+
+  @Test
+  void testWithCallStackMutatesInPlace() {
+    JcpException original = new JcpException("error");
+    CallStack stack = new CallStack();
+    stack.push(StackFrame.of("func", null));
+
+    JcpException withStack = original.withCallStack(stack);
+
+    // withCallStack mutates in place to preserve exception type
+    assertSame(original, withStack);
+    assertNotNull(original.getCallStack());
+    assertNotNull(withStack.getCallStack());
+  }
+
+  @Test
+  void testWithCallStackPreservesJavaStackTrace() {
+    JcpException original = new JcpException("error");
+    StackTraceElement[] originalTrace = original.getStackTrace();
+    CallStack stack = new CallStack();
+    stack.push(StackFrame.of("func", null));
+
+    JcpException withStack = original.withCallStack(stack);
+
+    // Since it mutates in place, the stack trace should be unchanged
+    assertArrayEquals(originalTrace, withStack.getStackTrace());
+    assertSame(original, withStack);
+  }
+
+  @Test
+  void testWithCallStackPreservesCause() {
+    Throwable cause = new RuntimeException("root cause");
+    JcpException original = new JcpException("error", null, cause);
+    CallStack stack = new CallStack();
+    stack.push(StackFrame.of("func", null));
+
+    JcpException withStack = original.withCallStack(stack);
+
+    assertSame(cause, withStack.getCause());
+  }
+
+  @Test
+  void testWithCallStackPreservesLocation() {
+    SourceLocation loc = SourceLocation.of("test.jcp", 10, 5);
+    JcpException original = new JcpException("error", loc);
+    CallStack stack = new CallStack();
+    stack.push(StackFrame.of("func", null));
+
+    JcpException withStack = original.withCallStack(stack);
+
+    assertEquals(loc, withStack.getLocation());
+  }
+
+  @Test
+  void testWithCallStackDoesNotOverrideExisting() {
+    CallStack stack1 = new CallStack();
+    stack1.push(StackFrame.of("func1", null));
+    CallStack stack2 = new CallStack();
+    stack2.push(StackFrame.of("func2", null));
+
+    JcpException original = new JcpException("error", null, stack1);
+
+    JcpException withStack = original.withCallStack(stack2);
+
+    assertSame(original, withStack);
+    assertEquals("func1", withStack.getCallStack().peek().getFunctionName());
+  }
+
+  // ==================== getFullMessage() Tests ====================
+
+  @Test
+  void testGetFullMessageWithCallStack() {
+    SourceLocation loc = SourceLocation.of("math.jcp", 15, 8, "  return a / b;");
+    CallStack stack = new CallStack();
+    stack.push(StackFrame.of("main", SourceLocation.of("main.jcp", 3, 1)));
+    stack.push(StackFrame.of("divide", loc));
+
+    JcpException ex = new JcpException("Division by zero", loc, stack);
+
+    String fullMessage = ex.getFullMessage();
+
+    assertTrue(fullMessage.contains("Division by zero"));
+    assertTrue(fullMessage.contains("math.jcp:15:8"));
+    assertTrue(fullMessage.contains("Stack trace:"));
+    assertTrue(fullMessage.contains("at divide(math.jcp:15:8)"));
+    assertTrue(fullMessage.contains("at main(main.jcp:3:1)"));
+  }
+
+  @Test
+  void testGetFullMessageWithoutCallStack() {
+    SourceLocation loc = SourceLocation.of("math.jcp", 15, 8, "  return a / b;");
+    JcpException ex = new JcpException("Division by zero", loc);
+
+    String fullMessage = ex.getFullMessage();
+
+    assertTrue(fullMessage.contains("Division by zero"));
+    assertFalse(fullMessage.contains("Stack trace:"));
+  }
+
+  @Test
+  void testGetFullMessageWithEmptyCallStack() {
+    SourceLocation loc = SourceLocation.of("math.jcp", 15, 8);
+    CallStack stack = new CallStack();  // empty
+
+    JcpException ex = new JcpException("Division by zero", loc, stack);
+
+    String fullMessage = ex.getFullMessage();
+
+    assertTrue(fullMessage.contains("Division by zero"));
+    assertFalse(fullMessage.contains("Stack trace:"));
+  }
+
+  @Test
+  void testGetFullMessageWithoutLocation() {
+    CallStack stack = new CallStack();
+    stack.push(StackFrame.of("func", null));
+
+    JcpException ex = new JcpException("error", null, stack);
+
+    String fullMessage = ex.getFullMessage();
+
+    assertTrue(fullMessage.contains("error"));
+    assertTrue(fullMessage.contains("Stack trace:"));
+    assertTrue(fullMessage.contains("at func"));
+  }
+
+  // ==================== Combined withLocation and withCallStack Tests ====================
+
+  @Test
+  void testWithLocationPreservesCallStack() {
+    CallStack stack = new CallStack();
+    stack.push(StackFrame.of("func", null));
+
+    JcpException original = new JcpException("error", null, stack);
+    SourceLocation loc = SourceLocation.of("test.jcp", 10, 5);
+
+    JcpException withLoc = original.withLocation(loc);
+
+    assertNotNull(withLoc.getCallStack());
+    assertEquals(1, withLoc.getCallStack().size());
+  }
+
+  @Test
+  void testBackwardCompatibilityWithoutCallStack() {
+    JcpException ex = new JcpException("error message");
+
+    assertNull(ex.getCallStack());
+    assertEquals("error message", ex.getMessage());
+    assertEquals("error message", ex.getFormattedMessage());
+    assertEquals("error message", ex.getFullMessage());
+  }
 }

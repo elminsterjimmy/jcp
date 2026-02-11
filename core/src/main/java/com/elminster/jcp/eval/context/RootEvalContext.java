@@ -3,6 +3,7 @@ package com.elminster.jcp.eval.context;
 import com.elminster.jcp.ast.statement.function.Function;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.exception.CallStack;
 import com.elminster.jcp.module.base.BaseModuleRegister;
 import com.elminster.jcp.util.ClassConverter;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -12,8 +13,11 @@ import java.util.List;
 
 public class RootEvalContext extends DefaultEvalContext {
 
+  private final CallStack callStack;
+
   public RootEvalContext() {
     super();
+    this.callStack = new CallStack();
     init();
   }
 
@@ -80,6 +84,11 @@ public class RootEvalContext extends DefaultEvalContext {
   @Override
   public void setReturn(boolean isReturn) {
       getContextStack().peek().setReturn(isReturn);
+  }
+
+  @Override
+  public CallStack getCallStack() {
+    return callStack;
   }
 
   @Override

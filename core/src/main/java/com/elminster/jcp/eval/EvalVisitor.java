@@ -5,6 +5,7 @@ import com.elminster.jcp.ast.vistor.AstVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
+import com.elminster.jcp.exception.JcpException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,9 +25,14 @@ public class EvalVisitor implements AstVisitor {
 
   @Override
   public void visit(Node node) {
-    Evaluable evaluable = AstEvaluatorFactory.getEvaluator(node);
-    Data eval = evaluable.eval(context);
-    afterEval(eval);
+    try {
+      Evaluable evaluable = AstEvaluatorFactory.getEvaluator(node);
+      Data eval = evaluable.eval(context);
+      afterEval(eval);
+    } catch (JcpException e) {
+      // Attach call stack to exception if not already present
+      throw e.withCallStack(context.getCallStack());
+    }
   }
 
   protected void afterEval(Data eval) {

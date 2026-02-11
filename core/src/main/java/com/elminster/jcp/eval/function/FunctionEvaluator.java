@@ -18,6 +18,7 @@ import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.excpetion.FunctionAmbiguityException;
 import com.elminster.jcp.eval.excpetion.FunctionArgumentsLengthException;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
+import com.elminster.jcp.exception.StackFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +45,12 @@ public class FunctionEvaluator extends BlockEvaluator {
     FastStack funcStack = evalContext.getContextStack();
     DefaultEvalContext defaultEvalContext = new DefaultEvalContext();
     funcStack.push(defaultEvalContext);
+
+    // Push stack frame for call stack tracking
+    // NOTE: Must be in eval() to cover return type check exceptions
+    StackFrame frame = StackFrame.of(function.getName(), function.getLocation());
+    evalContext.getCallStack().push(frame);
+
     try {
       Data result = doFunc(function, evalContext);
       if (!resultDataType.isCastableTo(result.getDataType())) {
@@ -52,6 +59,7 @@ public class FunctionEvaluator extends BlockEvaluator {
       return result;
     } finally {
       funcStack.pop();
+      evalContext.getCallStack().pop();
     }
   }
 

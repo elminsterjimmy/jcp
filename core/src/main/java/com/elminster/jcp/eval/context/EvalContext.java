@@ -3,6 +3,7 @@ package com.elminster.jcp.eval.context;
 import com.elminster.jcp.collection.FastStack;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.exception.CallStack;
 import com.elminster.jcp.ast.statement.function.Function;
 
 import java.util.Map;
@@ -34,4 +35,11 @@ public interface EvalContext {
   boolean isReturn();
 
   void setReturn(boolean isReturn);
+
+  /**
+   * Returns the call stack for tracking function invocations.
+   *
+   * @return the call stack, never null
+   */
+  CallStack getCallStack();
 }

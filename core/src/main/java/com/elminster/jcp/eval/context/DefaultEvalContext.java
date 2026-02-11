@@ -6,6 +6,7 @@ import com.elminster.jcp.collection.FastStack;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.excpetion.AlreadyDeclaredException;
+import com.elminster.jcp.exception.CallStack;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.util.Collections;
@@ -144,6 +145,11 @@ public class DefaultEvalContext implements EvalContext {
     @Override
     public void setReturn(boolean isReturn) {
         this.isReturn = isReturn;
+    }
+
+    @Override
+    public CallStack getCallStack() {
+        throw new UnsupportedOperationException("getCallStack() must be called on RootEvalContext");
     }
 
     @Override
