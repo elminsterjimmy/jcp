@@ -3,6 +3,7 @@ package com.elminster.jcp.compile.context;
 import com.elminster.jcp.ast.statement.function.ParameterDef;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.TypePromotion;
 import org.objectweb.asm.Label;
 
 import java.util.ArrayDeque;
@@ -906,9 +907,15 @@ public class CompileContext {
             if (argType == null) {
                 continue;  // Assume compatible, runtime will verify
             }
-            if (!argType.isCastableTo(paramType)) {
-                return false;
+            // Step 1: Exact match or hierarchy (fast path)
+            if (argType.isCastableTo(paramType)) {
+                continue;
             }
+            // Step 2: Check widening conversions (INT → DOUBLE, etc.)
+            if (TypePromotion.isWideningAllowed(argType, paramType)) {
+                continue;
+            }
+            return false;
         }
         return true;
     }

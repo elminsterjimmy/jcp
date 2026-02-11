@@ -490,6 +490,161 @@ public class FunctionCompileTest extends AbstractCompileTest {
     }
 
     /**
+     * Tests int to double type promotion in function calls.
+     * This is the key test case for issue #13: Function lookup fails for numeric type promotion.
+     * <pre>
+     * fn doubleIt(x: Double) -> Double { return x * 2.0 }
+     * return doubleIt(5)  // int argument, double parameter - should return 10.0
+     * </pre>
+     */
+    @Test
+    void testIntToDoublePromotion_FunctionCall() throws Exception {
+        Block funcBody = new BlockImpl();
+        funcBody.addStatement(new ReturnStatement(
+            new com.elminster.jcp.ast.expression.operation.Multi(
+                VariableExpression.of("x"),
+                LiteralExpression.of(2.0)
+            )
+        ));
+
+        FunctionDeclaration doubleFunc = new FunctionDeclarationImpl(
+            Identifier.fromName("doubleIt"),
+            SystemDataType.DOUBLE,
+            new ParameterDef[]{ParameterDef.of("x", SystemDataType.DOUBLE)},
+            funcBody
+        );
+
+        Block program = new BlockImpl();
+        program.addStatement(doubleFunc);
+
+        // Call with INT argument (5) instead of DOUBLE
+        FunctionCallExpression call = new FunctionCallExpression(
+            Identifier.fromName("doubleIt"),
+            LiteralExpression.of(5)  // INT literal, not DOUBLE
+        );
+
+        String className = uniqueClassName("TestIntToDoublePromotion");
+        BytecodeGenerator generator = new BytecodeGenerator(className);
+        byte[] bytecode = generator.compileWithReturn(program, call, SystemDataType.DOUBLE);
+
+        Class<?> clazz = loadClass(className, bytecode);
+        Method evaluate = clazz.getMethod("evaluate");
+        double result = (double) evaluate.invoke(null);
+        assertEquals(10.0, result, 0.001);  // 5 * 2.0 = 10.0
+    }
+
+    /**
+     * Tests int to double promotion with multiple parameters.
+     * <pre>
+     * fn addDoubles(a: Double, b: Double) -> Double { return a + b }
+     * return addDoubles(3, 5)  // both int args, double params - should return 8.0
+     * </pre>
+     */
+    @Test
+    void testIntToDoublePromotion_MultipleParameters() throws Exception {
+        Block funcBody = new BlockImpl();
+        funcBody.addStatement(new ReturnStatement(
+            Plus.of(
+                VariableExpression.of("a"),
+                VariableExpression.of("b")
+            )
+        ));
+
+        FunctionDeclaration addFunc = new FunctionDeclarationImpl(
+            Identifier.fromName("addDoubles"),
+            SystemDataType.DOUBLE,
+            new ParameterDef[]{
+                ParameterDef.of("a", SystemDataType.DOUBLE),
+                ParameterDef.of("b", SystemDataType.DOUBLE)
+            },
+            funcBody
+        );
+
+        Block program = new BlockImpl();
+        program.addStatement(addFunc);
+
+        // Call with both INT arguments
+        FunctionCallExpression call = new FunctionCallExpression(
+            Identifier.fromName("addDoubles"),
+            LiteralExpression.of(3),   // INT
+            LiteralExpression.of(5)    // INT
+        );
+
+        String className = uniqueClassName("TestMultiParamPromotion");
+        BytecodeGenerator generator = new BytecodeGenerator(className);
+        byte[] bytecode = generator.compileWithReturn(program, call, SystemDataType.DOUBLE);
+
+        Class<?> clazz = loadClass(className, bytecode);
+        Method evaluate = clazz.getMethod("evaluate");
+        double result = (double) evaluate.invoke(null);
+        assertEquals(8.0, result, 0.001);  // 3 + 5 = 8.0
+    }
+
+    /**
+     * Tests that exact match is preferred over widening match in overload resolution.
+     * Compiler uses exact-match-first strategy: when INT argument is passed and both
+     * process(INT) and process(DOUBLE) exist, the exact match process(INT) wins.
+     * <pre>
+     * fn process(x: Int) -> Int { return x * 2 }
+     * fn process(x: Double) -> Double { return x * 3.0 }
+     * return process(5)  // calls INT version, returns 10
+     * </pre>
+     */
+    @Test
+    void testOverloadResolution_ExactMatchPreferred() throws Exception {
+        // INT version: process(int) -> int { return x * 2 }
+        Block intBody = new BlockImpl();
+        intBody.addStatement(new ReturnStatement(
+            new com.elminster.jcp.ast.expression.operation.Multi(
+                VariableExpression.of("x"),
+                LiteralExpression.of(2)
+            )
+        ));
+
+        FunctionDeclaration intFunc = new FunctionDeclarationImpl(
+            Identifier.fromName("process"),
+            SystemDataType.INT,
+            new ParameterDef[]{ParameterDef.of("x", SystemDataType.INT)},
+            intBody
+        );
+
+        // DOUBLE version: process(double) -> double { return x * 3.0 }
+        Block doubleBody = new BlockImpl();
+        doubleBody.addStatement(new ReturnStatement(
+            new com.elminster.jcp.ast.expression.operation.Multi(
+                VariableExpression.of("x"),
+                LiteralExpression.of(3.0)
+            )
+        ));
+
+        FunctionDeclaration doubleFunc = new FunctionDeclarationImpl(
+            Identifier.fromName("process"),
+            SystemDataType.DOUBLE,
+            new ParameterDef[]{ParameterDef.of("x", SystemDataType.DOUBLE)},
+            doubleBody
+        );
+
+        Block program = new BlockImpl();
+        program.addStatement(intFunc);
+        program.addStatement(doubleFunc);
+
+        // Call with INT - exact match process(INT) wins
+        FunctionCallExpression call = new FunctionCallExpression(
+            Identifier.fromName("process"),
+            LiteralExpression.of(5)  // INT
+        );
+
+        String className = uniqueClassName("TestExactMatchPreferred");
+        BytecodeGenerator generator = new BytecodeGenerator(className);
+        byte[] bytecode = generator.compileWithReturn(program, call, SystemDataType.INT);
+
+        Class<?> clazz = loadClass(className, bytecode);
+        Method evaluate = clazz.getMethod("evaluate");
+        int result = (int) evaluate.invoke(null);
+        assertEquals(10, result);  // INT version: 5 * 2 = 10
+    }
+
+    /**
      * Helper method to load a class from bytecode using a custom class loader.
      */
     private Class<?> loadClass(String name, byte[] bytecode) {
