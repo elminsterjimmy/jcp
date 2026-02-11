@@ -5,6 +5,7 @@ import org.objectweb.asm.Opcodes;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -57,6 +58,13 @@ public enum TypePromotion {
     // FLOAT_TO_DOUBLE(SystemDataType.FLOAT, SystemDataType.DOUBLE, Opcodes.F2D),
 
     // ========================================
+    // Constants
+    // ========================================
+
+    /** Returned when no promotion opcode exists for the given type pair. */
+    public static final int NO_PROMOTION_OPCODE = -1;
+
+    // ========================================
     // Lookup infrastructure (O(1) performance)
     // ========================================
 
@@ -100,8 +108,8 @@ public enum TypePromotion {
     private final int opcode;
 
     TypePromotion(DataType from, DataType to, int opcode) {
-        this.from = from;
-        this.to = to;
+        this.from = Objects.requireNonNull(from, "from type must not be null");
+        this.to = Objects.requireNonNull(to, "to type must not be null");
         this.opcode = opcode;
     }
 
@@ -129,7 +137,7 @@ public enum TypePromotion {
      */
     public static int getPromotionOpcode(DataType from, DataType to) {
         TypePromotion promotion = LOOKUP_MAP.get(new PromotionKey(from, to));
-        return promotion != null ? promotion.opcode : -1;
+        return promotion != null ? promotion.opcode : NO_PROMOTION_OPCODE;
     }
 
     /**

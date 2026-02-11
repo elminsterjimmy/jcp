@@ -123,7 +123,7 @@ public class FunCallCompiler extends AbstractAstCompiler {
             DataType argType = argTypes[i];
             DataType paramType = params[i].getDataType();
             int promotionOpcode = TypePromotion.getPromotionOpcode(argType, paramType);
-            if (promotionOpcode != -1) {
+            if (promotionOpcode != TypePromotion.NO_PROMOTION_OPCODE) {
                 mv.visitInsn(promotionOpcode);
             }
         }
@@ -173,7 +173,7 @@ public class FunCallCompiler extends AbstractAstCompiler {
             DataType argType = argTypes[i];
             DataType paramType = paramTypes[i];
             int promotionOpcode = TypePromotion.getPromotionOpcode(argType, paramType);
-            if (promotionOpcode != -1) {
+            if (promotionOpcode != TypePromotion.NO_PROMOTION_OPCODE) {
                 mv.visitInsn(promotionOpcode);
             } else if (paramType == SystemDataType.ANY) {
                 boxPrimitive(mv, argType);

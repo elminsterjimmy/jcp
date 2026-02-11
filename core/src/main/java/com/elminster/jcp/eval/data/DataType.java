@@ -64,4 +64,34 @@ public interface DataType {
   default boolean isArray() {
     return this.getName().endsWith("[]");
   }
+
+  /**
+   * Check if this type can be promoted (widened) to the target type.
+   * Type promotion is different from casting: it handles numeric widening
+   * conversions like int → double.
+   *
+   * @param target the target data type
+   * @return true if this type can be promoted to the target type
+   * @see TypePromotion
+   */
+  default boolean isTypePromotableTo(DataType target) {
+    return TypePromotion.isWideningAllowed(this, target);
+  }
+
+  /**
+   * Check if this type is compatible with the target type for function calls.
+   * Combines both hierarchy-based casting and numeric widening promotion.
+   *
+   * <p>This is the primary compatibility check for parameter matching:
+   * <ol>
+   *   <li>Hierarchy check: INT is-a NUMERIC (via {@link #isCastableTo})</li>
+   *   <li>Widening check: INT → DOUBLE (via {@link #isTypePromotableTo})</li>
+   * </ol>
+   *
+   * @param target the target data type (e.g., parameter type)
+   * @return true if this type can be used where target is expected
+   */
+  default boolean isCompatibleWith(DataType target) {
+    return isCastableTo(target) || isTypePromotableTo(target);
+  }
 }

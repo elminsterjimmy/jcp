@@ -47,8 +47,13 @@ class TypePromotionTest {
     }
 
     @Test
-    void getPromotionOpcode_InvalidPromotion_ReturnsNegativeOne() {
-        assertEquals(-1, TypePromotion.getPromotionOpcode(SystemDataType.DOUBLE, SystemDataType.INT));
+    void getPromotionOpcode_InvalidPromotion_ReturnsNoPromotionOpcode() {
+        assertEquals(TypePromotion.NO_PROMOTION_OPCODE, TypePromotion.getPromotionOpcode(SystemDataType.DOUBLE, SystemDataType.INT));
+    }
+
+    @Test
+    void noPromotionOpcode_IsNegativeOne() {
+        assertEquals(-1, TypePromotion.NO_PROMOTION_OPCODE);
     }
 
     @Test
@@ -92,5 +97,58 @@ class TypePromotionTest {
     void hierarchyUnchanged_IntIsCastableToNumeric() {
         // Verify that hierarchical casts still work
         assertTrue(SystemDataType.INT.isCastableTo(SystemDataType.NUMERIC));
+    }
+
+    // Tests for isTypePromotableTo() method on DataType
+    @Test
+    void isTypePromotableTo_IntToDouble_ReturnsTrue() {
+        assertTrue(SystemDataType.INT.isTypePromotableTo(SystemDataType.DOUBLE));
+    }
+
+    @Test
+    void isTypePromotableTo_DoubleToInt_ReturnsFalse() {
+        assertFalse(SystemDataType.DOUBLE.isTypePromotableTo(SystemDataType.INT));
+    }
+
+    @Test
+    void isTypePromotableTo_StringToInt_ReturnsFalse() {
+        assertFalse(SystemDataType.STRING.isTypePromotableTo(SystemDataType.INT));
+    }
+
+    // Tests for isCompatibleWith() method on DataType
+    @Test
+    void isCompatibleWith_IntToDouble_ReturnsTrue() {
+        // Widening conversion allowed
+        assertTrue(SystemDataType.INT.isCompatibleWith(SystemDataType.DOUBLE));
+    }
+
+    @Test
+    void isCompatibleWith_IntToNumeric_ReturnsTrue() {
+        // Hierarchy casting allowed
+        assertTrue(SystemDataType.INT.isCompatibleWith(SystemDataType.NUMERIC));
+    }
+
+    @Test
+    void isCompatibleWith_IntToInt_ReturnsTrue() {
+        // Same type
+        assertTrue(SystemDataType.INT.isCompatibleWith(SystemDataType.INT));
+    }
+
+    @Test
+    void isCompatibleWith_DoubleToInt_ReturnsFalse() {
+        // Neither hierarchy nor widening
+        assertFalse(SystemDataType.DOUBLE.isCompatibleWith(SystemDataType.INT));
+    }
+
+    @Test
+    void isCompatibleWith_StringToInt_ReturnsFalse() {
+        // Incompatible types
+        assertFalse(SystemDataType.STRING.isCompatibleWith(SystemDataType.INT));
+    }
+
+    @Test
+    void isCompatibleWith_IntToAny_ReturnsTrue() {
+        // Any is the root type
+        assertTrue(SystemDataType.INT.isCompatibleWith(SystemDataType.ANY));
     }
 }

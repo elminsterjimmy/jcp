@@ -86,16 +86,11 @@ public class ExternalClassType implements DataType {
             for (int i = 0; i < params.length; i++) {
                 DataType argType = argTypes[i];
                 DataType paramType = params[i];
-                // Step 1: Exact match or hierarchy (fast path)
-                if (argType.isCastableTo(paramType)) {
-                    continue;
+                // Check type compatibility (hierarchy + widening)
+                if (!argType.isCompatibleWith(paramType)) {
+                    compatible = false;
+                    break;
                 }
-                // Step 2: Check widening conversions (INT → DOUBLE, etc.)
-                if (TypePromotion.isWideningAllowed(argType, paramType)) {
-                    continue;
-                }
-                compatible = false;
-                break;
             }
 
             if (compatible) {
@@ -162,16 +157,11 @@ public class ExternalClassType implements DataType {
             for (int i = 0; i < params.length; i++) {
                 DataType argType = argTypes[i];
                 DataType paramType = params[i];
-                // Step 1: Exact match or hierarchy (fast path)
-                if (argType.isCastableTo(paramType)) {
-                    continue;
+                // Check type compatibility (hierarchy + widening)
+                if (!argType.isCompatibleWith(paramType)) {
+                    compatible = false;
+                    break;
                 }
-                // Step 2: Check widening conversions (INT → DOUBLE, etc.)
-                if (TypePromotion.isWideningAllowed(argType, paramType)) {
-                    continue;
-                }
-                compatible = false;
-                break;
             }
 
             if (compatible) {

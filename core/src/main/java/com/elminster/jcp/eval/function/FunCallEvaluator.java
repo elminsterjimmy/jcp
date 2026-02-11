@@ -13,7 +13,6 @@ import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.DoubleData;
-import com.elminster.jcp.eval.data.TypePromotion;
 import com.elminster.jcp.eval.excpetion.FunctionAmbiguityException;
 import com.elminster.jcp.eval.excpetion.UndeclaredException;
 import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
@@ -97,7 +96,7 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
       DataType argType = arg.getDataType();
       DataType paramType = params[i].getDataType();
       // Check if widening conversion needed
-      if (TypePromotion.isWideningAllowed(argType, paramType)) {
+      if (argType.isTypePromotableTo(paramType)) {
         if (argType == SystemDataType.INT && paramType == SystemDataType.DOUBLE) {
           // Convert IntegerData to DoubleData
           Integer intValue = (Integer) arg.get();
@@ -136,15 +135,10 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
       for (int i = 0; i < parameterDefs.length; i++) {
         DataType argType = arguments[i].getDataType();
         DataType paramType = parameterDefs[i].getDataType();
-        // Step 1: Exact match or hierarchy (fast path)
-        if (argType.isCastableTo(paramType)) {
-          continue;
+        // Check type compatibility (hierarchy + widening)
+        if (!argType.isCompatibleWith(paramType)) {
+          return false;
         }
-        // Step 2: Check widening conversions (INT → DOUBLE, etc.)
-        if (TypePromotion.isWideningAllowed(argType, paramType)) {
-          continue;
-        }
-        return false;
       }
       return true;
     }
