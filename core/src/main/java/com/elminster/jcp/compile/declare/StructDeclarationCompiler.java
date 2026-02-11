@@ -8,8 +8,52 @@ import com.elminster.jcp.compile.context.CompileContext;
 import org.objectweb.asm.MethodVisitor;
 
 /**
- * Compiler for struct declarations.
- * Registers the struct type and schedules class generation.
+ * Compiler for struct declarations (data-only types).
+ *
+ * <p>Registers the struct type in the compile context and generates a separate
+ * JVM class file for the struct. No bytecode is emitted to the main method.
+ *
+ * <h3>Generated Class Structure:</h3>
+ * <pre>{@code
+ * // For: struct Point { x: int, y: int }
+ *
+ * public class Point {
+ *     public int x;
+ *     public int y;
+ *
+ *     public Point(int x, int y) {
+ *         this.x = x;
+ *         this.y = y;
+ *     }
+ * }
+ * }</pre>
+ *
+ * <h4>Constructor Bytecode:</h4>
+ * <pre>{@code
+ * // Point.<init>(II)V
+ *
+ * ALOAD 0                   // load 'this'
+ * INVOKESPECIAL Object.<init>()V  // call super constructor
+ *
+ * ALOAD 0                   // load 'this'
+ * ILOAD 1                   // load first parameter (x)
+ * PUTFIELD Point.x I        // store in field
+ *
+ * ALOAD 0                   // load 'this'
+ * ILOAD 2                   // load second parameter (y)
+ * PUTFIELD Point.y I        // store in field
+ *
+ * RETURN                    // return void
+ * }</pre>
+ *
+ * <h4>Dual Registration:</h4>
+ * <ul>
+ *   <li>{@code ctx.addDataType()}: Enables compile-time type lookups</li>
+ *   <li>{@code ctx.addGeneratedClass()}: Enables runtime loading</li>
+ * </ul>
+ *
+ * <h4>Main Method Effect:</h4>
+ * <p>No bytecode emitted - struct class is loaded alongside the main class.
  */
 public class StructDeclarationCompiler extends AbstractAstCompiler {
 
