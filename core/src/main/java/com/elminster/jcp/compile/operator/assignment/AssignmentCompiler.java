@@ -25,6 +25,7 @@ public class AssignmentCompiler extends AbstractAstCompiler {
 
     @Override
     public void compile(MethodVisitor mv, CompileContext ctx) {
+        emitLineNumber(mv);
         AssignmentExpression assignExpr = (AssignmentExpression) astNode;
         Identifier id = assignExpr.getId();
         Expression valueExpr = assignExpr.getExpression();

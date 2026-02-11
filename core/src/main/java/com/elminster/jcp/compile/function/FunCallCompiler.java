@@ -32,6 +32,7 @@ public class FunCallCompiler extends AbstractAstCompiler {
 
     @Override
     public void compile(MethodVisitor mv, CompileContext ctx) {
+        emitLineNumber(mv);
         FunctionCallExpression call = (FunctionCallExpression) astNode;
         String funcName = call.getId().getId();
         Expression[] args = call.getArguments();

@@ -33,6 +33,7 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
 
     @Override
     public void compile(MethodVisitor mv, CompileContext ctx) {
+        emitLineNumber(mv);
         StaticMethodCallExpression call = (StaticMethodCallExpression) astNode;
         String typeName = call.getTypeName().getId();
         String methodName = call.getMethodName();

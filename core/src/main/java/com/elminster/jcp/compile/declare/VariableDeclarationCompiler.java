@@ -26,6 +26,7 @@ public class VariableDeclarationCompiler extends AbstractAstCompiler {
 
     @Override
     public void compile(MethodVisitor mv, CompileContext ctx) {
+        emitLineNumber(mv);
         VariableDeclaration varDecl = (VariableDeclaration) astNode;
         Identifier id = varDecl.getId();
         String varName = id.getId();

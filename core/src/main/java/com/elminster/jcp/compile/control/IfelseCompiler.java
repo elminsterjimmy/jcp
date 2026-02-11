@@ -24,6 +24,7 @@ public class IfelseCompiler extends AbstractAstCompiler {
 
     @Override
     public void compile(MethodVisitor mv, CompileContext ctx) {
+        emitLineNumber(mv);
         IfElseStatement ifElseStmt = (IfElseStatement) astNode;
         Expression condition = ifElseStmt.getCondition();
         Statement ifStatement = ifElseStmt.getIfStatement();
