@@ -4,7 +4,7 @@
 ![Coverage](https://raw.githubusercontent.com/elminsterjimmy/jcp/master/.github/badges/jacoco.svg)
 ![Branches](https://raw.githubusercontent.com/elminsterjimmy/jcp/master/.github/badges/branches.svg)
 ![Java Version](https://img.shields.io/badge/Java-11%2B-blue)
-![License](https://img.shields.io/badge/License-TBD-lightgrey)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 A **middleware platform** that bridges Domain-Specific Languages (DSLs) and the JVM. JCP handles the semantic analysis, type checking, and code generation phases of compilation, allowing you to focus on defining your language's syntax using tools like ANTLR while leveraging the JVM for execution and optimization.
 
@@ -423,7 +423,7 @@ The AspectJ module intercepts `Evaluable.eval()` calls for tracing interpreter e
 
 ## License
 
-TBD
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## References
 
