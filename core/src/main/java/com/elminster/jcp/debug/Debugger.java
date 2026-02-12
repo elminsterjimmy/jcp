@@ -22,14 +22,15 @@ import java.util.Map;
  *
  * <h2>Usage Example</h2>
  * <pre>{@code
- * Debugger debugger = new DefaultDebugger();
+ * DefaultDebugger debugger = new DefaultDebugger();
+ * EvalContext context = new RootEvalContext();
  * DebuggingEvalVisitor visitor = new DebuggingEvalVisitor(context, debugger);
  *
  * // Set breakpoint at line 10
- * BreakpointId bp = debugger.setBreakpoint(BreakpointLocation.at(10));
+ * Breakpoint bp = debugger.setBreakpoint(10);
  *
- * // Start debugging in another thread
- * new Thread(() -> visitor.visit(program)).start();
+ * // Start debugging
+ * new Thread(() -> visitor.debug(program)).start();
  *
  * // Wait for breakpoint hit, then inspect
  * while (!debugger.isPaused()) Thread.sleep(10);
@@ -44,35 +45,76 @@ public interface Debugger {
   // ========== Breakpoint Management ==========
 
   /**
-   * Sets a breakpoint at the given location.
+   * Sets a breakpoint at the given line.
    *
-   * @param location the breakpoint location
-   * @return unique ID for the breakpoint
+   * @param line the line number (1-based)
+   * @return the created breakpoint
    */
-  BreakpointId setBreakpoint(BreakpointLocation location);
+  Breakpoint setBreakpoint(int line);
+
+  /**
+   * Sets a breakpoint at the given line and column.
+   *
+   * @param line   the line number (1-based)
+   * @param column the column number (1-based)
+   * @return the created breakpoint
+   */
+  Breakpoint setBreakpoint(int line, int column);
+
+  /**
+   * Sets a breakpoint at the given file, line, and column.
+   *
+   * @param filepath source file path
+   * @param line     the line number (1-based)
+   * @param column   the column number (1-based)
+   * @return the created breakpoint
+   */
+  Breakpoint setBreakpoint(String filepath, int line, int column);
 
   /**
    * Sets a breakpoint at the given AST node.
-   * Convenience method that creates location from node.
    *
    * @param node the AST node to break on
-   * @return unique ID for the breakpoint
+   * @return the created breakpoint
    */
-  BreakpointId setBreakpoint(Node node);
+  Breakpoint setBreakpoint(Node node);
 
   /**
    * Removes a breakpoint by its ID.
    *
-   * @param id the breakpoint ID to remove
+   * @param breakpointId the breakpoint ID to remove
    */
-  void removeBreakpoint(BreakpointId id);
+  void removeBreakpoint(long breakpointId);
+
+  /**
+   * Removes a breakpoint.
+   *
+   * @param breakpoint the breakpoint to remove
+   */
+  void removeBreakpoint(Breakpoint breakpoint);
 
   /**
    * Returns all registered breakpoints.
    *
-   * @return unmodifiable map of breakpoint IDs to locations
+   * @return unmodifiable map of breakpoint IDs to breakpoints
    */
-  Map<BreakpointId, BreakpointLocation> getBreakpoints();
+  Map<Long, Breakpoint> getBreakpoints();
+
+  /**
+   * Returns a breakpoint by its ID.
+   *
+   * @param breakpointId the breakpoint ID
+   * @return the breakpoint, or null if not found
+   */
+  Breakpoint getBreakpoint(long breakpointId);
+
+  /**
+   * Returns all breakpoints at the given line.
+   *
+   * @param line the line number
+   * @return list of breakpoints at the line (empty if none)
+   */
+  List<Breakpoint> getBreakpointsAt(int line);
 
   // ========== Execution Control ==========
 
@@ -167,11 +209,11 @@ public interface Debugger {
   Node getCurrentNode();
 
   /**
-   * Returns the location where execution is paused.
+   * Returns the line number where execution is paused.
    *
-   * @return current location, or null if not paused
+   * @return current line number, or -1 if not paused or no location info
    */
-  BreakpointLocation getCurrentLocation();
+  int getCurrentLine();
 
   // ========== Event Listeners ==========
 

@@ -5,27 +5,37 @@ import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.SourceLocation;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Represents a breakpoint location using hybrid identification.
+ * Represents a breakpoint with unique ID and location.
  *
- * <p>Supports two identification modes:
+ * <p>Combines identification and location in a single class:
  * <ul>
- *   <li>Source location (line/column) - primary, for user-defined breakpoints</li>
- *   <li>AST node reference - fallback, for programmatic use</li>
+ *   <li>Unique ID for safe removal operations</li>
+ *   <li>Location for matching against AST nodes</li>
  * </ul>
  *
- * <p>Matching against nodes checks source location if available,
- * or node identity for node-based breakpoints.
+ * <p>Supports two location modes:
+ * <ul>
+ *   <li>Source location (filepath, line, column) - for user-defined breakpoints</li>
+ *   <li>AST node reference - for programmatic use</li>
+ * </ul>
+ *
+ * <p>Thread-safe: Uses atomic counter for ID generation.
  */
-public final class BreakpointLocation {
+public final class Breakpoint {
 
+  private static final AtomicLong counter = new AtomicLong(0);
+
+  private final long id;
   private final String filepath;
   private final int line;
   private final int column;
   private final Node nodeReference;
 
-  private BreakpointLocation(String filepath, int line, int column, Node nodeReference) {
+  private Breakpoint(long id, String filepath, int line, int column, Node nodeReference) {
+    this.id = id;
     this.filepath = filepath;
     this.line = line;
     this.column = column;
@@ -33,55 +43,69 @@ public final class BreakpointLocation {
   }
 
   /**
-   * Creates a breakpoint location at a specific line.
+   * Creates a breakpoint at a specific line.
    * Column defaults to 1 (start of line).
    *
    * @param line line number (1-based)
-   * @return new BreakpointLocation
+   * @return new Breakpoint
    */
-  public static BreakpointLocation at(int line) {
-    return new BreakpointLocation(null, line, 1, null);
+  public static Breakpoint at(int line) {
+    return new Breakpoint(counter.incrementAndGet(), null, line, 1, null);
   }
 
   /**
-   * Creates a breakpoint location at a specific line and column.
+   * Creates a breakpoint at a specific line and column.
    *
    * @param line   line number (1-based)
    * @param column column number (1-based)
-   * @return new BreakpointLocation
+   * @return new Breakpoint
    */
-  public static BreakpointLocation at(int line, int column) {
-    return new BreakpointLocation(null, line, column, null);
+  public static Breakpoint at(int line, int column) {
+    return new Breakpoint(counter.incrementAndGet(), null, line, column, null);
   }
 
   /**
-   * Creates a breakpoint location at a specific file, line, and column.
+   * Creates a breakpoint at a specific file, line, and column.
    *
    * @param filepath source file path
    * @param line     line number (1-based)
    * @param column   column number (1-based)
-   * @return new BreakpointLocation
+   * @return new Breakpoint
    */
-  public static BreakpointLocation at(String filepath, int line, int column) {
-    return new BreakpointLocation(filepath, line, column, null);
+  public static Breakpoint at(String filepath, int line, int column) {
+    return new Breakpoint(counter.incrementAndGet(), filepath, line, column, null);
   }
 
   /**
-   * Creates a breakpoint location at a specific AST node.
+   * Creates a breakpoint at a specific AST node.
    * Uses node's source location if available, otherwise uses identity matching.
    *
    * @param node the AST node to break on
-   * @return new BreakpointLocation
+   * @return new Breakpoint
    */
-  public static BreakpointLocation at(Node node) {
+  public static Breakpoint at(Node node) {
     if (node instanceof Locatable) {
       Locatable locatable = (Locatable) node;
       if (locatable.getLocation() != null) {
         SourceLocation loc = locatable.getLocation();
-        return new BreakpointLocation(loc.getFilepath(), loc.getStartLine(), loc.getStartColumn(), node);
+        return new Breakpoint(
+            counter.incrementAndGet(),
+            loc.getFilepath(),
+            loc.getStartLine(),
+            loc.getStartColumn(),
+            node);
       }
     }
-    return new BreakpointLocation(null, 0, 0, node);
+    return new Breakpoint(counter.incrementAndGet(), null, 0, 0, node);
+  }
+
+  /**
+   * Returns the unique breakpoint ID.
+   *
+   * @return the ID value
+   */
+  public long getId() {
+    return id;
   }
 
   /**
@@ -121,17 +145,17 @@ public final class BreakpointLocation {
   }
 
   /**
-   * Checks if the given node matches this breakpoint location.
+   * Checks if the given node matches this breakpoint.
    *
    * <p>Matching rules:
    * <ol>
    *   <li>If node reference is set and matches, return true</li>
-   *   <li>If node has source location, compare line (and column if set)</li>
-   *   <li>Column matching is optional: if breakpoint column is 1, matches any column on the line</li>
+   *   <li>If node has source location, compare filepath (if set), line, and column</li>
+   *   <li>Column matching is optional: if breakpoint column is 1, matches any column</li>
    * </ol>
    *
    * @param node the node to check
-   * @return true if node matches this breakpoint location
+   * @return true if node matches this breakpoint
    */
   public boolean matches(Node node) {
     // Node reference match (identity)
@@ -145,7 +169,7 @@ public final class BreakpointLocation {
       if (locatable.getLocation() != null) {
         SourceLocation nodeLoc = locatable.getLocation();
 
-        // Filepath match (if specified)
+        // Filepath match (if specified in breakpoint)
         if (filepath != null && !filepath.equals(nodeLoc.getFilepath())) {
           return false;
         }
@@ -156,7 +180,6 @@ public final class BreakpointLocation {
         }
 
         // Column match: if breakpoint column is 1, match any column on the line
-        // Otherwise, exact column match required
         if (column > 1 && nodeLoc.getStartColumn() != column) {
           return false;
         }
@@ -173,29 +196,28 @@ public final class BreakpointLocation {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof BreakpointLocation)) {
+    if (!(o instanceof Breakpoint)) {
       return false;
     }
-    BreakpointLocation that = (BreakpointLocation) o;
-    return line == that.line
-        && column == that.column
-        && Objects.equals(filepath, that.filepath)
-        && Objects.equals(nodeReference, that.nodeReference);
+    Breakpoint that = (Breakpoint) o;
+    return id == that.id;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(filepath, line, column);
+    return Objects.hash(id);
   }
 
   @Override
   public String toString() {
+    StringBuilder sb = new StringBuilder("Breakpoint#").append(id);
     if (nodeReference != null && !hasSourceLocation()) {
-      return "node:" + nodeReference.getName();
+      sb.append(" at node:").append(nodeReference.getName());
+    } else if (filepath != null) {
+      sb.append(" at ").append(filepath).append(":").append(line).append(":").append(column);
+    } else if (line > 0) {
+      sb.append(" at ").append(line).append(":").append(column);
     }
-    if (filepath != null) {
-      return filepath + ":" + line + ":" + column;
-    }
-    return line + ":" + column;
+    return sb.toString();
   }
 }

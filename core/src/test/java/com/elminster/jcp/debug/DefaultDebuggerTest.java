@@ -7,6 +7,7 @@ import com.elminster.jcp.eval.context.RootEvalContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,54 +38,126 @@ class DefaultDebuggerTest {
   // ========== Breakpoint Management Tests ==========
 
   @Test
-  void setBreakpoint_ReturnsUniqueId() {
-    BreakpointId id1 = debugger.setBreakpoint(BreakpointLocation.at(10));
-    BreakpointId id2 = debugger.setBreakpoint(BreakpointLocation.at(20));
+  void setBreakpoint_ByLine_ReturnsBreakpoint() {
+    Breakpoint bp = debugger.setBreakpoint(10);
 
-    assertNotEquals(id1, id2);
+    assertNotNull(bp);
+    assertEquals(10, bp.getLine());
   }
 
   @Test
-  void setBreakpoint_ByNode_ReturnsId() {
+  void setBreakpoint_ByLineColumn_ReturnsBreakpoint() {
+    Breakpoint bp = debugger.setBreakpoint(10, 5);
+
+    assertNotNull(bp);
+    assertEquals(10, bp.getLine());
+    assertEquals(5, bp.getColumn());
+  }
+
+  @Test
+  void setBreakpoint_ByFileLineColumn_ReturnsBreakpoint() {
+    Breakpoint bp = debugger.setBreakpoint("test.jcp", 10, 5);
+
+    assertNotNull(bp);
+    assertEquals("test.jcp", bp.getFilepath());
+    assertEquals(10, bp.getLine());
+    assertEquals(5, bp.getColumn());
+  }
+
+  @Test
+  void setBreakpoint_ReturnsUniqueIds() {
+    Breakpoint bp1 = debugger.setBreakpoint(10);
+    Breakpoint bp2 = debugger.setBreakpoint(20);
+
+    assertNotEquals(bp1.getId(), bp2.getId());
+  }
+
+  @Test
+  void setBreakpoint_ByNode_ReturnsBreakpoint() {
     IntLiteral node = IntLiteral.of(42);
     node.setLocation(SourceLocation.of("test.jcp", 10, 5));
 
-    BreakpointId id = debugger.setBreakpoint(node);
+    Breakpoint bp = debugger.setBreakpoint(node);
 
-    assertNotNull(id);
+    assertNotNull(bp);
   }
 
   @Test
   void getBreakpoints_ReturnsAllBreakpoints() {
-    BreakpointId id1 = debugger.setBreakpoint(BreakpointLocation.at(10));
-    BreakpointId id2 = debugger.setBreakpoint(BreakpointLocation.at(20));
+    Breakpoint bp1 = debugger.setBreakpoint(10);
+    Breakpoint bp2 = debugger.setBreakpoint(20);
 
-    Map<BreakpointId, BreakpointLocation> breakpoints = debugger.getBreakpoints();
+    Map<Long, Breakpoint> breakpoints = debugger.getBreakpoints();
 
     assertEquals(2, breakpoints.size());
-    assertTrue(breakpoints.containsKey(id1));
-    assertTrue(breakpoints.containsKey(id2));
+    assertTrue(breakpoints.containsKey(bp1.getId()));
+    assertTrue(breakpoints.containsKey(bp2.getId()));
   }
 
   @Test
-  void removeBreakpoint_RemovesById() {
-    BreakpointId id1 = debugger.setBreakpoint(BreakpointLocation.at(10));
-    BreakpointId id2 = debugger.setBreakpoint(BreakpointLocation.at(20));
+  void getBreakpoint_ReturnsBreakpointById() {
+    Breakpoint bp = debugger.setBreakpoint(10);
 
-    debugger.removeBreakpoint(id1);
+    Breakpoint found = debugger.getBreakpoint(bp.getId());
 
-    Map<BreakpointId, BreakpointLocation> breakpoints = debugger.getBreakpoints();
+    assertSame(bp, found);
+  }
+
+  @Test
+  void getBreakpoint_NonExistent_ReturnsNull() {
+    Breakpoint found = debugger.getBreakpoint(999);
+
+    assertNull(found);
+  }
+
+  @Test
+  void getBreakpointsAt_ReturnsBreakpointsAtLine() {
+    debugger.setBreakpoint(10, 1);
+    debugger.setBreakpoint(10, 5);
+    debugger.setBreakpoint(20);
+
+    List<Breakpoint> atLine10 = debugger.getBreakpointsAt(10);
+
+    assertEquals(2, atLine10.size());
+  }
+
+  @Test
+  void getBreakpointsAt_NoBreakpoints_ReturnsEmptyList() {
+    List<Breakpoint> atLine10 = debugger.getBreakpointsAt(10);
+
+    assertNotNull(atLine10);
+    assertTrue(atLine10.isEmpty());
+  }
+
+  @Test
+  void removeBreakpoint_ById_RemovesBreakpoint() {
+    Breakpoint bp1 = debugger.setBreakpoint(10);
+    Breakpoint bp2 = debugger.setBreakpoint(20);
+
+    debugger.removeBreakpoint(bp1.getId());
+
+    Map<Long, Breakpoint> breakpoints = debugger.getBreakpoints();
     assertEquals(1, breakpoints.size());
-    assertFalse(breakpoints.containsKey(id1));
-    assertTrue(breakpoints.containsKey(id2));
+    assertFalse(breakpoints.containsKey(bp1.getId()));
+    assertTrue(breakpoints.containsKey(bp2.getId()));
+  }
+
+  @Test
+  void removeBreakpoint_ByBreakpoint_RemovesBreakpoint() {
+    Breakpoint bp1 = debugger.setBreakpoint(10);
+    Breakpoint bp2 = debugger.setBreakpoint(20);
+
+    debugger.removeBreakpoint(bp1);
+
+    Map<Long, Breakpoint> breakpoints = debugger.getBreakpoints();
+    assertEquals(1, breakpoints.size());
+    assertFalse(breakpoints.containsKey(bp1.getId()));
   }
 
   @Test
   void removeBreakpoint_NonExistent_NoError() {
-    BreakpointId id = BreakpointId.next();
-
     // Should not throw
-    debugger.removeBreakpoint(id);
+    debugger.removeBreakpoint(999);
   }
 
   // ========== State Tests ==========
@@ -107,8 +180,8 @@ class DefaultDebuggerTest {
 
   @Test
   void stop_ClearsBreakpointsAndDetaches() {
-    debugger.setBreakpoint(BreakpointLocation.at(10));
-    debugger.setBreakpoint(BreakpointLocation.at(20));
+    debugger.setBreakpoint(10);
+    debugger.setBreakpoint(20);
     debugger.attach();
 
     debugger.stop();
@@ -120,14 +193,14 @@ class DefaultDebuggerTest {
 
   @Test
   void detach_KeepsBreakpoints() {
-    BreakpointId id = debugger.setBreakpoint(BreakpointLocation.at(10));
+    Breakpoint bp = debugger.setBreakpoint(10);
     debugger.attach();
 
     debugger.detach();
 
     assertEquals(DebugState.DETACHED, debugger.getState());
     assertEquals(1, debugger.getBreakpoints().size());
-    assertTrue(debugger.getBreakpoints().containsKey(id));
+    assertTrue(debugger.getBreakpoints().containsKey(bp.getId()));
     assertTrue(pauseStrategy.wasResumeCalled());
   }
 
@@ -135,7 +208,7 @@ class DefaultDebuggerTest {
 
   @Test
   void shouldPause_WhenNotAttached_ReturnsFalse() {
-    debugger.setBreakpoint(BreakpointLocation.at(10));
+    debugger.setBreakpoint(10);
 
     IntLiteral node = IntLiteral.of(42);
     node.setLocation(SourceLocation.of("test.jcp", 10, 5));
@@ -145,7 +218,7 @@ class DefaultDebuggerTest {
 
   @Test
   void shouldPause_WhenAttachedWithBreakpoint_ReturnsTrue() {
-    debugger.setBreakpoint(BreakpointLocation.at(10));
+    debugger.setBreakpoint(10);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -156,7 +229,7 @@ class DefaultDebuggerTest {
 
   @Test
   void shouldPause_WhenNoBreakpointAtLine_ReturnsFalse() {
-    debugger.setBreakpoint(BreakpointLocation.at(10));
+    debugger.setBreakpoint(10);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -167,7 +240,7 @@ class DefaultDebuggerTest {
 
   @Test
   void shouldPause_NodeWithoutLocation_ReturnsFalse() {
-    debugger.setBreakpoint(BreakpointLocation.at(10));
+    debugger.setBreakpoint(10);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -201,7 +274,7 @@ class DefaultDebuggerTest {
   void pause_SetsPausedStateAndNotifiesBreakpointHit() {
     TestDebugEventListener listener = new TestDebugEventListener();
     debugger.addListener(listener);
-    debugger.setBreakpoint(BreakpointLocation.at(10));
+    debugger.setBreakpoint(10);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -231,7 +304,7 @@ class DefaultDebuggerTest {
   }
 
   @Test
-  void getCurrentLocation_WhenPaused_ReturnsLocation() {
+  void getCurrentLine_WhenPaused_ReturnsLine() {
     debugger.attach();
     IntLiteral node = IntLiteral.of(42);
     node.setLocation(SourceLocation.of("test.jcp", 10, 5));
@@ -239,8 +312,19 @@ class DefaultDebuggerTest {
 
     debugger.pause(node, context, 0, true);
 
-    BreakpointLocation location = debugger.getCurrentLocation();
-    assertNotNull(location);
+    assertEquals(10, debugger.getCurrentLine());
+  }
+
+  @Test
+  void getCurrentLine_WhenNodeHasNoLocation_ReturnsNegative() {
+    debugger.attach();
+    IntLiteral node = IntLiteral.of(42);
+    // No location set
+    EvalContext context = new RootEvalContext();
+
+    debugger.pause(node, context, 0, true);
+
+    assertEquals(-1, debugger.getCurrentLine());
   }
 
   // ========== Stepping Control Tests ==========
@@ -361,6 +445,18 @@ class DefaultDebuggerTest {
   }
 
   @Test
+  void shouldPause_InStepOverState_AtShallowerDepth_ReturnsTrue() {
+    debugger.attach();
+    IntLiteral node = IntLiteral.of(42);
+    debugger.pause(node, new RootEvalContext(), 2, true);
+    debugger.stepOver();
+
+    IntLiteral nextNode = IntLiteral.of(99);
+    // At shallower depth (1 < 2), should still pause (uses <=)
+    assertTrue(debugger.shouldPause(nextNode, 1));
+  }
+
+  @Test
   void shouldPause_InStepOutState_AtShallowerDepth_ReturnsTrue() {
     debugger.attach();
     IntLiteral node = IntLiteral.of(42);
@@ -376,6 +472,17 @@ class DefaultDebuggerTest {
     debugger.attach();
     IntLiteral node = IntLiteral.of(42);
     debugger.pause(node, new RootEvalContext(), 2, true);
+    debugger.stepOut();
+
+    IntLiteral nextNode = IntLiteral.of(99);
+    assertFalse(debugger.shouldPause(nextNode, 2));
+  }
+
+  @Test
+  void shouldPause_InStepOutState_AtDeeperDepth_ReturnsFalse() {
+    debugger.attach();
+    IntLiteral node = IntLiteral.of(42);
+    debugger.pause(node, new RootEvalContext(), 1, true);
     debugger.stepOut();
 
     IntLiteral nextNode = IntLiteral.of(99);
@@ -404,6 +511,18 @@ class DefaultDebuggerTest {
   }
 
   @Test
+  void getVariables_WhenPausedWithNullContext_ReturnsEmptyMap() {
+    debugger.attach();
+    IntLiteral node = IntLiteral.of(42);
+
+    debugger.pause(node, null, 0, true);
+
+    Map<String, ?> vars = debugger.getVariables();
+    assertNotNull(vars);
+    assertTrue(vars.isEmpty());
+  }
+
+  @Test
   void getCurrentNode_WhenNotPaused_ReturnsNull() {
     debugger.attach();
 
@@ -411,10 +530,10 @@ class DefaultDebuggerTest {
   }
 
   @Test
-  void getCurrentLocation_WhenNotPaused_ReturnsNull() {
+  void getCurrentLine_WhenNotPaused_ReturnsNegative() {
     debugger.attach();
 
-    assertNull(debugger.getCurrentLocation());
+    assertEquals(-1, debugger.getCurrentLine());
   }
 
   // ========== Stack Trace Tests ==========
@@ -424,6 +543,18 @@ class DefaultDebuggerTest {
     debugger.attach();
 
     assertTrue(debugger.getStackTrace().isEmpty());
+  }
+
+  @Test
+  void getStackTrace_WhenPausedWithContext_ReturnsFrames() {
+    debugger.attach();
+    IntLiteral node = IntLiteral.of(42);
+    EvalContext context = new RootEvalContext();
+
+    debugger.pause(node, context, 0, true);
+
+    java.util.List<?> frames = debugger.getStackTrace();
+    assertNotNull(frames);
   }
 
   // ========== Listener Tests ==========
@@ -474,7 +605,7 @@ class DefaultDebuggerTest {
   void listener_OnBreakpointHit_ReceivesEvent() {
     TestDebugEventListener listener = new TestDebugEventListener();
     debugger.addListener(listener);
-    debugger.setBreakpoint(BreakpointLocation.at(10));
+    debugger.setBreakpoint(10);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -500,7 +631,7 @@ class DefaultDebuggerTest {
   void listener_ThrowsOnBreakpoint_DoesNotStopOthers() {
     TestDebugEventListener listener1 = new TestDebugEventListener() {
       @Override
-      public void onBreakpointHit(com.elminster.jcp.ast.Node node, BreakpointLocation location) {
+      public void onBreakpointHit(com.elminster.jcp.ast.Node node, Breakpoint breakpoint) {
         throw new RuntimeException("Test exception");
       }
     };
@@ -508,7 +639,7 @@ class DefaultDebuggerTest {
 
     debugger.addListener(listener1);
     debugger.addListener(listener2);
-    debugger.setBreakpoint(BreakpointLocation.at(10));
+    debugger.setBreakpoint(10);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -539,32 +670,6 @@ class DefaultDebuggerTest {
   }
 
   // ========== Additional Coverage Tests ==========
-
-  @Test
-  void getVariables_WhenPausedWithNullContext_ReturnsEmptyMap() {
-    debugger.attach();
-    IntLiteral node = IntLiteral.of(42);
-
-    // Pause with null context
-    debugger.pause(node, null, 0, true);
-
-    Map<String, ?> vars = debugger.getVariables();
-    assertNotNull(vars);
-    assertTrue(vars.isEmpty());
-  }
-
-  @Test
-  void getStackTrace_WhenPausedWithContext_ReturnsFrames() {
-    debugger.attach();
-    IntLiteral node = IntLiteral.of(42);
-    EvalContext context = new RootEvalContext();
-
-    debugger.pause(node, context, 0, true);
-
-    // Should not throw and return frames list
-    java.util.List<?> frames = debugger.getStackTrace();
-    assertNotNull(frames);
-  }
 
   @Test
   void shouldPause_InPausedState_ReturnsFalse() {
@@ -616,34 +721,10 @@ class DefaultDebuggerTest {
   }
 
   @Test
-  void shouldPause_InStepOverState_AtShallowerDepth_ReturnsTrue() {
-    debugger.attach();
-    IntLiteral node = IntLiteral.of(42);
-    debugger.pause(node, new RootEvalContext(), 2, true);
-    debugger.stepOver();
-
-    IntLiteral nextNode = IntLiteral.of(99);
-    // At shallower depth (1 < 2), should still pause
-    assertTrue(debugger.shouldPause(nextNode, 1));
-  }
-
-  @Test
-  void shouldPause_InStepOutState_AtDeeperDepth_ReturnsFalse() {
-    debugger.attach();
-    IntLiteral node = IntLiteral.of(42);
-    debugger.pause(node, new RootEvalContext(), 1, true);
-    debugger.stepOut();
-
-    IntLiteral nextNode = IntLiteral.of(99);
-    // At deeper depth (2 > 1), should not pause
-    assertFalse(debugger.shouldPause(nextNode, 2));
-  }
-
-  @Test
-  void findMatchingBreakpoint_WithLocationBreakpoint_ReturnsLocation() {
+  void findMatchingBreakpoint_WithLocationBreakpoint_ReturnsBreakpoint() {
     TestDebugEventListener listener = new TestDebugEventListener();
     debugger.addListener(listener);
-    debugger.setBreakpoint(BreakpointLocation.at(10, 5));
+    debugger.setBreakpoint(10, 5);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -665,7 +746,7 @@ class DefaultDebuggerTest {
     DebugState lastNewState;
 
     @Override
-    public void onBreakpointHit(com.elminster.jcp.ast.Node node, BreakpointLocation location) {
+    public void onBreakpointHit(com.elminster.jcp.ast.Node node, Breakpoint breakpoint) {
       breakpointHitCount++;
     }
 

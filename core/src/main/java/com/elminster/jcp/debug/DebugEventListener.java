@@ -16,10 +16,10 @@ public interface DebugEventListener {
   /**
    * Called when a breakpoint is hit.
    *
-   * @param node     the AST node where execution paused
-   * @param location the breakpoint location that was hit
+   * @param node       the AST node where execution paused
+   * @param breakpoint the breakpoint that was hit
    */
-  void onBreakpointHit(Node node, BreakpointLocation location);
+  void onBreakpointHit(Node node, Breakpoint breakpoint);
 
   /**
    * Called when a step operation completes.

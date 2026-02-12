@@ -7,30 +7,31 @@ import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.exception.JcpException;
 import com.elminster.jcp.exception.StackFrame;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Default implementation of the Debugger interface.
  *
- * <p>Thread-safe implementation using dual storage:
+ * <p>Thread-safe implementation using dual-direction mapping:
  * <ul>
- *   <li>Primary: Map of IDs to locations for safe removal</li>
- *   <li>Index: BreakpointIndex for O(1) line-based lookup</li>
+ *   <li>ID to Breakpoint: O(1) lookup by ID for removal</li>
+ *   <li>Line to Breakpoints: O(1) lookup by line for matching</li>
  * </ul>
  *
  * <p>Uses Strategy Pattern for pause mechanism to enable testability.
- * Uses double-checked locking for fast-path when no breakpoints.
  */
 public class DefaultDebugger implements Debugger {
 
-  // Breakpoint storage
-  private final Map<BreakpointId, BreakpointLocation> breakpoints = new ConcurrentHashMap<>();
-  private final BreakpointIndex breakpointIndex = new BreakpointIndex();
+  // Dual-direction breakpoint storage
+  private final Map<Long, Breakpoint> breakpointsById = new ConcurrentHashMap<>();
+  private final Map<Integer, Set<Breakpoint>> breakpointsByLine = new ConcurrentHashMap<>();
 
   // State management
   private final Object stateLock = new Object();
@@ -42,6 +43,9 @@ public class DefaultDebugger implements Debugger {
   private volatile Node currentNode;
   private volatile EvalContext currentContext;
   private volatile int targetDepth;
+
+  // Listeners
+  private final List<DebugEventListener> listeners = new CopyOnWriteArrayList<>();
 
   /**
    * Creates a debugger with blocking pause strategy (default for production).
@@ -59,36 +63,92 @@ public class DefaultDebugger implements Debugger {
     this.pauseStrategy = pauseStrategy;
   }
 
-  // Listeners
-  private final List<DebugEventListener> listeners = new CopyOnWriteArrayList<>();
+  // ========== Breakpoint Management ==========
 
   @Override
-  public BreakpointId setBreakpoint(BreakpointLocation location) {
-    BreakpointId id = BreakpointId.next();
-    breakpoints.put(id, location);
-    breakpointIndex.add(id, location);
-    hasBreakpoints = true;
-    return id;
+  public Breakpoint setBreakpoint(int line) {
+    Breakpoint bp = Breakpoint.at(line);
+    addBreakpoint(bp);
+    return bp;
   }
 
   @Override
-  public BreakpointId setBreakpoint(Node node) {
-    return setBreakpoint(BreakpointLocation.at(node));
+  public Breakpoint setBreakpoint(int line, int column) {
+    Breakpoint bp = Breakpoint.at(line, column);
+    addBreakpoint(bp);
+    return bp;
   }
 
   @Override
-  public void removeBreakpoint(BreakpointId id) {
-    BreakpointLocation location = breakpoints.remove(id);
-    if (location != null) {
-      breakpointIndex.remove(id, location);
+  public Breakpoint setBreakpoint(String filepath, int line, int column) {
+    Breakpoint bp = Breakpoint.at(filepath, line, column);
+    addBreakpoint(bp);
+    return bp;
+  }
+
+  @Override
+  public Breakpoint setBreakpoint(Node node) {
+    Breakpoint bp = Breakpoint.at(node);
+    addBreakpoint(bp);
+    return bp;
+  }
+
+  private void addBreakpoint(Breakpoint bp) {
+    breakpointsById.put(bp.getId(), bp);
+    if (bp.hasSourceLocation()) {
+      breakpointsByLine
+          .computeIfAbsent(bp.getLine(), k -> ConcurrentHashMap.newKeySet())
+          .add(bp);
     }
-    hasBreakpoints = !breakpoints.isEmpty();
+    hasBreakpoints = true;
   }
 
   @Override
-  public Map<BreakpointId, BreakpointLocation> getBreakpoints() {
-    return Collections.unmodifiableMap(new HashMap<>(breakpoints));
+  public void removeBreakpoint(long breakpointId) {
+    Breakpoint bp = breakpointsById.remove(breakpointId);
+    if (bp != null) {
+      removeFromLineIndex(bp);
+    }
+    hasBreakpoints = !breakpointsById.isEmpty();
   }
+
+  @Override
+  public void removeBreakpoint(Breakpoint breakpoint) {
+    removeBreakpoint(breakpoint.getId());
+  }
+
+  private void removeFromLineIndex(Breakpoint bp) {
+    if (bp.hasSourceLocation()) {
+      Set<Breakpoint> lineBreakpoints = breakpointsByLine.get(bp.getLine());
+      if (lineBreakpoints != null) {
+        lineBreakpoints.remove(bp);
+        if (lineBreakpoints.isEmpty()) {
+          breakpointsByLine.remove(bp.getLine());
+        }
+      }
+    }
+  }
+
+  @Override
+  public Map<Long, Breakpoint> getBreakpoints() {
+    return Collections.unmodifiableMap(new HashMap<>(breakpointsById));
+  }
+
+  @Override
+  public Breakpoint getBreakpoint(long breakpointId) {
+    return breakpointsById.get(breakpointId);
+  }
+
+  @Override
+  public List<Breakpoint> getBreakpointsAt(int line) {
+    Set<Breakpoint> lineBreakpoints = breakpointsByLine.get(line);
+    if (lineBreakpoints == null || lineBreakpoints.isEmpty()) {
+      return Collections.emptyList();
+    }
+    return new ArrayList<>(lineBreakpoints);
+  }
+
+  // ========== Execution Control ==========
 
   @Override
   public void stepOver() {
@@ -116,8 +176,8 @@ public class DefaultDebugger implements Debugger {
 
   @Override
   public void stop() {
-    breakpoints.clear();
-    breakpointIndex.clear();
+    breakpointsById.clear();
+    breakpointsByLine.clear();
     hasBreakpoints = false;
     setState(DebugState.DETACHED);
     currentNode = null;
@@ -132,6 +192,8 @@ public class DefaultDebugger implements Debugger {
     currentContext = null;
     pauseStrategy.signalResume();
   }
+
+  // ========== Inspection ==========
 
   @Override
   public Map<String, Data<?>> getVariables() {
@@ -155,6 +217,8 @@ public class DefaultDebugger implements Debugger {
     return currentContext.getCallStack().getFrames();
   }
 
+  // ========== State Queries ==========
+
   @Override
   public boolean isPaused() {
     return state == DebugState.PAUSED;
@@ -176,13 +240,18 @@ public class DefaultDebugger implements Debugger {
   }
 
   @Override
-  public BreakpointLocation getCurrentLocation() {
+  public int getCurrentLine() {
     Node node = currentNode;
-    if (node == null) {
-      return null;
+    if (node instanceof Locatable) {
+      Locatable locatable = (Locatable) node;
+      if (locatable.getLocation() != null) {
+        return locatable.getLocation().getStartLine();
+      }
     }
-    return BreakpointLocation.at(node);
+    return -1;
   }
+
+  // ========== Event Listeners ==========
 
   @Override
   public void addListener(DebugEventListener listener) {
@@ -224,6 +293,11 @@ public class DefaultDebugger implements Debugger {
       case STEP_INTO:
         return true;
       case STEP_OVER:
+        // Use <= instead of == to handle returning from nested function calls.
+        // When stepping over a function call, we want to pause at the next statement
+        // at the SAME depth (==), but also when we've returned from deeper calls
+        // and are now at a LOWER depth (<). Example: if we step over at depth 2
+        // and the function returns to depth 1, we should still pause there.
         if (callDepth <= targetDepth) {
           return true;
         }
@@ -250,17 +324,20 @@ public class DefaultDebugger implements Debugger {
       Locatable locatable = (Locatable) node;
       if (locatable.getLocation() != null) {
         int line = locatable.getLocation().getStartLine();
-        for (BreakpointIndex.BreakpointEntry entry : breakpointIndex.getAt(line)) {
-          if (entry.getLocation().matches(node)) {
-            return true;
+        Set<Breakpoint> lineBreakpoints = breakpointsByLine.get(line);
+        if (lineBreakpoints != null) {
+          for (Breakpoint bp : lineBreakpoints) {
+            if (bp.matches(node)) {
+              return true;
+            }
           }
         }
       }
     }
 
     // Check node-based breakpoints (non-indexed)
-    for (BreakpointLocation location : breakpoints.values()) {
-      if (!location.hasSourceLocation() && location.matches(node)) {
+    for (Breakpoint bp : breakpointsById.values()) {
+      if (!bp.hasSourceLocation() && bp.matches(node)) {
         return true;
       }
     }
@@ -272,9 +349,9 @@ public class DefaultDebugger implements Debugger {
    * Pauses execution at the given node.
    * Blocks until resumed via stepping commands or detach.
    *
-   * @param node       the current AST node
-   * @param context    the current evaluation context
-   * @param callDepth  current call depth
+   * @param node        the current AST node
+   * @param context     the current evaluation context
+   * @param callDepth   current call depth
    * @param isStepPause true if pausing due to step (not breakpoint)
    */
   public void pause(Node node, EvalContext context, int callDepth, boolean isStepPause) {
@@ -287,8 +364,8 @@ public class DefaultDebugger implements Debugger {
     if (isStepPause) {
       notifyStepComplete(node);
     } else {
-      BreakpointLocation hitLocation = findMatchingBreakpoint(node);
-      notifyBreakpointHit(node, hitLocation);
+      Breakpoint hitBreakpoint = findMatchingBreakpoint(node);
+      notifyBreakpointHit(node, hitBreakpoint);
     }
 
     // Wait for resume using the strategy
@@ -327,30 +404,33 @@ public class DefaultDebugger implements Debugger {
     }
   }
 
-  private BreakpointLocation findMatchingBreakpoint(Node node) {
+  private Breakpoint findMatchingBreakpoint(Node node) {
     if (node instanceof Locatable) {
       Locatable locatable = (Locatable) node;
       if (locatable.getLocation() != null) {
         int line = locatable.getLocation().getStartLine();
-        for (BreakpointIndex.BreakpointEntry entry : breakpointIndex.getAt(line)) {
-          if (entry.getLocation().matches(node)) {
-            return entry.getLocation();
+        Set<Breakpoint> lineBreakpoints = breakpointsByLine.get(line);
+        if (lineBreakpoints != null) {
+          for (Breakpoint bp : lineBreakpoints) {
+            if (bp.matches(node)) {
+              return bp;
+            }
           }
         }
       }
     }
-    for (BreakpointLocation location : breakpoints.values()) {
-      if (location.matches(node)) {
-        return location;
+    for (Breakpoint bp : breakpointsById.values()) {
+      if (bp.matches(node)) {
+        return bp;
       }
     }
     return null;
   }
 
-  private void notifyBreakpointHit(Node node, BreakpointLocation location) {
+  private void notifyBreakpointHit(Node node, Breakpoint breakpoint) {
     for (DebugEventListener listener : listeners) {
       try {
-        listener.onBreakpointHit(node, location);
+        listener.onBreakpointHit(node, breakpoint);
       } catch (Exception e) {
         // Log but don't propagate listener errors
       }
