@@ -7,7 +7,6 @@ import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.exception.JcpException;
 import com.elminster.jcp.exception.StackFrame;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -24,14 +23,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *   <li>Index: BreakpointIndex for O(1) line-based lookup</li>
  * </ul>
  *
- * <p>Uses double-checked locking for fast-path when no breakpoints.
+ * <p>Uses Strategy Pattern for pause mechanism to enable testability.
+ * Uses double-checked locking for fast-path when no breakpoints.
  */
 public class DefaultDebugger implements Debugger {
-
-  /**
-   * Default pause timeout in milliseconds to prevent deadlock.
-   */
-  private static final long PAUSE_TIMEOUT_MS = 30_000;
 
   // Breakpoint storage
   private final Map<BreakpointId, BreakpointLocation> breakpoints = new ConcurrentHashMap<>();
@@ -42,11 +37,27 @@ public class DefaultDebugger implements Debugger {
   private volatile DebugState state = DebugState.DETACHED;
   private volatile boolean hasBreakpoints = false;
 
-  // Pause management
-  private final Object pauseLock = new Object();
+  // Pause management - Strategy Pattern for testability
+  private final PauseStrategy pauseStrategy;
   private volatile Node currentNode;
   private volatile EvalContext currentContext;
   private volatile int targetDepth;
+
+  /**
+   * Creates a debugger with blocking pause strategy (default for production).
+   */
+  public DefaultDebugger() {
+    this(new BlockingPauseStrategy());
+  }
+
+  /**
+   * Creates a debugger with custom pause strategy (for testing).
+   *
+   * @param pauseStrategy the strategy to use for pausing
+   */
+  public DefaultDebugger(PauseStrategy pauseStrategy) {
+    this.pauseStrategy = pauseStrategy;
+  }
 
   // Listeners
   private final List<DebugEventListener> listeners = new CopyOnWriteArrayList<>();
@@ -105,25 +116,21 @@ public class DefaultDebugger implements Debugger {
 
   @Override
   public void stop() {
-    synchronized (pauseLock) {
-      breakpoints.clear();
-      breakpointIndex.clear();
-      hasBreakpoints = false;
-      setState(DebugState.DETACHED);
-      currentNode = null;
-      currentContext = null;
-      pauseLock.notifyAll();
-    }
+    breakpoints.clear();
+    breakpointIndex.clear();
+    hasBreakpoints = false;
+    setState(DebugState.DETACHED);
+    currentNode = null;
+    currentContext = null;
+    pauseStrategy.signalResume();
   }
 
   @Override
   public void detach() {
-    synchronized (pauseLock) {
-      setState(DebugState.DETACHED);
-      currentNode = null;
-      currentContext = null;
-      pauseLock.notifyAll();
-    }
+    setState(DebugState.DETACHED);
+    currentNode = null;
+    currentContext = null;
+    pauseStrategy.signalResume();
   }
 
   @Override
@@ -132,14 +139,12 @@ public class DefaultDebugger implements Debugger {
     if (currentContext == null) {
       return Collections.emptyMap();
     }
-    synchronized (pauseLock) {
-      Map<String, Data> vars = currentContext.getVariables();
-      Map<String, Data<?>> result = new HashMap<>();
-      for (Map.Entry<String, Data> entry : vars.entrySet()) {
-        result.put(entry.getKey(), entry.getValue());
-      }
-      return Collections.unmodifiableMap(result);
+    Map<String, Data> vars = currentContext.getVariables();
+    Map<String, Data<?>> result = new HashMap<>();
+    for (Map.Entry<String, Data> entry : vars.entrySet()) {
+      result.put(entry.getKey(), entry.getValue());
     }
+    return Collections.unmodifiableMap(result);
   }
 
   @Override
@@ -273,34 +278,25 @@ public class DefaultDebugger implements Debugger {
    * @param isStepPause true if pausing due to step (not breakpoint)
    */
   public void pause(Node node, EvalContext context, int callDepth, boolean isStepPause) {
-    synchronized (pauseLock) {
-      currentNode = node;
-      currentContext = context;
-      targetDepth = callDepth;
-      setState(DebugState.PAUSED);
+    currentNode = node;
+    currentContext = context;
+    targetDepth = callDepth;
+    setState(DebugState.PAUSED);
 
-      // Notify listeners
-      if (isStepPause) {
-        notifyStepComplete(node);
-      } else {
-        BreakpointLocation hitLocation = findMatchingBreakpoint(node);
-        notifyBreakpointHit(node, hitLocation);
-      }
+    // Notify listeners
+    if (isStepPause) {
+      notifyStepComplete(node);
+    } else {
+      BreakpointLocation hitLocation = findMatchingBreakpoint(node);
+      notifyBreakpointHit(node, hitLocation);
+    }
 
-      // Wait for resume
-      long deadline = System.currentTimeMillis() + PAUSE_TIMEOUT_MS;
-      while (state == DebugState.PAUSED) {
-        long remaining = deadline - System.currentTimeMillis();
-        if (remaining <= 0) {
-          throw new JcpException("Debugger pause timeout - possible deadlock");
-        }
-        try {
-          pauseLock.wait(remaining);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new JcpException("Debugging interrupted", null, e);
-        }
-      }
+    // Wait for resume using the strategy
+    try {
+      pauseStrategy.waitForResume(this);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new JcpException("Debugging interrupted", null, e);
     }
   }
 
@@ -321,10 +317,8 @@ public class DefaultDebugger implements Debugger {
   }
 
   private void resume(DebugState newState) {
-    synchronized (pauseLock) {
-      setState(newState);
-      pauseLock.notifyAll();
-    }
+    setState(newState);
+    pauseStrategy.signalResume();
   }
 
   private void requirePaused() {

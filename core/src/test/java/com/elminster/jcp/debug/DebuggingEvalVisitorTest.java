@@ -9,16 +9,21 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for DebuggingEvalVisitor.
+ *
+ * <p>Note: Most visit() tests are omitted because they require registered
+ * evaluators. The debugger integration is tested via DefaultDebuggerTest.
  */
 class DebuggingEvalVisitorTest {
 
+  private ImmediatePauseStrategy pauseStrategy;
   private DefaultDebugger debugger;
   private EvalContext context;
   private DebuggingEvalVisitor visitor;
 
   @BeforeEach
   void setUp() {
-    debugger = new DefaultDebugger();
+    pauseStrategy = new ImmediatePauseStrategy();
+    debugger = new DefaultDebugger(pauseStrategy);
     context = new RootEvalContext();
     visitor = new DebuggingEvalVisitor(context, debugger);
   }
@@ -40,9 +45,17 @@ class DebuggingEvalVisitorTest {
 
   @Test
   void getDebugger_ReturnsProvidedDebugger() {
-    DefaultDebugger newDebugger = new DefaultDebugger();
+    DefaultDebugger newDebugger = new DefaultDebugger(pauseStrategy);
     DebuggingEvalVisitor newVisitor = new DebuggingEvalVisitor(context, newDebugger);
 
     assertSame(newDebugger, newVisitor.getDebugger());
+  }
+
+  @Test
+  void getContext_ReturnsProvidedContext() {
+    EvalContext newContext = new RootEvalContext();
+    DebuggingEvalVisitor newVisitor = new DebuggingEvalVisitor(newContext, debugger);
+
+    assertSame(newContext, newVisitor.getContext());
   }
 }
