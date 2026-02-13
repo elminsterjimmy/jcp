@@ -382,6 +382,152 @@ mvn test -Dtest=BytecodeGeneratorTest#testWhileLoop
 
 ## Debugging
 
+### Programmatic Debugger (Interpreter Mode)
+
+JCP provides a programmatic debugger API for stepping through code, setting breakpoints, and inspecting variables during interpretation.
+
+#### Basic Usage
+
+```java
+import com.elminster.jcp.debug.*;
+import com.elminster.jcp.eval.context.RootEvalContext;
+
+// Create debugger and visitor
+DefaultDebugger debugger = new DefaultDebugger();
+EvalContext context = new RootEvalContext();
+DebuggingEvalVisitor visitor = new DebuggingEvalVisitor(context, debugger);
+
+// Set breakpoints (filepath is required)
+Breakpoint bp1 = debugger.setBreakpoint("main.jcp", 10);        // Line 10
+Breakpoint bp2 = debugger.setBreakpoint("main.jcp", 15, 5);     // Line 15, column 5
+Breakpoint bp3 = debugger.setBreakpoint(node);                  // At specific AST node
+
+// Add event listener for debugging events
+debugger.addListener(new DebugEventListener() {
+    public void onBreakpointHit(Node node, Breakpoint breakpoint) {
+        System.out.println("Paused at " + breakpoint);
+    }
+    public void onStepComplete(Node node) {
+        System.out.println("Step completed at line " + debugger.getCurrentLine());
+    }
+    public void onStateChanged(DebugState oldState, DebugState newState) {
+        System.out.println("State: " + oldState + " -> " + newState);
+    }
+    public void onError(Exception error) {
+        System.err.println("Debug error: " + error.getMessage());
+    }
+});
+
+// Start debugging in separate thread
+new Thread(() -> visitor.debug(program)).start();
+
+// Wait for breakpoint (with timeout handling - see below)
+waitForPause(debugger, 30_000);
+
+// Inspect variables at breakpoint
+Map<String, Data<?>> vars = debugger.getVariables();
+vars.forEach((name, value) -> System.out.println(name + " = " + value));
+
+// Step through code
+debugger.stepOver();    // Execute current line, pause at next
+debugger.stepInto();    // Enter function calls
+debugger.stepOut();     // Run until function returns
+
+// Continue to next breakpoint
+debugger.continueExecution();
+
+// Remove breakpoint
+debugger.removeBreakpoint(bp1);
+
+// Stop debugging
+debugger.stop();
+```
+
+#### Timeout Handling
+
+The debugger waits indefinitely when paused at a breakpoint. You must implement timeout handling in your code:
+
+```java
+/**
+ * Waits for debugger to pause with timeout.
+ *
+ * @param debugger the debugger instance
+ * @param timeoutMs maximum wait time in milliseconds
+ * @throws RuntimeException if timeout occurs
+ */
+public static void waitForPause(DefaultDebugger debugger, long timeoutMs)
+        throws InterruptedException {
+    long deadline = System.currentTimeMillis() + timeoutMs;
+
+    while (!debugger.isPaused()) {
+        if (System.currentTimeMillis() > deadline) {
+            debugger.stop();  // Force stop on timeout
+            throw new RuntimeException("Debugger timeout - breakpoint not hit within "
+                + timeoutMs + "ms");
+        }
+        Thread.sleep(10);
+    }
+}
+```
+
+Alternative using `CompletableFuture`:
+
+```java
+CompletableFuture<Void> debugFuture = CompletableFuture.runAsync(
+    () -> visitor.debug(program)
+);
+
+try {
+    debugFuture.get(30, TimeUnit.SECONDS);
+} catch (TimeoutException e) {
+    debugger.stop();
+    throw new RuntimeException("Debug session timed out");
+}
+```
+
+Alternative using event listener with `CountDownLatch`:
+
+```java
+CountDownLatch breakpointLatch = new CountDownLatch(1);
+
+debugger.addListener(new DebugEventListener() {
+    public void onBreakpointHit(Node node, Breakpoint bp) {
+        breakpointLatch.countDown();
+    }
+    // ... other methods
+});
+
+new Thread(() -> visitor.debug(program)).start();
+
+if (!breakpointLatch.await(30, TimeUnit.SECONDS)) {
+    debugger.stop();
+    throw new RuntimeException("Timeout waiting for breakpoint");
+}
+```
+
+#### Debugger API Summary
+
+| Method | Description |
+|--------|-------------|
+| `setBreakpoint(String file, int line)` | Set breakpoint at file and line |
+| `setBreakpoint(String file, int line, int column)` | Set breakpoint at file, line, and column |
+| `setBreakpoint(Node node)` | Set breakpoint at AST node |
+| `removeBreakpoint(Breakpoint bp)` | Remove a breakpoint |
+| `getBreakpoints()` | Get all breakpoints |
+| `getBreakpointsAt(int line)` | Get breakpoints at a line |
+| `stepOver()` | Execute current line, pause at next |
+| `stepInto()` | Enter function calls |
+| `stepOut()` | Run until function returns |
+| `continueExecution()` | Continue to next breakpoint |
+| `stop()` | Stop debugging entirely |
+| `detach()` | Detach but keep breakpoints |
+| `getVariables()` | Get variables in current scope |
+| `getStackTrace()` | Get call stack |
+| `isPaused()` | Check if paused |
+| `isAttached()` | Check if attached |
+| `getCurrentLine()` | Get current line number |
+| `getCurrentNode()` | Get current AST node |
+
 ### Bytecode Inspection
 
 ```java
