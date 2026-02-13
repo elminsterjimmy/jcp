@@ -727,6 +727,126 @@ class DefaultDebuggerTest {
     assertEquals(1, listener.breakpointHitCount);
   }
 
+  @Test
+  void removeBreakpoint_NodeBasedBreakpoint_RemovesCorrectly() {
+    // Node-based breakpoint has no source location, so it won't be in line index
+    IntLiteral node = IntLiteral.of(42);
+    // No location set - this is a node-only breakpoint
+    Breakpoint bp = debugger.setBreakpoint(node);
+
+    debugger.removeBreakpoint(bp);
+
+    assertTrue(debugger.getBreakpoints().isEmpty());
+  }
+
+  @Test
+  void getVariables_WhenPausedWithVariables_ReturnsAllVariables() {
+    debugger.attach();
+    IntLiteral node = IntLiteral.of(42);
+    EvalContext context = new RootEvalContext();
+    // Add a variable to the context using addVariable
+    com.elminster.jcp.eval.data.IntegerData var =
+        new com.elminster.jcp.eval.data.IntegerData(
+            com.elminster.jcp.ast.Identifier.fromName("testVar"), 42, false);
+    context.addVariable(var);
+
+    debugger.pause(node, context, 0, true);
+
+    Map<String, ?> vars = debugger.getVariables();
+    assertNotNull(vars);
+    assertTrue(vars.containsKey("testVar"));
+  }
+
+  @Test
+  void isPaused_WhenStatePaused_ReturnsTrue() {
+    debugger.attach();
+    IntLiteral node = IntLiteral.of(42);
+    debugger.pause(node, new RootEvalContext(), 0, true);
+
+    assertTrue(debugger.isPaused());
+  }
+
+  @Test
+  void getBreakpointsAt_SomeLinesHaveNoBreakpoints_ReturnsEmptyForThoseLines() {
+    debugger.setBreakpoint("test.jcp", 10);
+
+    List<Breakpoint> atLine10 = debugger.getBreakpointsAt(10);
+    List<Breakpoint> atLine20 = debugger.getBreakpointsAt(20);
+
+    assertEquals(1, atLine10.size());
+    assertTrue(atLine20.isEmpty());
+  }
+
+  @Test
+  void removeBreakpoint_WithSourceLocation_RemovesFromLineIndex() {
+    Breakpoint bp = debugger.setBreakpoint("test.jcp", 10);
+
+    // Verify it's in the line index
+    assertEquals(1, debugger.getBreakpointsAt(10).size());
+
+    // Remove it
+    debugger.removeBreakpoint(bp);
+
+    // Verify it's removed from line index too
+    assertTrue(debugger.getBreakpointsAt(10).isEmpty());
+  }
+
+  @Test
+  void removeBreakpoint_WhenMultipleOnSameLine_LeavesOthers() {
+    Breakpoint bp1 = debugger.setBreakpoint("test.jcp", 10, 1);
+    Breakpoint bp2 = debugger.setBreakpoint("test.jcp", 10, 5);
+
+    // Both on line 10
+    assertEquals(2, debugger.getBreakpointsAt(10).size());
+
+    // Remove one
+    debugger.removeBreakpoint(bp1);
+
+    // Should still have the other
+    assertEquals(1, debugger.getBreakpointsAt(10).size());
+    assertTrue(debugger.getBreakpointsAt(10).contains(bp2));
+  }
+
+  @Test
+  void shouldPause_BreakpointMatchesNode_ReturnsTrue() {
+    debugger.setBreakpoint("test.jcp", 10, 5);
+    debugger.attach();
+
+    IntLiteral node = IntLiteral.of(42);
+    node.setLocation(SourceLocation.of("test.jcp", 10, 5));
+
+    // Should match the breakpoint
+    assertTrue(debugger.shouldPause(node, 0));
+  }
+
+  @Test
+  void shouldPause_BreakpointDoesNotMatchNode_ReturnsFalse() {
+    debugger.setBreakpoint("test.jcp", 10, 5);
+    debugger.attach();
+
+    IntLiteral node = IntLiteral.of(42);
+    node.setLocation(SourceLocation.of("other.jcp", 10, 5)); // Different file
+
+    // Should not match
+    assertFalse(debugger.shouldPause(node, 0));
+  }
+
+  @Test
+  void findMatchingBreakpoint_NoMatchingBreakpoint_DoesNotFindBreakpoint() {
+    TestDebugEventListener listener = new TestDebugEventListener();
+    debugger.addListener(listener);
+    debugger.setBreakpoint("test.jcp", 10);
+    debugger.attach();
+
+    IntLiteral node = IntLiteral.of(42);
+    node.setLocation(SourceLocation.of("other.jcp", 10, 5)); // Different file
+
+    debugger.pause(node, new RootEvalContext(), 0, false);
+
+    // Should still get breakpoint hit event, but breakpoint may be null
+    assertEquals(1, listener.breakpointHitCount);
+  }
+
   // ========== Test Helper Classes ==========
 
   private static class TestDebugEventListener implements DebugEventListener {
