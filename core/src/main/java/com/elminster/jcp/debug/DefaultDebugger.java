@@ -66,15 +66,8 @@ public class DefaultDebugger implements Debugger {
   // ========== Breakpoint Management ==========
 
   @Override
-  public Breakpoint setBreakpoint(int line) {
-    Breakpoint bp = Breakpoint.at(line);
-    addBreakpoint(bp);
-    return bp;
-  }
-
-  @Override
-  public Breakpoint setBreakpoint(int line, int column) {
-    Breakpoint bp = Breakpoint.at(line, column);
+  public Breakpoint setBreakpoint(String filepath, int line) {
+    Breakpoint bp = Breakpoint.at(filepath, line);
     addBreakpoint(bp);
     return bp;
   }

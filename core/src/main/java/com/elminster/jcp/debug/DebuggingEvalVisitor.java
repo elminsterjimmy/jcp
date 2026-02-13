@@ -23,8 +23,8 @@ import com.elminster.jcp.exception.JcpException;
  * EvalContext context = new RootEvalContext();
  * DebuggingEvalVisitor visitor = new DebuggingEvalVisitor(context, debugger);
  *
- * // Set breakpoint at line 10
- * Breakpoint bp = debugger.setBreakpoint(10);
+ * // Set breakpoint at line 10 (filepath is required)
+ * Breakpoint bp = debugger.setBreakpoint("main.jcp", 10);
  *
  * // Start debugging in another thread (debug() handles attach/detach)
  * new Thread(() -> visitor.debug(program)).start();

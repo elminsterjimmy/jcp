@@ -397,10 +397,10 @@ DefaultDebugger debugger = new DefaultDebugger();
 EvalContext context = new RootEvalContext();
 DebuggingEvalVisitor visitor = new DebuggingEvalVisitor(context, debugger);
 
-// Set breakpoints
-Breakpoint bp1 = debugger.setBreakpoint(10);           // Line 10
-Breakpoint bp2 = debugger.setBreakpoint(15, 5);        // Line 15, column 5
-Breakpoint bp3 = debugger.setBreakpoint("main.jcp", 20, 1);  // File-specific
+// Set breakpoints (filepath is required)
+Breakpoint bp1 = debugger.setBreakpoint("main.jcp", 10);        // Line 10
+Breakpoint bp2 = debugger.setBreakpoint("main.jcp", 15, 5);     // Line 15, column 5
+Breakpoint bp3 = debugger.setBreakpoint(node);                  // At specific AST node
 
 // Add event listener for debugging events
 debugger.addListener(new DebugEventListener() {
@@ -509,9 +509,8 @@ if (!breakpointLatch.await(30, TimeUnit.SECONDS)) {
 
 | Method | Description |
 |--------|-------------|
-| `setBreakpoint(int line)` | Set breakpoint at line |
-| `setBreakpoint(int line, int column)` | Set breakpoint at line and column |
-| `setBreakpoint(String file, int line, int column)` | Set file-specific breakpoint |
+| `setBreakpoint(String file, int line)` | Set breakpoint at file and line |
+| `setBreakpoint(String file, int line, int column)` | Set breakpoint at file, line, and column |
 | `setBreakpoint(Node node)` | Set breakpoint at AST node |
 | `removeBreakpoint(Breakpoint bp)` | Remove a breakpoint |
 | `getBreakpoints()` | Get all breakpoints |

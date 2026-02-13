@@ -26,8 +26,8 @@ import java.util.Map;
  * EvalContext context = new RootEvalContext();
  * DebuggingEvalVisitor visitor = new DebuggingEvalVisitor(context, debugger);
  *
- * // Set breakpoint at line 10
- * Breakpoint bp = debugger.setBreakpoint(10);
+ * // Set breakpoint at line 10 (filepath is required)
+ * Breakpoint bp = debugger.setBreakpoint("main.jcp", 10);
  *
  * // Start debugging in separate thread
  * new Thread(() -> visitor.debug(program)).start();
@@ -101,34 +101,30 @@ public interface Debugger {
   // ========== Breakpoint Management ==========
 
   /**
-   * Sets a breakpoint at the given line.
+   * Sets a breakpoint at the given file and line.
+   * Column defaults to 1 (start of line).
    *
-   * @param line the line number (1-based)
+   * @param filepath source file path (required)
+   * @param line     the line number (1-based)
    * @return the created breakpoint
+   * @throws IllegalArgumentException if filepath is null or empty
    */
-  Breakpoint setBreakpoint(int line);
-
-  /**
-   * Sets a breakpoint at the given line and column.
-   *
-   * @param line   the line number (1-based)
-   * @param column the column number (1-based)
-   * @return the created breakpoint
-   */
-  Breakpoint setBreakpoint(int line, int column);
+  Breakpoint setBreakpoint(String filepath, int line);
 
   /**
    * Sets a breakpoint at the given file, line, and column.
    *
-   * @param filepath source file path
+   * @param filepath source file path (required)
    * @param line     the line number (1-based)
    * @param column   the column number (1-based)
    * @return the created breakpoint
+   * @throws IllegalArgumentException if filepath is null or empty
    */
   Breakpoint setBreakpoint(String filepath, int line, int column);
 
   /**
    * Sets a breakpoint at the given AST node.
+   * The node must have source location information with a filepath.
    *
    * @param node the AST node to break on
    * @return the created breakpoint

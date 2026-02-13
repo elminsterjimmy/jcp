@@ -15,9 +15,9 @@ class BreakpointTest {
 
   @Test
   void at_ReturnsUniqueIds() {
-    Breakpoint bp1 = Breakpoint.at(10);
-    Breakpoint bp2 = Breakpoint.at(20);
-    Breakpoint bp3 = Breakpoint.at(30);
+    Breakpoint bp1 = Breakpoint.at("test.jcp", 10);
+    Breakpoint bp2 = Breakpoint.at("test.jcp", 20);
+    Breakpoint bp3 = Breakpoint.at("test.jcp", 30);
 
     assertNotEquals(bp1.getId(), bp2.getId());
     assertNotEquals(bp2.getId(), bp3.getId());
@@ -26,8 +26,8 @@ class BreakpointTest {
 
   @Test
   void getId_ReturnsIncrementingValues() {
-    Breakpoint bp1 = Breakpoint.at(10);
-    Breakpoint bp2 = Breakpoint.at(20);
+    Breakpoint bp1 = Breakpoint.at("test.jcp", 10);
+    Breakpoint bp2 = Breakpoint.at("test.jcp", 20);
 
     assertTrue(bp2.getId() > bp1.getId());
   }
@@ -35,22 +35,12 @@ class BreakpointTest {
   // ========== Location Factory Tests ==========
 
   @Test
-  void at_LineOnly_CreatesBreakpoint() {
-    Breakpoint bp = Breakpoint.at(10);
+  void at_FileAndLine_CreatesBreakpoint() {
+    Breakpoint bp = Breakpoint.at("test.jcp", 10);
 
     assertEquals(10, bp.getLine());
     assertEquals(1, bp.getColumn());
-    assertNull(bp.getFilepath());
-    assertTrue(bp.hasSourceLocation());
-  }
-
-  @Test
-  void at_LineAndColumn_CreatesBreakpoint() {
-    Breakpoint bp = Breakpoint.at(10, 5);
-
-    assertEquals(10, bp.getLine());
-    assertEquals(5, bp.getColumn());
-    assertNull(bp.getFilepath());
+    assertEquals("test.jcp", bp.getFilepath());
     assertTrue(bp.hasSourceLocation());
   }
 
@@ -62,6 +52,18 @@ class BreakpointTest {
     assertEquals(5, bp.getColumn());
     assertEquals("test.jcp", bp.getFilepath());
     assertTrue(bp.hasSourceLocation());
+  }
+
+  @Test
+  void at_NullFilepath_ThrowsException() {
+    assertThrows(IllegalArgumentException.class, () -> Breakpoint.at(null, 10));
+    assertThrows(IllegalArgumentException.class, () -> Breakpoint.at(null, 10, 5));
+  }
+
+  @Test
+  void at_EmptyFilepath_ThrowsException() {
+    assertThrows(IllegalArgumentException.class, () -> Breakpoint.at("", 10));
+    assertThrows(IllegalArgumentException.class, () -> Breakpoint.at("", 10, 5));
   }
 
   @Test
@@ -93,7 +95,7 @@ class BreakpointTest {
 
   @Test
   void matches_SameLine_ReturnsTrue() {
-    Breakpoint bp = Breakpoint.at(10);
+    Breakpoint bp = Breakpoint.at("test.jcp", 10);
 
     IntLiteral node = IntLiteral.of(42);
     node.setLocation(SourceLocation.of("test.jcp", 10, 5));
@@ -103,7 +105,7 @@ class BreakpointTest {
 
   @Test
   void matches_DifferentLine_ReturnsFalse() {
-    Breakpoint bp = Breakpoint.at(10);
+    Breakpoint bp = Breakpoint.at("test.jcp", 10);
 
     IntLiteral node = IntLiteral.of(42);
     node.setLocation(SourceLocation.of("test.jcp", 11, 5));
@@ -113,7 +115,7 @@ class BreakpointTest {
 
   @Test
   void matches_ExactColumnMatch_ReturnsTrue() {
-    Breakpoint bp = Breakpoint.at(10, 5);
+    Breakpoint bp = Breakpoint.at("test.jcp", 10, 5);
 
     IntLiteral node = IntLiteral.of(42);
     node.setLocation(SourceLocation.of("test.jcp", 10, 5));
@@ -123,7 +125,7 @@ class BreakpointTest {
 
   @Test
   void matches_DifferentColumn_ReturnsFalse() {
-    Breakpoint bp = Breakpoint.at(10, 5);
+    Breakpoint bp = Breakpoint.at("test.jcp", 10, 5);
 
     IntLiteral node = IntLiteral.of(42);
     node.setLocation(SourceLocation.of("test.jcp", 10, 6));
@@ -133,7 +135,7 @@ class BreakpointTest {
 
   @Test
   void matches_Column1MatchesAnyColumn_ReturnsTrue() {
-    Breakpoint bp = Breakpoint.at(10, 1);
+    Breakpoint bp = Breakpoint.at("test.jcp", 10, 1);
 
     IntLiteral node = IntLiteral.of(42);
     node.setLocation(SourceLocation.of("test.jcp", 10, 15));
@@ -161,7 +163,7 @@ class BreakpointTest {
 
   @Test
   void matches_NodeWithoutLocation_ReturnsFalse() {
-    Breakpoint bp = Breakpoint.at(10);
+    Breakpoint bp = Breakpoint.at("test.jcp", 10);
 
     IntLiteral node = IntLiteral.of(42);
     // No location set
@@ -173,15 +175,15 @@ class BreakpointTest {
 
   @Test
   void equals_SameBreakpoint_ReturnsTrue() {
-    Breakpoint bp = Breakpoint.at(10);
+    Breakpoint bp = Breakpoint.at("test.jcp", 10);
 
     assertEquals(bp, bp);
   }
 
   @Test
   void equals_DifferentBreakpoints_ReturnsFalse() {
-    Breakpoint bp1 = Breakpoint.at(10);
-    Breakpoint bp2 = Breakpoint.at(10);
+    Breakpoint bp1 = Breakpoint.at("test.jcp", 10);
+    Breakpoint bp2 = Breakpoint.at("test.jcp", 10);
 
     // Different IDs, so not equal
     assertNotEquals(bp1, bp2);
@@ -189,7 +191,7 @@ class BreakpointTest {
 
   @Test
   void equals_NullAndOtherType() {
-    Breakpoint bp = Breakpoint.at(10);
+    Breakpoint bp = Breakpoint.at("test.jcp", 10);
 
     assertNotEquals(null, bp);
     assertNotEquals("not a breakpoint", bp);
@@ -197,7 +199,7 @@ class BreakpointTest {
 
   @Test
   void hashCode_Consistent() {
-    Breakpoint bp = Breakpoint.at(10);
+    Breakpoint bp = Breakpoint.at("test.jcp", 10);
 
     assertEquals(bp.hashCode(), bp.hashCode());
   }
@@ -211,16 +213,6 @@ class BreakpointTest {
     String str = bp.toString();
     assertTrue(str.contains("Breakpoint#"));
     assertTrue(str.contains("test.jcp"));
-    assertTrue(str.contains("10"));
-    assertTrue(str.contains("5"));
-  }
-
-  @Test
-  void toString_LineOnly_ReturnsFormattedString() {
-    Breakpoint bp = Breakpoint.at(10, 5);
-
-    String str = bp.toString();
-    assertTrue(str.contains("Breakpoint#"));
     assertTrue(str.contains("10"));
     assertTrue(str.contains("5"));
   }

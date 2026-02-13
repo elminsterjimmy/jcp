@@ -43,37 +43,38 @@ public final class Breakpoint {
   }
 
   /**
-   * Creates a breakpoint at a specific line.
+   * Creates a breakpoint at a specific file and line.
    * Column defaults to 1 (start of line).
    *
-   * @param line line number (1-based)
+   * @param filepath source file path (required)
+   * @param line     line number (1-based)
    * @return new Breakpoint
+   * @throws IllegalArgumentException if filepath is null or empty
    */
-  public static Breakpoint at(int line) {
-    return new Breakpoint(counter.incrementAndGet(), null, line, 1, null);
-  }
-
-  /**
-   * Creates a breakpoint at a specific line and column.
-   *
-   * @param line   line number (1-based)
-   * @param column column number (1-based)
-   * @return new Breakpoint
-   */
-  public static Breakpoint at(int line, int column) {
-    return new Breakpoint(counter.incrementAndGet(), null, line, column, null);
+  public static Breakpoint at(String filepath, int line) {
+    requireFilepath(filepath);
+    return new Breakpoint(counter.incrementAndGet(), filepath, line, 1, null);
   }
 
   /**
    * Creates a breakpoint at a specific file, line, and column.
    *
-   * @param filepath source file path
+   * @param filepath source file path (required)
    * @param line     line number (1-based)
    * @param column   column number (1-based)
    * @return new Breakpoint
+   * @throws IllegalArgumentException if filepath is null or empty
    */
   public static Breakpoint at(String filepath, int line, int column) {
+    requireFilepath(filepath);
     return new Breakpoint(counter.incrementAndGet(), filepath, line, column, null);
+  }
+
+  private static void requireFilepath(String filepath) {
+    if (filepath == null || filepath.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Filepath is required for breakpoints. The debugger needs to know which file to match.");
+    }
   }
 
   /**

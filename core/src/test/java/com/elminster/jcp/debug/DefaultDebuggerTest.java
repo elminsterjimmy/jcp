@@ -38,20 +38,12 @@ class DefaultDebuggerTest {
   // ========== Breakpoint Management Tests ==========
 
   @Test
-  void setBreakpoint_ByLine_ReturnsBreakpoint() {
-    Breakpoint bp = debugger.setBreakpoint(10);
+  void setBreakpoint_ByFileLine_ReturnsBreakpoint() {
+    Breakpoint bp = debugger.setBreakpoint("test.jcp", 10);
 
     assertNotNull(bp);
+    assertEquals("test.jcp", bp.getFilepath());
     assertEquals(10, bp.getLine());
-  }
-
-  @Test
-  void setBreakpoint_ByLineColumn_ReturnsBreakpoint() {
-    Breakpoint bp = debugger.setBreakpoint(10, 5);
-
-    assertNotNull(bp);
-    assertEquals(10, bp.getLine());
-    assertEquals(5, bp.getColumn());
   }
 
   @Test
@@ -66,8 +58,8 @@ class DefaultDebuggerTest {
 
   @Test
   void setBreakpoint_ReturnsUniqueIds() {
-    Breakpoint bp1 = debugger.setBreakpoint(10);
-    Breakpoint bp2 = debugger.setBreakpoint(20);
+    Breakpoint bp1 = debugger.setBreakpoint("test.jcp", 10);
+    Breakpoint bp2 = debugger.setBreakpoint("test.jcp", 20);
 
     assertNotEquals(bp1.getId(), bp2.getId());
   }
@@ -84,8 +76,8 @@ class DefaultDebuggerTest {
 
   @Test
   void getBreakpoints_ReturnsAllBreakpoints() {
-    Breakpoint bp1 = debugger.setBreakpoint(10);
-    Breakpoint bp2 = debugger.setBreakpoint(20);
+    Breakpoint bp1 = debugger.setBreakpoint("test.jcp", 10);
+    Breakpoint bp2 = debugger.setBreakpoint("test.jcp", 20);
 
     Map<Long, Breakpoint> breakpoints = debugger.getBreakpoints();
 
@@ -96,7 +88,7 @@ class DefaultDebuggerTest {
 
   @Test
   void getBreakpoint_ReturnsBreakpointById() {
-    Breakpoint bp = debugger.setBreakpoint(10);
+    Breakpoint bp = debugger.setBreakpoint("test.jcp", 10);
 
     Breakpoint found = debugger.getBreakpoint(bp.getId());
 
@@ -112,9 +104,9 @@ class DefaultDebuggerTest {
 
   @Test
   void getBreakpointsAt_ReturnsBreakpointsAtLine() {
-    debugger.setBreakpoint(10, 1);
-    debugger.setBreakpoint(10, 5);
-    debugger.setBreakpoint(20);
+    debugger.setBreakpoint("test.jcp", 10, 1);
+    debugger.setBreakpoint("test.jcp", 10, 5);
+    debugger.setBreakpoint("test.jcp", 20);
 
     List<Breakpoint> atLine10 = debugger.getBreakpointsAt(10);
 
@@ -131,8 +123,8 @@ class DefaultDebuggerTest {
 
   @Test
   void removeBreakpoint_ById_RemovesBreakpoint() {
-    Breakpoint bp1 = debugger.setBreakpoint(10);
-    Breakpoint bp2 = debugger.setBreakpoint(20);
+    Breakpoint bp1 = debugger.setBreakpoint("test.jcp", 10);
+    Breakpoint bp2 = debugger.setBreakpoint("test.jcp", 20);
 
     debugger.removeBreakpoint(bp1.getId());
 
@@ -144,8 +136,8 @@ class DefaultDebuggerTest {
 
   @Test
   void removeBreakpoint_ByBreakpoint_RemovesBreakpoint() {
-    Breakpoint bp1 = debugger.setBreakpoint(10);
-    Breakpoint bp2 = debugger.setBreakpoint(20);
+    Breakpoint bp1 = debugger.setBreakpoint("test.jcp", 10);
+    Breakpoint bp2 = debugger.setBreakpoint("test.jcp", 20);
 
     debugger.removeBreakpoint(bp1);
 
@@ -180,8 +172,8 @@ class DefaultDebuggerTest {
 
   @Test
   void stop_ClearsBreakpointsAndDetaches() {
-    debugger.setBreakpoint(10);
-    debugger.setBreakpoint(20);
+    debugger.setBreakpoint("test.jcp", 10);
+    debugger.setBreakpoint("test.jcp", 20);
     debugger.attach();
 
     debugger.stop();
@@ -193,7 +185,7 @@ class DefaultDebuggerTest {
 
   @Test
   void detach_KeepsBreakpoints() {
-    Breakpoint bp = debugger.setBreakpoint(10);
+    Breakpoint bp = debugger.setBreakpoint("test.jcp", 10);
     debugger.attach();
 
     debugger.detach();
@@ -208,7 +200,7 @@ class DefaultDebuggerTest {
 
   @Test
   void shouldPause_WhenNotAttached_ReturnsFalse() {
-    debugger.setBreakpoint(10);
+    debugger.setBreakpoint("test.jcp", 10);
 
     IntLiteral node = IntLiteral.of(42);
     node.setLocation(SourceLocation.of("test.jcp", 10, 5));
@@ -218,7 +210,7 @@ class DefaultDebuggerTest {
 
   @Test
   void shouldPause_WhenAttachedWithBreakpoint_ReturnsTrue() {
-    debugger.setBreakpoint(10);
+    debugger.setBreakpoint("test.jcp", 10);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -229,7 +221,7 @@ class DefaultDebuggerTest {
 
   @Test
   void shouldPause_WhenNoBreakpointAtLine_ReturnsFalse() {
-    debugger.setBreakpoint(10);
+    debugger.setBreakpoint("test.jcp", 10);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -240,7 +232,7 @@ class DefaultDebuggerTest {
 
   @Test
   void shouldPause_NodeWithoutLocation_ReturnsFalse() {
-    debugger.setBreakpoint(10);
+    debugger.setBreakpoint("test.jcp", 10);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -274,7 +266,7 @@ class DefaultDebuggerTest {
   void pause_SetsPausedStateAndNotifiesBreakpointHit() {
     TestDebugEventListener listener = new TestDebugEventListener();
     debugger.addListener(listener);
-    debugger.setBreakpoint(10);
+    debugger.setBreakpoint("test.jcp", 10);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -605,7 +597,7 @@ class DefaultDebuggerTest {
   void listener_OnBreakpointHit_ReceivesEvent() {
     TestDebugEventListener listener = new TestDebugEventListener();
     debugger.addListener(listener);
-    debugger.setBreakpoint(10);
+    debugger.setBreakpoint("test.jcp", 10);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -639,7 +631,7 @@ class DefaultDebuggerTest {
 
     debugger.addListener(listener1);
     debugger.addListener(listener2);
-    debugger.setBreakpoint(10);
+    debugger.setBreakpoint("test.jcp", 10);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
@@ -724,7 +716,7 @@ class DefaultDebuggerTest {
   void findMatchingBreakpoint_WithLocationBreakpoint_ReturnsBreakpoint() {
     TestDebugEventListener listener = new TestDebugEventListener();
     debugger.addListener(listener);
-    debugger.setBreakpoint(10, 5);
+    debugger.setBreakpoint("test.jcp", 10, 5);
     debugger.attach();
 
     IntLiteral node = IntLiteral.of(42);
