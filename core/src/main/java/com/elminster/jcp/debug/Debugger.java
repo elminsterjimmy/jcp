@@ -20,7 +20,7 @@ import java.util.Map;
  *
  * <p>Thread-safety: All implementations must be thread-safe.
  *
- * <h2>Usage Example</h2>
+ * <h2>Basic Usage Example</h2>
  * <pre>{@code
  * DefaultDebugger debugger = new DefaultDebugger();
  * EvalContext context = new RootEvalContext();
@@ -29,7 +29,7 @@ import java.util.Map;
  * // Set breakpoint at line 10
  * Breakpoint bp = debugger.setBreakpoint(10);
  *
- * // Start debugging
+ * // Start debugging in separate thread
  * new Thread(() -> visitor.debug(program)).start();
  *
  * // Wait for breakpoint hit, then inspect
@@ -38,6 +38,62 @@ import java.util.Map;
  *
  * // Step through code
  * debugger.stepOver();
+ * }</pre>
+ *
+ * <h2>Timeout Handling</h2>
+ * <p>The debugger waits indefinitely when paused. Users are responsible for
+ * implementing timeout handling. Here are recommended approaches:
+ *
+ * <h3>Option 1: Simple Polling with Timeout</h3>
+ * <pre>{@code
+ * long timeoutMs = 30_000;  // 30 seconds
+ * long deadline = System.currentTimeMillis() + timeoutMs;
+ *
+ * while (!debugger.isPaused()) {
+ *     if (System.currentTimeMillis() > deadline) {
+ *         debugger.stop();  // Force stop on timeout
+ *         throw new RuntimeException("Debugger timeout - breakpoint not hit");
+ *     }
+ *     Thread.sleep(10);
+ * }
+ * // Breakpoint hit within timeout
+ * Map<String, Data<?>> vars = debugger.getVariables();
+ * }</pre>
+ *
+ * <h3>Option 2: Using CompletableFuture</h3>
+ * <pre>{@code
+ * CompletableFuture<Void> debugFuture = CompletableFuture.runAsync(
+ *     () -> visitor.debug(program)
+ * );
+ *
+ * try {
+ *     debugFuture.get(30, TimeUnit.SECONDS);
+ * } catch (TimeoutException e) {
+ *     debugger.stop();  // Force stop on timeout
+ *     throw new RuntimeException("Debug session timed out");
+ * }
+ * }</pre>
+ *
+ * <h3>Option 3: Using Event Listener with CountDownLatch</h3>
+ * <pre>{@code
+ * CountDownLatch breakpointLatch = new CountDownLatch(1);
+ *
+ * debugger.addListener(new DebugEventListener() {
+ *     public void onBreakpointHit(Node node, Breakpoint bp) {
+ *         breakpointLatch.countDown();
+ *     }
+ *     public void onStepComplete(Node node) {}
+ *     public void onStateChanged(DebugState oldState, DebugState newState) {}
+ *     public void onError(Exception error) {}
+ * });
+ *
+ * new Thread(() -> visitor.debug(program)).start();
+ *
+ * if (!breakpointLatch.await(30, TimeUnit.SECONDS)) {
+ *     debugger.stop();
+ *     throw new RuntimeException("Timeout waiting for breakpoint");
+ * }
+ * // Breakpoint hit - proceed with inspection
  * }</pre>
  */
 public interface Debugger {

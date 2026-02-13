@@ -29,8 +29,18 @@ import com.elminster.jcp.exception.JcpException;
  * // Start debugging in another thread (debug() handles attach/detach)
  * new Thread(() -> visitor.debug(program)).start();
  *
- * // Wait for breakpoint and inspect
- * while (!debugger.isPaused()) Thread.sleep(10);
+ * // Wait for breakpoint with timeout handling
+ * long timeoutMs = 30_000;
+ * long deadline = System.currentTimeMillis() + timeoutMs;
+ * while (!debugger.isPaused()) {
+ *     if (System.currentTimeMillis() > deadline) {
+ *         debugger.stop();
+ *         throw new RuntimeException("Timeout waiting for breakpoint");
+ *     }
+ *     Thread.sleep(10);
+ * }
+ *
+ * // Inspect variables at breakpoint
  * Map<String, Data<?>> vars = debugger.getVariables();
  * }</pre>
  */
