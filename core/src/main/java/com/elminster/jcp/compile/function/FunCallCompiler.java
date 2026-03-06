@@ -401,23 +401,19 @@ public class FunCallCompiler extends AbstractAstCompiler {
     /**
      * Check if a JCP DataType is compatible with a Java parameter type.
      *
-     * <p>Note: Similar logic exists in {@link ReflectUtil#isAssignable} but is private.
-     * This method adapts JCP DataTypes to Java Class types for compatibility checking.
+     * <p>Uses existing utilities:
+     * <ul>
+     *   <li>{@link CompileModeClassConverter#mapJavaTypeToDataType} - Convert Java Class to DataType</li>
+     *   <li>{@link DataType#isCompatibleWith} - Check DataType compatibility</li>
+     * </ul>
+     *
+     * @param jcpType the JCP data type (argument type)
+     * @param javaType the Java parameter type
+     * @return true if compatible for method invocation
      */
     private boolean isCompatibleType(DataType jcpType, Class<?> javaType) {
-        if (javaType == boolean.class || javaType == Boolean.class) {
-            return jcpType == SystemDataType.BOOLEAN;
-        } else if (javaType == int.class || javaType == Integer.class) {
-            return jcpType == SystemDataType.INT;
-        } else if (javaType == double.class || javaType == Double.class) {
-            return jcpType == SystemDataType.DOUBLE;
-        } else if (javaType == String.class) {
-            return jcpType == SystemDataType.STRING;
-        } else if (javaType == void.class || javaType == Void.class) {
-            return jcpType == SystemDataType.VOID;
-        }
-        // For other types, consider them compatible if same name
-        return javaType.getSimpleName().equals(jcpType.getName());
+        DataType paramDataType = CompileModeClassConverter.mapJavaTypeToDataType(javaType);
+        return jcpType.isCompatibleWith(paramDataType);
     }
 
 
