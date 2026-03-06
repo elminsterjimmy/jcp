@@ -23,7 +23,8 @@
       "WebFetch(domain:www.antlr.org)",
       "Bash(mkdir:*)",
       "Bash(mvn test:*)",
-      "Bash(gh issue:*)"
+      "Bash(gh issue:*)",
+      "Bash(rm:*)"
     ]
   }
 }
