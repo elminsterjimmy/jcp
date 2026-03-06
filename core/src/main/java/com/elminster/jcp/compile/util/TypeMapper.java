@@ -241,63 +241,108 @@ public final class TypeMapper {
      * @return the data type, or null if unknown
      */
     public static DataType getExpressionType(Expression expr, CompileContext ctx) {
-        if (expr instanceof LiteralExpression) {
-            LiteralExpression litExpr = (LiteralExpression) expr;
-            Object literal = litExpr.getLiteral();
-            if (literal instanceof IntLiteral) return SystemDataType.INT;
-            if (literal instanceof DoubleLiteral) return SystemDataType.DOUBLE;
-            if (literal instanceof BooleanLiteral) return SystemDataType.BOOLEAN;
-            if (literal instanceof StringLiteral) return SystemDataType.STRING;
-            // Handle generic Literal created by Literal.of() - check value type
-            if (literal instanceof com.elminster.jcp.ast.expression.literal.Literal) {
-                Object value = ((com.elminster.jcp.ast.expression.literal.Literal<?>) literal).getValue();
-                if (value instanceof Integer) return SystemDataType.INT;
-                if (value instanceof Double) return SystemDataType.DOUBLE;
-                if (value instanceof Boolean) return SystemDataType.BOOLEAN;
-                if (value instanceof String) return SystemDataType.STRING;
-            }
+        // Try each type resolution strategy
+        DataType type = resolveLiteralType(expr);
+        if (type != null) return type;
+
+        type = resolveVariableType(expr, ctx);
+        if (type != null) return type;
+
+        type = resolveFunctionCallType(expr, ctx);
+        if (type != null) return type;
+
+        type = resolveBinaryExpressionType(expr, ctx);
+        if (type != null) return type;
+
+        return null;  // Unknown expression type
+    }
+
+    private static DataType resolveLiteralType(Expression expr) {
+        if (!(expr instanceof LiteralExpression)) {
+            return null;
         }
+
+        LiteralExpression litExpr = (LiteralExpression) expr;
+        Object literal = litExpr.getLiteral();
+
+        if (literal instanceof IntLiteral) return SystemDataType.INT;
+        if (literal instanceof DoubleLiteral) return SystemDataType.DOUBLE;
+        if (literal instanceof BooleanLiteral) return SystemDataType.BOOLEAN;
+        if (literal instanceof StringLiteral) return SystemDataType.STRING;
+
+        // Handle generic Literal created by Literal.of() - check value type
+        if (literal instanceof com.elminster.jcp.ast.expression.literal.Literal) {
+            Object value = ((com.elminster.jcp.ast.expression.literal.Literal<?>) literal).getValue();
+            if (value instanceof Integer) return SystemDataType.INT;
+            if (value instanceof Double) return SystemDataType.DOUBLE;
+            if (value instanceof Boolean) return SystemDataType.BOOLEAN;
+            if (value instanceof String) return SystemDataType.STRING;
+        }
+
+        return null;
+    }
+
+    private static DataType resolveVariableType(Expression expr, CompileContext ctx) {
         // Handle 'this' expression
         if (expr instanceof ThisExpression) {
             CompileContext.LocalVariable local = ctx.getLocal("this");
             return local != null ? local.getType() : null;
         }
+
+        // Handle direct Identifier
         if (expr instanceof Identifier) {
             CompileContext.LocalVariable local = ctx.getLocal(((Identifier) expr).getId());
             return local != null ? local.getType() : null;
         }
+
         // Handle VariableExpression (wraps Identifier)
         if (expr instanceof VariableExpression) {
             VariableExpression varExpr = (VariableExpression) expr;
             CompileContext.LocalVariable local = ctx.getLocal(varExpr.getId().getId());
             return local != null ? local.getType() : null;
         }
-        // Handle function call expressions - return type from function signature
-        if (expr instanceof FunctionCallExpression) {
-            FunctionCallExpression call = (FunctionCallExpression) expr;
-            String funcName = call.getId().getId();
-            Expression[] args = call.getArguments();
-            DataType[] argTypes = new DataType[args.length];
-            for (int i = 0; i < args.length; i++) {
-                argTypes[i] = getExpressionType(args[i], ctx);
-            }
-            FunctionSignature sig = ctx.lookupFunction(funcName, argTypes);
-            return sig != null ? sig.getReturnType() : null;
+
+        return null;
+    }
+
+    private static DataType resolveFunctionCallType(Expression expr, CompileContext ctx) {
+        if (!(expr instanceof FunctionCallExpression)) {
+            return null;
         }
-        // For binary expressions, determine result type based on operands
-        if (expr instanceof BinaryExpression) {
-            BinaryExpression bin = (BinaryExpression) expr;
-            DataType leftType = getExpressionType(bin.getLeft(), ctx);
-            DataType rightType = getExpressionType(bin.getRight(), ctx);
-            // Numeric promotion: if either is DOUBLE, result is DOUBLE
-            if (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE) {
-                return SystemDataType.DOUBLE;
-            }
-            // Both INT → result is INT
-            if (leftType == SystemDataType.INT && rightType == SystemDataType.INT) {
-                return SystemDataType.INT;
-            }
+
+        FunctionCallExpression call = (FunctionCallExpression) expr;
+        String funcName = call.getId().getId();
+        Expression[] args = call.getArguments();
+
+        // Resolve argument types recursively
+        DataType[] argTypes = new DataType[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argTypes[i] = getExpressionType(args[i], ctx);
         }
-        return null;  // Unknown
+
+        FunctionSignature sig = ctx.lookupFunction(funcName, argTypes);
+        return sig != null ? sig.getReturnType() : null;
+    }
+
+    private static DataType resolveBinaryExpressionType(Expression expr, CompileContext ctx) {
+        if (!(expr instanceof BinaryExpression)) {
+            return null;
+        }
+
+        BinaryExpression bin = (BinaryExpression) expr;
+        DataType leftType = getExpressionType(bin.getLeft(), ctx);
+        DataType rightType = getExpressionType(bin.getRight(), ctx);
+
+        // Numeric promotion: if either is DOUBLE, result is DOUBLE
+        if (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE) {
+            return SystemDataType.DOUBLE;
+        }
+
+        // Both INT → result is INT
+        if (leftType == SystemDataType.INT && rightType == SystemDataType.INT) {
+            return SystemDataType.INT;
+        }
+
+        return null;
     }
 }
