@@ -100,6 +100,17 @@ public class FunCallCompiler extends AbstractAstCompiler {
             }
         }
 
+        // Check if this is a module function call (e.g., "Assertions.assertTrue")
+        if (funcName.contains(".")) {
+            // Try to compile as module function call
+            try {
+                compileModuleFunctionCall(mv, ctx, funcName, args);
+                return;
+            } catch (ClassNotFoundException e) {
+                // Not a module function, fall through to user-defined function lookup
+            }
+        }
+
         // Determine argument types for overload resolution
         DataType[] argTypes = new DataType[args.length];
         for (int i = 0; i < args.length; i++) {
@@ -137,6 +148,68 @@ public class FunCallCompiler extends AbstractAstCompiler {
             false
         );
         // Result (if any) is now on stack
+    }
+
+    /**
+     * Compile module function call: Module.function(args)
+     * For example: Assertions.assertTrue(condition)
+     *
+     * <p>Module functions are static methods in Java classes from the base module or other modules.
+     *
+     * @throws ClassNotFoundException if the module class cannot be found
+     */
+    private void compileModuleFunctionCall(MethodVisitor mv, CompileContext ctx,
+                                          String fullName, Expression[] args) throws ClassNotFoundException {
+        // Split "Assertions.assertTrue" into module="Assertions" and method="assertTrue"
+        int dotIndex = fullName.lastIndexOf('.');
+        String moduleName = fullName.substring(0, dotIndex);
+        String methodName = fullName.substring(dotIndex + 1);
+
+        // Construct full class name (base module is in com.elminster.jcp.module.base.assertions)
+        String className = resolveModuleClassName(moduleName);
+
+        // Try to load the class to verify it exists
+        Class.forName(className);
+
+        // Determine argument types for descriptor
+        DataType[] argTypes = new DataType[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
+        }
+
+        // Compile arguments (push values onto stack)
+        for (int i = 0; i < args.length; i++) {
+            Compilable argCompiler = AstCompilerFactory.getCompiler(args[i]);
+            argCompiler.compile(mv, ctx);
+        }
+
+        // Build method descriptor
+        StringBuilder descriptor = new StringBuilder("(");
+        for (DataType argType : argTypes) {
+            descriptor.append(TypeMapper.toDescriptor(argType));
+        }
+        descriptor.append(")V"); // Assume void return for now (Assertions.assertTrue returns void)
+
+        // Emit INVOKESTATIC
+        String internalName = className.replace('.', '/');
+        mv.visitMethodInsn(
+            Opcodes.INVOKESTATIC,
+            internalName,
+            methodName,
+            descriptor.toString(),
+            false
+        );
+    }
+
+    /**
+     * Resolve module name to full Java class name.
+     * Currently only handles base module classes.
+     */
+    private String resolveModuleClassName(String moduleName) {
+        // Base module classes are in com.elminster.jcp.module.base.<lowercase-package>
+        // For example: "Assertions" -> "com.elminster.jcp.module.base.assertions.Assertions"
+        String packageName = moduleName.toLowerCase();
+        return "com.elminster.jcp.module.base." + packageName + "." + moduleName;
     }
 
     /**
