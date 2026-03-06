@@ -1,0 +1,10 @@
+# Test logical operations with assertions
+let t: boolean = true
+let f: boolean = false
+
+Assertions.assertTrue(t && t)
+Assertions.assertTrue(t || f)
+Assertions.assertTrue(!f)
+
+let result: boolean = t && !f
+Assertions.assertTrue(result == true)

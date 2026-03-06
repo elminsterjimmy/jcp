@@ -1,0 +1,17 @@
+# Simple test that stores result in a variable
+func testArithmetic() -> boolean {
+    let x: int = 10
+    let y: int = 5
+    if x + y != 15 {
+        return false
+    }
+    if x * y != 50 {
+        return false
+    }
+    if x - y != 5 {
+        return false
+    }
+    return true
+}
+
+let result: boolean = testArithmetic()

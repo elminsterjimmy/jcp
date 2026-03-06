@@ -1,0 +1,11 @@
+# Test while loop with assertions
+let counter: int = 0
+let iterations: int = 0
+
+while counter < 10 {
+    counter = counter + 1
+    iterations = iterations + 1
+}
+
+Assertions.assertTrue(counter == 10)
+Assertions.assertTrue(iterations == 10)

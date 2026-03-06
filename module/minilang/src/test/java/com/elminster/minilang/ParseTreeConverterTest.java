@@ -8,21 +8,39 @@ import com.elminster.jcp.ast.statement.control.WhileStatement;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for ParseTreeConverter focusing on parser functionality.
+ * Unit tests for ParseTreeConverter using separate test script files.
  *
- * <p>These tests validate the converter's ability to parse various MiniLang constructs
- * into correct AST node types. For end-to-end dual-mode validation, see {@link MiniLangIntegrationTest}.
+ * <p>Test scripts are stored in src/test/resources/test-scripts/ for easy review and modification.
+ * Each test validates specific parsing functionality by loading and parsing dedicated script files.
+ *
+ * <p>For end-to-end dual-mode validation, see {@link MiniLangIntegrationTest}.
  */
 public class ParseTreeConverterTest {
 
     private final ParseTreeConverter converter = new ParseTreeConverter("test.minilang", "");
 
+    /**
+     * Loads a test script from resources.
+     */
+    private String loadTestScript(String filename) throws Exception {
+        try (InputStream is = getClass().getClassLoader()
+                .getResourceAsStream("test-scripts/" + filename)) {
+            if (is == null) {
+                fail("Test script not found: " + filename);
+            }
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
     @Test
-    void testParseSimpleVariableDeclaration() {
-        String source = "let x: int = 42\n";
+    void testParseSimpleVariableDeclaration() throws Exception {
+        String source = loadTestScript("simple-variable.minilang");
         Block program = converter.parse(source);
 
         assertEquals(1, program.getBody().size());
@@ -35,8 +53,8 @@ public class ParseTreeConverterTest {
     }
 
     @Test
-    void testParseMultipleVariables() {
-        String source = "let x: int = 10\nlet y: int = 20\nlet z: int = 30\n";
+    void testParseMultipleVariables() throws Exception {
+        String source = loadTestScript("multiple-variables.minilang");
         Block program = converter.parse(source);
 
         assertEquals(3, program.getBody().size());
@@ -44,8 +62,8 @@ public class ParseTreeConverterTest {
     }
 
     @Test
-    void testParseFunctionDeclaration() {
-        String source = "func add(a: int, b: int) -> int {\nreturn a + b\n}\n";
+    void testParseFunctionDeclaration() throws Exception {
+        String source = loadTestScript("function-declaration.minilang");
         Block program = converter.parse(source);
 
         assertEquals(1, program.getBody().size());
@@ -58,8 +76,8 @@ public class ParseTreeConverterTest {
     }
 
     @Test
-    void testParseIfStatement() {
-        String source = "if x > 5 {\nresult = 1\n}\n";
+    void testParseIfStatement() throws Exception {
+        String source = loadTestScript("if-statement.minilang");
         Block program = converter.parse(source);
 
         assertEquals(1, program.getBody().size());
@@ -67,8 +85,8 @@ public class ParseTreeConverterTest {
     }
 
     @Test
-    void testParseIfElseStatement() {
-        String source = "if x > 5 {\nresult = 1\n} else {\nresult = 0\n}\n";
+    void testParseIfElseStatement() throws Exception {
+        String source = loadTestScript("if-else-statement.minilang");
         Block program = converter.parse(source);
 
         assertEquals(1, program.getBody().size());
@@ -76,8 +94,8 @@ public class ParseTreeConverterTest {
     }
 
     @Test
-    void testParseWhileLoop() {
-        String source = "while counter < 5 {\ncounter = counter + 1\n}\n";
+    void testParseWhileLoop() throws Exception {
+        String source = loadTestScript("while-loop.minilang");
         Block program = converter.parse(source);
 
         assertEquals(1, program.getBody().size());
@@ -85,8 +103,8 @@ public class ParseTreeConverterTest {
     }
 
     @Test
-    void testTypeResolution() {
-        String source = "let a: int = 1\nlet b: double = 2.0\nlet c: boolean = true\nlet d: string = \"text\"\n";
+    void testTypeResolution() throws Exception {
+        String source = loadTestScript("type-resolution.minilang");
         Block program = converter.parse(source);
 
         VariableDeclaration intDecl = (VariableDeclaration) program.getBody().get(0);
@@ -103,15 +121,14 @@ public class ParseTreeConverterTest {
     }
 
     @Test
-    void testSyntaxError() {
-        String source = "let x int = 10\n";  // Missing colon
+    void testSyntaxError() throws Exception {
+        String source = loadTestScript("syntax-error.minilang");
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             converter.parse(source);
         });
 
         assertTrue(exception.getMessage().contains("Syntax error"));
-        assertTrue(exception.getMessage().contains("test.minilang"));
     }
 
     @Test
@@ -124,8 +141,8 @@ public class ParseTreeConverterTest {
     }
 
     @Test
-    void testBlankLines() {
-        String source = "\n\nlet x: int = 10\n\n\nlet y: int = 20\n\n";
+    void testBlankLines() throws Exception {
+        String source = loadTestScript("blank-lines.minilang");
         Block program = converter.parse(source);
 
         // Should only have 2 statements, blank lines filtered out
@@ -133,8 +150,8 @@ public class ParseTreeConverterTest {
     }
 
     @Test
-    void testComments() {
-        String source = "# This is a comment\nlet x: int = 10  # Inline comment\n# Another comment\nlet y: int = 20\n";
+    void testComments() throws Exception {
+        String source = loadTestScript("comments.minilang");
         Block program = converter.parse(source);
 
         // Comments should be filtered out

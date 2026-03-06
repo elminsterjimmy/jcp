@@ -1,0 +1,4 @@
+let a: int = 1
+let b: double = 2.0
+let c: boolean = true
+let d: string = "text"

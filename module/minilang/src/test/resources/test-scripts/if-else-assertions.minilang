@@ -1,0 +1,17 @@
+# Test if-else with assertions
+let x: int = 10
+let result: int = 0
+
+if x > 5 {
+    result = 1
+} else {
+    result = 0
+}
+Assertions.assertTrue(result == 1)
+
+if x < 5 {
+    result = 0
+} else {
+    result = 1
+}
+Assertions.assertTrue(result == 1)

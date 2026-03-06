@@ -1,0 +1,4 @@
+# This is a comment
+let x: int = 10  # Inline comment
+# Another comment
+let y: int = 20

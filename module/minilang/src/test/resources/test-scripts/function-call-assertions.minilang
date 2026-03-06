@@ -1,0 +1,10 @@
+# Test function calls with assertions
+func square(n: int) -> int {
+    return n * n
+}
+
+let result: int = square(5)
+Assertions.assertTrue(result == 25)
+
+let result2: int = square(10)
+Assertions.assertTrue(result2 == 100)

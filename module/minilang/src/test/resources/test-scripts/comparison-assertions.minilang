@@ -1,0 +1,10 @@
+# Test comparison operations with assertions
+let a: int = 10
+let b: int = 5
+
+Assertions.assertTrue(a > b)
+Assertions.assertTrue(b < a)
+Assertions.assertTrue(a >= 10)
+Assertions.assertTrue(b <= 5)
+Assertions.assertTrue(a == 10)
+Assertions.assertTrue(a != b)
