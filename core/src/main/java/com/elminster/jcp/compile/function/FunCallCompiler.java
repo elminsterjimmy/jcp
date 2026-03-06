@@ -425,6 +425,9 @@ public class FunCallCompiler extends AbstractAstCompiler {
      * @return true if compatible for method invocation
      */
     private boolean isCompatibleType(DataType jcpType, Class<?> javaType) {
+        if (jcpType == null) {
+            return false;  // Cannot determine compatibility if type is unknown
+        }
         DataType paramDataType = CompileModeClassConverter.mapJavaTypeToDataType(javaType);
         return jcpType.isCompatibleWith(paramDataType);
     }
