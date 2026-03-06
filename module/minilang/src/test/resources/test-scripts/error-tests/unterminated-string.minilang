@@ -1,0 +1,2 @@
+// This file contains unterminated string literal
+let s: string = "hello world

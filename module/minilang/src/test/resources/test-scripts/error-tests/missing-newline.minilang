@@ -1,0 +1,2 @@
+// This file contains a syntax error: missing newline/semicolon after variable declaration
+let x: int = 10
