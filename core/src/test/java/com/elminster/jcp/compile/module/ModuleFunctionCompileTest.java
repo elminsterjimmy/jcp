@@ -56,4 +56,39 @@ public class ModuleFunctionCompileTest extends AbstractCompileTest {
                 main.invoke(null, (Object) new String[]{})
         );
     }
+
+    @Test
+    void testExplicitBaseModuleSyntax() throws Exception {
+        // base::Assertions.assertTrue(true) - explicit module syntax
+        Block program = new BlockImpl();
+        program.addStatement(new ExpressionStatement(
+                new FunctionCallExpression(
+                        Identifier.fromName("base::Assertions.assertTrue"),
+                        LiteralExpression.of(BooleanLiteral.of(true))
+                )
+        ));
+
+        Class<?> clazz = compiler.compileAndLoad(program, uniqueClassName("TestExplicitModule"));
+        Method main = clazz.getMethod("main", String[].class);
+
+        // Should not throw exception
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
+    }
+
+    @Test
+    void testInvalidModuleFunctionNotFound() {
+        // NonExistent.method() - should fall through to user-defined function lookup
+        Block program = new BlockImpl();
+        program.addStatement(new ExpressionStatement(
+                new FunctionCallExpression(
+                        Identifier.fromName("NonExistent.method"),
+                        LiteralExpression.of(BooleanLiteral.of(true))
+                )
+        ));
+
+        // Should throw CompileException for undefined function
+        assertThrows(Exception.class, () ->
+                compiler.compileAndLoad(program, uniqueClassName("TestNonExistent"))
+        );
+    }
 }
