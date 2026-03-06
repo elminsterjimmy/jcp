@@ -5,6 +5,7 @@ import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.expression.BinaryExpression;
 import com.elminster.jcp.ast.expression.LiteralExpression;
 import com.elminster.jcp.ast.expression.ThisExpression;
+import com.elminster.jcp.ast.expression.UnaryExpression;
 import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
 import com.elminster.jcp.ast.expression.base.VariableExpression;
 import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
@@ -284,9 +285,23 @@ public final class TypeMapper {
             FunctionSignature sig = ctx.lookupFunction(funcName, argTypes);
             return sig != null ? sig.getReturnType() : null;
         }
-        // For binary expressions, determine result type based on operands
+        // For logical expressions (AND, OR), always return BOOLEAN
+        if (expr instanceof com.elminster.jcp.ast.expression.operation.LogicalExpression) {
+            return SystemDataType.BOOLEAN;
+        }
+        // For binary expressions, determine result type based on operands and operator
         if (expr instanceof BinaryExpression) {
             BinaryExpression bin = (BinaryExpression) expr;
+            String op = bin.getName();
+
+            // Comparison operators always return BOOLEAN
+            if ("EQUAL".equals(op) || "NOT_EQUAL".equals(op) ||
+                "LESS_THAN".equals(op) || "GREATER_THAN".equals(op) ||
+                "LESS_THAN_OR_EQUAL".equals(op) || "GREATER_THAN_OR_EQUAL".equals(op)) {
+                return SystemDataType.BOOLEAN;
+            }
+
+            // Arithmetic operators: determine result type based on operands
             DataType leftType = getExpressionType(bin.getLeft(), ctx);
             DataType rightType = getExpressionType(bin.getRight(), ctx);
             // Numeric promotion: if either is DOUBLE, result is DOUBLE
@@ -297,6 +312,19 @@ public final class TypeMapper {
             if (leftType == SystemDataType.INT && rightType == SystemDataType.INT) {
                 return SystemDataType.INT;
             }
+        }
+        // For unary expressions, determine result type based on operator
+        if (expr instanceof UnaryExpression) {
+            UnaryExpression unary = (UnaryExpression) expr;
+            String op = unary.getName();
+
+            // NOT operator returns BOOLEAN
+            if ("NOT".equals(op)) {
+                return SystemDataType.BOOLEAN;
+            }
+
+            // For other unary operators (e.g., NEGATE), return the same type as operand
+            return getExpressionType(unary.getExpress(), ctx);
         }
         return null;  // Unknown
     }
