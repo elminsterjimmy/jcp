@@ -41,18 +41,18 @@ public class ParseTreeConverterErrorTest {
      *   <li>Loads error test script from file</li>
      *   <li>Expects parsing to fail with exception</li>
      *   <li>Validates error message contains expected keywords</li>
-     *   <li>Validates error location (line:column) matches expectations</li>
+     *   <li>Validates error location (file:line:column) matches expectations</li>
      * </ul>
      */
     @ParameterizedTest(name = "{0}")
     @CsvSource({
-        "Missing newline, error-tests/missing-newline.minilang, 1, 'mismatched|missing'",
-        "Unterminated string, error-tests/unterminated-string.minilang, 2, 'token|mismatched|string'",
-        "Invalid type, error-tests/invalid-type.minilang, 1, 'mismatched|extraneous'",
-        "Missing brace, error-tests/missing-brace.minilang, -1, 'missing|}''",
-        "Invalid operator, error-tests/invalid-operator.minilang, 1, 'extraneous|token|@@'"
+        "Missing newline, error-tests/missing-newline.minilang, 1, 16, 'mismatched|missing'",
+        "Unterminated string, error-tests/unterminated-string.minilang, 2, 1, 'token|mismatched|string'",
+        "Invalid type, error-tests/invalid-type.minilang, 1, 8, 'mismatched|extraneous'",
+        "Missing brace, error-tests/missing-brace.minilang, -1, -1, 'missing|}''",
+        "Invalid operator, error-tests/invalid-operator.minilang, 1, 24, 'extraneous|token|@@'"
     })
-    void testSyntaxErrorsWithLocation(String testName, String scriptFile, int expectedLine, String expectedKeywords) throws Exception {
+    void testSyntaxErrorsWithLocation(String testName, String scriptFile, int expectedLine, int expectedColumn, String expectedKeywords) throws Exception {
         // Load test script
         String source = loadTestScript(scriptFile);
         assertNotNull(source, "Test script should load: " + scriptFile);
@@ -80,26 +80,31 @@ public class ParseTreeConverterErrorTest {
             String.format("Error message should contain one of %s. Actual: %s",
                 expectedKeywords, errorMessage));
 
-        // Validate error location matches expected line and includes column position
-        // Note: expectedLine = -1 means skip exact line validation (e.g., EOF errors)
-        if (expectedLine > 0) {
+        // Validate error location matches expected line, column, and includes file name
+        // Note: expectedLine/Column = -1 means skip validation (e.g., EOF errors)
+
+        // First, validate file name is in the error message
+        assertTrue(errorMessage.contains(scriptFile),
+            String.format("Error message should contain file name '%s'. Actual: %s",
+                scriptFile, errorMessage));
+
+        if (expectedLine > 0 && expectedColumn > 0) {
             Matcher matcher = ERROR_LOCATION_PATTERN.matcher(errorMessage);
             if (matcher.find()) {
                 int actualLine = Integer.parseInt(matcher.group(1));
                 int actualColumn = Integer.parseInt(matcher.group(2));
 
+                // Validate line number
                 assertEquals(expectedLine, actualLine,
                     String.format("Error should be on line %d but was on line %d. Message: %s",
                         expectedLine, actualLine, errorMessage));
 
-                // Verify column position is present and reasonable (> 0)
-                assertTrue(actualColumn > 0,
-                    String.format("Error column position should be > 0, was %d. Message: %s",
-                        actualColumn, errorMessage));
+                // Validate column position
+                assertEquals(expectedColumn, actualColumn,
+                    String.format("Error should be at column %d but was at column %d. Message: %s",
+                        expectedColumn, actualColumn, errorMessage));
             } else {
-                // If no location pattern found, at least verify message mentions line info
-                assertTrue(errorMessage.contains("line") || errorMessage.matches(".*\\d+:\\d+.*"),
-                    "Error message should include location information (line:column). Actual: " + errorMessage);
+                fail("Error message should include location information in format file:line:column. Actual: " + errorMessage);
             }
         } else {
             // For EOF errors, just verify location info is present
