@@ -1,0 +1,11 @@
+# Test break statement with assertions
+let n: int = 0
+
+while n < 100 {
+    if n == 7 {
+        break
+    }
+    n = n + 1
+}
+
+Assertions.assertTrue(n == 7)

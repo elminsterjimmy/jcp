@@ -1,0 +1,18 @@
+# Test arithmetic operations with assertions
+let x: int = 10
+let y: int = 5
+
+let sum: int = x + y
+Assertions.assertTrue(sum == 15)
+
+let product: int = x * y
+Assertions.assertTrue(product == 50)
+
+let difference: int = x - y
+Assertions.assertTrue(difference == 5)
+
+let quotient: int = x / y
+Assertions.assertTrue(quotient == 2)
+
+let remainder: int = x % y
+Assertions.assertTrue(remainder == 0)

@@ -1,0 +1,10 @@
+func testVoidFunction() {
+    let x: int = 5
+}
+
+func testVoidReturn() -> boolean {
+    testVoidFunction()
+    return true
+}
+
+let result: boolean = testVoidReturn()

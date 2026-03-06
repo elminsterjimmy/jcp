@@ -1,0 +1,15 @@
+func testDoubles() -> boolean {
+    let x: double = 3.14
+    let y: double = 2.5
+    let sum: double = x + y
+
+    if sum > 5.5 {
+        if sum < 5.7 {
+            return true
+        }
+    }
+
+    return false
+}
+
+let result: boolean = testDoubles()

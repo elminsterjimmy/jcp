@@ -1,0 +1,20 @@
+func testAllComparisons() -> boolean {
+    let a: int = 10
+    let b: int = 5
+
+    if a > b {
+        if b < a {
+            if a >= 10 {
+                if b <= 5 {
+                    if a != b {
+                        return true
+                    }
+                }
+            }
+        }
+    }
+
+    return false
+}
+
+let result: boolean = testAllComparisons()

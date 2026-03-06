@@ -1,0 +1,17 @@
+func testLogical() -> boolean {
+    let t: boolean = true
+    let f: boolean = false
+
+    if !(t && t) {
+        return false
+    }
+    if !(t || f) {
+        return false
+    }
+    if !(!f) {
+        return false
+    }
+    return true
+}
+
+let result: boolean = testLogical()

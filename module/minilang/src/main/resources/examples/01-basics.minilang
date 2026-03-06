@@ -1,0 +1,10 @@
+let x: int = 10
+let y: int = 5
+let sum: int = x + y
+let product: int = x * y
+let difference: int = x - y
+
+let greeting: string = "Hello"
+let name: string = "MiniLang"
+
+let flag: boolean = true

@@ -1,0 +1,17 @@
+func testDivision() -> boolean {
+    let a: int = 20
+    let b: int = 4
+    let quotient: int = a / b
+
+    if quotient == 5 {
+        if 15 / 3 == 5 {
+            if 100 / 10 == 10 {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
+let result: boolean = testDivision()

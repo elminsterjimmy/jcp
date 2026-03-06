@@ -1,0 +1,30 @@
+let x: int = 10
+let result: int = 0
+if x > 5 {
+    result = 1
+} else {
+    result = 0
+}
+
+let counter: int = 0
+while counter < 5 {
+    counter = counter + 1
+}
+
+let n: int = 0
+while n < 10 {
+    if n == 5 {
+        break
+    }
+    n = n + 1
+}
+
+let i: int = 0
+let sum: int = 0
+while i < 5 {
+    i = i + 1
+    if i == 3 {
+        continue
+    }
+    sum = sum + i
+}

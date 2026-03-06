@@ -1,0 +1,40 @@
+func testLoops() -> boolean {
+    let counter: int = 0
+    while counter < 10 {
+        counter = counter + 1
+    }
+
+    if counter != 10 {
+        return false
+    }
+
+    let n: int = 0
+    while n < 100 {
+        if n == 7 {
+            break
+        }
+        n = n + 1
+    }
+
+    if n != 7 {
+        return false
+    }
+
+    let i: int = 0
+    let sum: int = 0
+    while i < 10 {
+        i = i + 1
+        if i == 5 {
+            continue
+        }
+        sum = sum + i
+    }
+
+    if sum != 50 {
+        return false
+    }
+
+    return true
+}
+
+let result: boolean = testLoops()

@@ -1,0 +1,387 @@
+---
+name: gw-resolve-reviews
+description: Resolve all PR comments on the current branch - fetch all review comments and inline comments, search project knowledge (skills, scripts, docs, solutions), address each comment, push changes, and compound learnings. Use when PR has review feedback to address regardless of approval status.
+---
+
+# Resolve PR Reviews Workflow
+
+Resolve all PR comments on the current branch: fetch all review comments and inline comments, search project resources for relevant knowledge, address each comment, push changes, and capture learnings.
+
+## Prerequisites
+
+Check GitHub CLI authentication:
+
+```bash
+gh auth status || { echo "Error: Run 'gh auth login' first"; exit 1; }
+```
+
+## Input Validation
+
+```bash
+# Validate inputs before shell use
+validate_branch() {
+    [[ "$1" =~ ^[a-zA-Z0-9/_-]+$ ]] || { echo "Invalid branch name: $1"; exit 1; }
+}
+
+validate_number() {
+    [[ "$1" =~ ^[0-9]+$ ]] || { echo "Invalid number: $1"; exit 1; }
+}
+
+validate_username() {
+    [[ "$1" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "Invalid username: $1"; exit 1; }
+}
+```
+
+## Workflow
+
+### Step 1: Detect Current PR
+
+```bash
+BRANCH=$(git branch --show-current)
+validate_branch "$BRANCH"
+
+# Get PR info in single API call
+PR_INFO=$(gh pr view "$BRANCH" --json number,title,state,body 2>/dev/null) || {
+    echo "No PR found for branch: $BRANCH"
+    echo "Create a PR first with /gw-work"
+    exit 1
+}
+
+PR_NUM=$(echo "$PR_INFO" | jq -r '.number')
+validate_number "$PR_NUM"
+
+PR_TITLE=$(echo "$PR_INFO" | jq -r '.title')
+
+echo "PR #${PR_NUM}: $PR_TITLE"
+```
+
+### Step 2: Fetch All Comments
+
+Gather all types of review feedback:
+
+#### Get Review Comments (Inline Code Comments)
+
+```bash
+# Get all review comments (inline comments on code)
+REVIEW_COMMENTS=$(gh api repos/{owner}/{repo}/pulls/$PR_NUM/comments --jq '.[] | {id: .id, path: .path, line: .line, body: .body, user: .user.login, created_at: .created_at}' 2>/dev/null)
+
+if [ -n "$REVIEW_COMMENTS" ]; then
+    echo ""
+    echo "=== Inline Review Comments ==="
+    echo "$REVIEW_COMMENTS"
+fi
+```
+
+#### Get PR Conversation Comments
+
+```bash
+# Get PR conversation comments
+PR_COMMENTS=$(gh pr view "$PR_NUM" --json comments --jq '.comments[] | {id: .id, body: .body, author: .author.login, createdAt: .createdAt}' 2>/dev/null)
+
+if [ -n "$PR_COMMENTS" ]; then
+    echo ""
+    echo "=== PR Conversation Comments ==="
+    echo "$PR_COMMENTS"
+fi
+```
+
+#### Get Review Submissions
+
+```bash
+# Get review submissions with their bodies
+REVIEWS=$(gh pr view "$PR_NUM" --json reviews --jq '.reviews[] | {id: .id, state: .state, body: .body, author: .author.login, submittedAt: .submittedAt}' 2>/dev/null)
+
+if [ -n "$REVIEWS" ]; then
+    echo ""
+    echo "=== Review Submissions ==="
+    echo "$REVIEWS"
+fi
+```
+
+### Step 3: Search Project Knowledge
+
+Before addressing comments, search project resources for relevant solutions and patterns:
+
+#### Search Documented Solutions
+
+```bash
+# Search for relevant solutions in docs/solutions/
+find docs/solutions -name "*.md" -exec grep -l "<keyword>" {} \; 2>/dev/null
+
+# Parse YAML frontmatter for matching symptoms, tags, or categories
+grep -r "symptoms:" docs/solutions/ | grep -i "<keyword>"
+grep -r "tags:" docs/solutions/ | grep -i "<keyword>"
+```
+
+**Search locations:**
+- `docs/solutions/**/*.md` - Documented problem solutions with YAML frontmatter
+- Look for matching `symptoms`, `tags`, `category`, `module` in frontmatter
+
+#### Search Skills and Scripts
+
+```bash
+# Search skills for relevant workflows
+find .claude/skills -name "SKILL.md" -exec grep -l "<keyword>" {} \; 2>/dev/null
+
+# Search scripts for relevant utilities
+find .claude/skills -name "*.py" -o -name "*.sh" -exec grep -l "<keyword>" {} \; 2>/dev/null
+```
+
+**Search locations:**
+- `.claude/skills/**/SKILL.md` - Skill workflows and instructions
+- `.claude/skills/**/scripts/` - Utility scripts
+- `.claude/skills/**/references/` - Reference documentation
+
+#### Search Project Documentation
+
+```bash
+# Search project docs
+find docs -name "*.md" -exec grep -l "<keyword>" {} \; 2>/dev/null
+
+# Search README and guidelines
+grep -r "<keyword>" README.md CLAUDE.md GUIDELINES.md 2>/dev/null
+```
+
+**Search locations:**
+- `docs/**/*.md` - Project documentation
+- `CLAUDE.md` - Project conventions
+- `GUIDELINES.md` - Code guidelines
+
+### Step 4: Analyze and Categorize Comments
+
+For each comment, determine:
+1. **File/location**: Which file and line the comment refers to
+2. **Action required**: What change is being requested
+3. **Relevant knowledge**: What documented solutions or patterns apply
+4. **Priority**: Address blocking issues first
+
+Create a summary:
+
+```
+Comment Analysis:
+- Total inline comments: {count}
+- Total PR comments: {count}
+- Reviews with feedback: {count}
+
+Relevant Knowledge Found:
+- docs/solutions/{file}.md: {applicable pattern}
+- .claude/skills/{skill}/SKILL.md: {relevant workflow}
+
+Action Items:
+1. {file:line} - {summary of requested change} [applies: {knowledge reference}]
+2. {file:line} - {summary of requested change}
+...
+```
+
+### Step 5: Address Each Comment
+
+For each comment that requires action:
+
+1. **Review relevant knowledge** from Step 3
+2. **Navigate to the location** (file and line)
+3. **Understand the context** of the requested change
+4. **Make the change** following documented patterns
+5. **Track completion** for the commit message
+
+### Step 6: Commit Changes
+
+After addressing all comments:
+
+```bash
+# Stage all changed files
+git add <changed-files>
+
+# Commit with descriptive message listing addressed comments
+git commit -m "fix: address PR review comments
+
+Addressed feedback:
+- {Change 1 from comment}
+- {Change 2 from comment}
+- {Change 3 from comment}
+
+PR #${PR_NUM}"
+
+git push
+```
+
+### Step 7: Reply to Comments (Optional)
+
+For significant changes, reply to the comment threads:
+
+```bash
+# Reply to PR conversation
+gh pr comment "$PR_NUM" --body "Addressed all review feedback:
+- {Change 1}
+- {Change 2}
+- {Change 3}"
+```
+
+### Step 8: Compound Knowledge
+
+After resolving all comments, capture any learnings discovered during the resolution process.
+
+#### Identify Learnings
+
+Check if any of these occurred:
+- Discovered a non-obvious gotcha or edge case
+- Found a pattern that should be documented
+- Encountered a problem that took investigation to solve
+- Learned something that would help future reviews
+
+#### Create Solution Document
+
+If learnings are worth documenting, create a solution file:
+
+```bash
+# Generate solution doc path
+SLUG=$(echo "{topic}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | cut -c1-40)
+CATEGORY="{category}"  # logic-errors, runtime-errors, configuration, patterns, etc.
+SOLUTION_PATH="docs/solutions/${CATEGORY}/${SLUG}.md"
+```
+
+**Solution document template:**
+
+```markdown
+---
+title: {Descriptive Title}
+date: {YYYY-MM-DD}
+category: {category}
+tags:
+  - {tag1}
+  - {tag2}
+module: {affected-module}
+component: {affected-component}
+severity: {low|medium|high}
+status: resolved
+symptoms:
+  - "{Error message or observable behavior}"
+  - "{Another symptom}"
+---
+
+# {Title}
+
+## Problem Summary
+
+{1-2 sentences describing the problem}
+
+## Symptoms
+
+**Error Message:**
+```
+{actual error message}
+```
+
+**Observable Behavior:**
+- {what was happening}
+- {what was expected}
+
+## Root Cause
+
+{Technical explanation of why this happened}
+
+## Solution
+
+**File:** `{path/to/fixed/file.java}`
+
+**Before (buggy):**
+```java
+// problematic code
+```
+
+**After (fixed):**
+```java
+// fixed code
+```
+
+## Prevention
+
+{How to prevent this in the future}
+
+## Related Issues
+
+- PR: #{PR_NUM}
+
+## Keywords
+
+{searchable terms for finding this solution later}
+```
+
+#### Commit Learnings
+
+```bash
+git add "$SOLUTION_PATH"
+git commit -m "docs: add solution for {topic}
+
+Captured learnings from PR #${PR_NUM} review feedback."
+
+git push
+```
+
+### Step 9: Output Results
+
+```
+=== Review Resolution Summary ===
+
+PR #${PR_NUM}: ${PR_TITLE}
+
+Comments Addressed: {count}
+- Inline code comments: {count}
+- PR conversation comments: {count}
+- Review feedback: {count}
+
+Knowledge Applied:
+- {reference1}: {how it helped}
+- {reference2}: {how it helped}
+
+Changes Made:
+- {file1}: {change description}
+- {file2}: {change description}
+
+Learnings Captured: {solution_path or "none needed"}
+
+Commit: {commit_hash}
+
+Next steps:
+- Wait for re-review
+- Run /gw-review to check status and merge when approved
+```
+
+## Success Criteria
+
+- [ ] PR detected from current branch
+- [ ] All inline review comments fetched
+- [ ] All PR conversation comments fetched
+- [ ] All review submission feedback fetched
+- [ ] Project knowledge searched for relevant solutions
+- [ ] Each actionable comment addressed
+- [ ] Changes committed with descriptive message
+- [ ] Changes pushed to remote
+- [ ] Learnings compounded if applicable
+
+## Error Handling
+
+| Error | Action |
+|-------|--------|
+| No PR found | "No PR for branch. Run /gw-work first" |
+| No comments found | "No review comments to address. PR is clean!" |
+| Git push fails | "Push failed. Check remote access and branch protection." |
+| API rate limit | "GitHub API rate limited. Wait and retry." |
+
+## Comment Types Reference
+
+| Type | Source | How to Fetch |
+|------|--------|--------------|
+| Inline review comments | Code-specific feedback on diff | `gh api .../pulls/{N}/comments` |
+| PR conversation | General PR discussion | `gh pr view --json comments` |
+| Review submissions | Overall review feedback | `gh pr view --json reviews` |
+
+## Knowledge Sources Reference
+
+| Source | Location | Contains |
+|--------|----------|----------|
+| Solutions | `docs/solutions/**/*.md` | Documented problem resolutions with searchable YAML frontmatter |
+| Skills | `.claude/skills/**/SKILL.md` | Workflows and procedures |
+| Scripts | `.claude/skills/**/scripts/` | Utility scripts for common tasks |
+| References | `.claude/skills/**/references/` | Reference documentation |
+| Project docs | `docs/**/*.md` | Project-specific documentation |
+| Guidelines | `GUIDELINES.md`, `CLAUDE.md` | Code conventions and rules |

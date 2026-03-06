@@ -1,0 +1,16 @@
+func testNestedConditions() -> boolean {
+    let x: int = 10
+    let y: int = 5
+
+    if x > 0 {
+        if y > 0 {
+            if x > y {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
+let result: boolean = testNestedConditions()

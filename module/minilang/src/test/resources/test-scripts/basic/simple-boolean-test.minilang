@@ -1,0 +1,16 @@
+func testBooleans() -> boolean {
+    let t: boolean = true
+    let f: boolean = false
+
+    if t && !f {
+        if t || f {
+            if !(f && t) {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
+let result: boolean = testBooleans()

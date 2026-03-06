@@ -1,0 +1,19 @@
+func testComplexExpressions() -> boolean {
+    let a: int = 10
+    let b: int = 5
+    let c: int = 3
+
+    if (a + b) * c == 45 {
+        if a - b != 0 {
+            if b / c == 1 {
+                if a % 3 == 1 {
+                    return true
+                }
+            }
+        }
+    }
+
+    return false
+}
+
+let result: boolean = testComplexExpressions()
