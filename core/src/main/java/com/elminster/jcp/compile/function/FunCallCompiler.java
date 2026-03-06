@@ -230,13 +230,31 @@ public class FunCallCompiler extends AbstractAstCompiler {
 
     /**
      * Resolve module name to full Java class name.
-     * Currently only handles base module classes.
+     *
+     * <p>Resolution strategy:
+     * <ol>
+     *   <li>Try base module: com.elminster.jcp.module.base.{lowercase}.{ModuleName}</li>
+     *   <li>Future: Add support for custom module paths via configuration</li>
+     * </ol>
+     *
+     * @param moduleName the simple module name (e.g., "Assertions")
+     * @return the fully qualified class name
+     * @throws ClassNotFoundException if the module class cannot be found in any location
      */
-    private String resolveModuleClassName(String moduleName) {
-        // Base module classes are in com.elminster.jcp.module.base.<lowercase-package>
-        // For example: "Assertions" -> "com.elminster.jcp.module.base.assertions.Assertions"
+    private String resolveModuleClassName(String moduleName) throws ClassNotFoundException {
+        // Try base module first
         String packageName = moduleName.toLowerCase();
-        return BASE_MODULE_PACKAGE + "." + packageName + "." + moduleName;
+        String baseModuleClass = BASE_MODULE_PACKAGE + "." + packageName + "." + moduleName;
+
+        try {
+            Class.forName(baseModuleClass);
+            return baseModuleClass;
+        } catch (ClassNotFoundException e) {
+            // Base module not found - could add more search paths here in the future
+            // For now, just rethrow since we only support base modules
+            throw new ClassNotFoundException("Module '" + moduleName +
+                "' not found in base module package: " + baseModuleClass);
+        }
     }
 
     /**
