@@ -165,10 +165,15 @@ public class FunCallCompiler extends AbstractAstCompiler {
     }
 
     /**
-     * Compile module function call: Module.function(args)
-     * For example: Assertions.assertTrue(condition)
+     * Compile module function call: module::Type.function(args) or Type.function(args)
      *
-     * <p>Module functions are static methods in Java classes from the base module or other modules.
+     * <p>Syntax:
+     * <ul>
+     *   <li>Explicit module: {@code base::Assertions.assertTrue(condition)}</li>
+     *   <li>Base module shorthand: {@code Assertions.assertTrue(condition)} (omits "base::")</li>
+     * </ul>
+     *
+     * <p>Module functions are static methods in Java classes from modules.
      *
      * @throws ClassNotFoundException if the module class cannot be found
      * @throws NoSuchMethodException if the method is not found in the module class
@@ -176,13 +181,28 @@ public class FunCallCompiler extends AbstractAstCompiler {
     private void compileModuleFunctionCall(MethodVisitor mv, CompileContext ctx,
                                           String fullName, Expression[] args)
             throws ClassNotFoundException, NoSuchMethodException {
-        // Split "Assertions.assertTrue" into module="Assertions" and method="assertTrue"
-        int dotIndex = fullName.lastIndexOf('.');
-        String moduleName = fullName.substring(0, dotIndex);
-        String methodName = fullName.substring(dotIndex + 1);
+        // Parse module::Type.method or Type.method (shorthand for base::Type.method)
+        String moduleName;
+        String typeAndMethod;
 
-        // Construct full class name (base module is in com.elminster.jcp.module.base.assertions)
-        String className = resolveModuleClassName(moduleName);
+        if (fullName.contains("::")) {
+            // Explicit module: "base::Assertions.assertTrue"
+            int moduleDelimiter = fullName.indexOf("::");
+            moduleName = fullName.substring(0, moduleDelimiter);
+            typeAndMethod = fullName.substring(moduleDelimiter + 2);
+        } else {
+            // Shorthand: "Assertions.assertTrue" means base module
+            moduleName = null; // Will default to base module
+            typeAndMethod = fullName;
+        }
+
+        // Split "Assertions.assertTrue" into typeName="Assertions" and method="assertTrue"
+        int dotIndex = typeAndMethod.lastIndexOf('.');
+        String typeName = typeAndMethod.substring(0, dotIndex);
+        String methodName = typeAndMethod.substring(dotIndex + 1);
+
+        // Construct full class name
+        String className = resolveModuleClassName(moduleName, typeName);
 
         // Load the class to discover method signature
         Class<?> clazz = Class.forName(className);
@@ -229,31 +249,49 @@ public class FunCallCompiler extends AbstractAstCompiler {
     }
 
     /**
-     * Resolve module name to full Java class name.
+     * Resolve module and type name to full Java class name.
      *
      * <p>Resolution strategy:
      * <ol>
-     *   <li>Try base module: com.elminster.jcp.module.base.{lowercase}.{ModuleName}</li>
-     *   <li>Future: Add support for custom module paths via configuration</li>
+     *   <li>If module is explicitly specified, use it directly</li>
+     *   <li>If module is null (shorthand syntax), default to base module</li>
      * </ol>
      *
-     * @param moduleName the simple module name (e.g., "Assertions")
+     * @param moduleName the module name (e.g., "base") or null for base module shorthand
+     * @param typeName the type name (e.g., "Assertions")
      * @return the fully qualified class name
-     * @throws ClassNotFoundException if the module class cannot be found in any location
+     * @throws ClassNotFoundException if the module class cannot be found
      */
-    private String resolveModuleClassName(String moduleName) throws ClassNotFoundException {
-        // Try base module first
-        String packageName = moduleName.toLowerCase();
-        String baseModuleClass = BASE_MODULE_PACKAGE + "." + packageName + "." + moduleName;
-
-        try {
-            Class.forName(baseModuleClass);
-            return baseModuleClass;
-        } catch (ClassNotFoundException e) {
-            // Base module not found - could add more search paths here in the future
-            // For now, just rethrow since we only support base modules
-            throw new ClassNotFoundException("Module '" + moduleName +
-                "' not found in base module package: " + baseModuleClass);
+    private String resolveModuleClassName(String moduleName, String typeName)
+            throws ClassNotFoundException {
+        if (moduleName != null) {
+            // Explicit module specified: try it first
+            if ("base".equals(moduleName)) {
+                // Base module: com.elminster.jcp.module.base.<lowercase-type>.<Type>
+                String packageName = typeName.toLowerCase();
+                String explicitClass = BASE_MODULE_PACKAGE + "." + packageName + "." + typeName;
+                try {
+                    Class.forName(explicitClass);
+                    return explicitClass;
+                } catch (ClassNotFoundException e) {
+                    throw new ClassNotFoundException("Module '" + moduleName + "::" + typeName +
+                        "' not found: " + explicitClass);
+                }
+            } else {
+                // Future: support other modules
+                throw new ClassNotFoundException("Non-base modules not yet supported: " + moduleName);
+            }
+        } else {
+            // No module specified (shorthand): default to base module
+            String packageName = typeName.toLowerCase();
+            String baseModuleClass = BASE_MODULE_PACKAGE + "." + packageName + "." + typeName;
+            try {
+                Class.forName(baseModuleClass);
+                return baseModuleClass;
+            } catch (ClassNotFoundException e) {
+                throw new ClassNotFoundException("Type '" + typeName +
+                    "' not found in base module: " + baseModuleClass);
+            }
         }
     }
 
@@ -317,6 +355,9 @@ public class FunCallCompiler extends AbstractAstCompiler {
 
     /**
      * Check if a JCP DataType is compatible with a Java parameter type.
+     *
+     * <p>Note: Similar logic exists in {@link ReflectUtil#isAssignable} but is private.
+     * This method adapts JCP DataTypes to Java Class types for compatibility checking.
      */
     private boolean isCompatibleType(DataType jcpType, Class<?> javaType) {
         if (javaType == boolean.class || javaType == Boolean.class) {
