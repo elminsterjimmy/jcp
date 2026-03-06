@@ -104,8 +104,10 @@ public class FunCallCompiler extends AbstractAstCompiler {
             }
         }
 
-        // Check if this is a module function call (e.g., "Assertions.assertTrue")
-        if (funcName.contains(".")) {
+        // Check if this is a module function call
+        // Valid patterns: "Type.method" or "module::Type.method"
+        // Must contain "." and if contains "::" it must be before the "."
+        if (isModuleFunctionPattern(funcName)) {
             // Try to compile as module function call
             try {
                 compileModuleFunctionCall(mv, ctx, funcName, args);
@@ -162,6 +164,49 @@ public class FunCallCompiler extends AbstractAstCompiler {
             false
         );
         // Result (if any) is now on stack
+    }
+
+    /**
+     * Check if function name matches a valid module function pattern.
+     *
+     * <p>Valid patterns:
+     * <ul>
+     *   <li>Type.method - base/user module type method</li>
+     *   <li>module::Type.method - explicit module type method</li>
+     * </ul>
+     *
+     * <p>Invalid patterns:
+     * <ul>
+     *   <li>func - global function (no dot)</li>
+     *   <li>Type.method.invalid - multiple dots after module delimiter</li>
+     *   <li>::Type.method - empty module name</li>
+     * </ul>
+     *
+     * @param funcName the function name to validate
+     * @return true if it matches a valid module function pattern
+     */
+    private boolean isModuleFunctionPattern(String funcName) {
+        // Must contain at least one dot for Type.method
+        if (!funcName.contains(".")) {
+            return false;
+        }
+
+        // If contains ::, validate module::Type.method pattern
+        if (funcName.contains("::")) {
+            int moduleDelimiter = funcName.indexOf("::");
+            // Module name must not be empty
+            if (moduleDelimiter == 0) {
+                return false;
+            }
+            // After :: must be Type.method (exactly one dot)
+            String afterModule = funcName.substring(moduleDelimiter + 2);
+            int dotCount = afterModule.length() - afterModule.replace(".", "").length();
+            return dotCount == 1;
+        } else {
+            // Simple Type.method pattern (exactly one dot)
+            int dotCount = funcName.length() - funcName.replace(".", "").length();
+            return dotCount == 1;
+        }
     }
 
     /**
