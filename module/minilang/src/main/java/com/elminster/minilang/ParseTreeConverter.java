@@ -1,10 +1,13 @@
 package com.elminster.minilang;
 
 import com.elminster.jcp.ast.*;
+import com.elminster.jcp.ast.expression.LiteralExpression;
 import com.elminster.jcp.ast.expression.literal.*;
 import com.elminster.jcp.ast.expression.operation.*;
 import com.elminster.jcp.ast.expression.operation.operator.AssignmentOperator;
 import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
+import com.elminster.jcp.ast.expression.base.ModuleFunctionCallExpression;
+import com.elminster.jcp.ast.expression.StaticMethodCallExpression;
 import com.elminster.jcp.ast.expression.base.VariableExpression;
 import com.elminster.jcp.ast.statement.*;
 import com.elminster.jcp.ast.statement.control.*;
@@ -257,9 +260,39 @@ public class ParseTreeConverter extends MiniLangBaseVisitor<Node> {
             args = new Expression[0];
         }
 
-        FunctionCallExpression call = new FunctionCallExpression(Identifier.fromName(funcName), args);
+        // Check if this is a known module function
+        Expression call;
+        if (isModuleFunction(funcName)) {
+            // Static method call to module class (e.g., Logger.log)
+            call = new StaticMethodCallExpression(
+                getModuleName(funcName),
+                funcName,
+                args
+            );
+        } else {
+            // Regular function call
+            call = new FunctionCallExpression(Identifier.fromName(funcName), args);
+        }
+
         attachLocation(call, ctx);
         return call;
+    }
+
+    /**
+     * Checks if a function name refers to a module function.
+     */
+    private boolean isModuleFunction(String funcName) {
+        return funcName.equals("log");  // Logger.log
+    }
+
+    /**
+     * Gets the module name for a module function.
+     */
+    private String getModuleName(String funcName) {
+        if (funcName.equals("log")) {
+            return "Logger";
+        }
+        return null;
     }
 
     @Override
@@ -386,7 +419,7 @@ public class ParseTreeConverter extends MiniLangBaseVisitor<Node> {
         Expression operand = (Expression) visit(ctx.expression());
         // Unary minus - need to create a negation expression
         // For now, we'll use (0 - expr) pattern
-        Expression zero = IntLiteral.of(0);
+        Expression zero = LiteralExpression.of(IntLiteral.of(0));
         Expression result = new Minus(zero, operand);
         attachLocation(result, ctx);
         return result;
@@ -400,7 +433,7 @@ public class ParseTreeConverter extends MiniLangBaseVisitor<Node> {
     @Override
     public Expression visitIdentifier(MiniLangParser.IdentifierContext ctx) {
         String name = ctx.ID().getText();
-        IdentifierExpression result = new IdentifierExpression(name);
+        VariableExpression result = VariableExpression.of(name);
         attachLocation(result, ctx);
         return result;
     }
@@ -415,7 +448,7 @@ public class ParseTreeConverter extends MiniLangBaseVisitor<Node> {
     @Override
     public Expression visitIntLiteral(MiniLangParser.IntLiteralContext ctx) {
         int value = Integer.parseInt(ctx.INT_LITERAL().getText());
-        IntLiteral result = IntLiteral.of(value);
+        LiteralExpression result = LiteralExpression.of(IntLiteral.of(value));
         attachLocation(result, ctx);
         return result;
     }
@@ -423,7 +456,7 @@ public class ParseTreeConverter extends MiniLangBaseVisitor<Node> {
     @Override
     public Expression visitDoubleLiteral(MiniLangParser.DoubleLiteralContext ctx) {
         double value = Double.parseDouble(ctx.DOUBLE_LITERAL().getText());
-        DoubleLiteral result = DoubleLiteral.of(value);
+        LiteralExpression result = LiteralExpression.of(DoubleLiteral.of(value));
         attachLocation(result, ctx);
         return result;
     }
@@ -433,7 +466,7 @@ public class ParseTreeConverter extends MiniLangBaseVisitor<Node> {
         String text = ctx.STRING_LITERAL().getText();
         // Remove quotes
         String value = text.substring(1, text.length() - 1);
-        StringLiteral result = StringLiteral.of(value);
+        LiteralExpression result = LiteralExpression.of(StringLiteral.of(value));
         attachLocation(result, ctx);
         return result;
     }
@@ -441,7 +474,7 @@ public class ParseTreeConverter extends MiniLangBaseVisitor<Node> {
     @Override
     public Expression visitBooleanLiteral(MiniLangParser.BooleanLiteralContext ctx) {
         boolean value = Boolean.parseBoolean(ctx.BOOLEAN_LITERAL().getText());
-        BooleanLiteral result = BooleanLiteral.of(value);
+        LiteralExpression result = LiteralExpression.of(BooleanLiteral.of(value));
         attachLocation(result, ctx);
         return result;
     }

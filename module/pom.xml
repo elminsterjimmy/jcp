@@ -11,6 +11,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>system</module>
+        <module>minilang</module>
     </modules>
     <artifactId>module</artifactId>
 </project>

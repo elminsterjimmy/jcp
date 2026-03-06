@@ -4,14 +4,14 @@ let sum: int = x + y
 let product: int = x * y
 let difference: int = x - y
 
-print(sum)
-print(product)
-print(difference)
+log(sum)
+log(product)
+log(difference)
 
 let greeting: string = "Hello"
 let name: string = "MiniLang"
-print(greeting)
-print(name)
+log(greeting)
+log(name)
 
 let flag: boolean = true
-print(flag)
+log(flag)
