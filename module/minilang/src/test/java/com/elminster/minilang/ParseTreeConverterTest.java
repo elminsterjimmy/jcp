@@ -8,10 +8,8 @@ import com.elminster.jcp.ast.statement.control.WhileStatement;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.junit.jupiter.api.Test;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-
 import static org.junit.jupiter.api.Assertions.*;
+import static com.elminster.minilang.TestUtils.loadTestScript;
 
 /**
  * Unit tests for ParseTreeConverter using separate test script files.
@@ -19,24 +17,11 @@ import static org.junit.jupiter.api.Assertions.*;
  * <p>Test scripts are stored in src/test/resources/test-scripts/ for easy review and modification.
  * Each test validates specific parsing functionality by loading and parsing dedicated script files.
  *
- * <p>For end-to-end dual-mode validation, see {@link MiniLangIntegrationTest}.
+ * <p>For end-to-end dual-mode validation, see {@link MiniLangDualModeTest}.
  */
 public class ParseTreeConverterTest {
 
     private final ParseTreeConverter converter = new ParseTreeConverter("test.minilang", "");
-
-    /**
-     * Loads a test script from resources.
-     */
-    private String loadTestScript(String filename) throws Exception {
-        try (InputStream is = getClass().getClassLoader()
-                .getResourceAsStream("test-scripts/" + filename)) {
-            if (is == null) {
-                fail("Test script not found: " + filename);
-            }
-            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        }
-    }
 
     @Test
     void testParseSimpleVariableDeclaration() throws Exception {

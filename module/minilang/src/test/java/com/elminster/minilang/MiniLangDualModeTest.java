@@ -14,18 +14,28 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration tests for MiniLang that validate dual-mode execution.
+ * Dual-mode execution tests for MiniLang.
  *
- * <p>These tests serve two purposes:
- * <ol>
- *   <li><strong>Validate MiniLang:</strong> Ensure the grammar, converter, and examples work correctly</li>
- *   <li><strong>Validate JCP Core:</strong> Ensure eval and compile modes produce identical results</li>
- * </ol>
+ * <p>Validates that both eval (interpreter) and compile (bytecode) modes
+ * produce identical results for the same MiniLang programs. This ensures
+ * JCP's dual-mode execution guarantee.
  *
- * <p>This test pattern is critical for JCP's dual-mode execution guarantee. Any divergence
- * between eval and compile modes indicates a bug in JCP core that must be fixed.
+ * <p>These are basic parser validation tests, not full integration tests.
  */
-public class MiniLangIntegrationTest {
+public class MiniLangDualModeTest {
+
+    /**
+     * Loads an example program from resources.
+     */
+    private String loadExample(String filename) throws Exception {
+        try (InputStream is = getClass().getClassLoader()
+                .getResourceAsStream("examples/" + filename)) {
+            if (is == null) {
+                throw new IllegalArgumentException("Example not found: " + filename);
+            }
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
 
     /**
      * Tests that all example programs execute correctly in both eval and compile modes.
@@ -89,18 +99,5 @@ public class MiniLangIntegrationTest {
         assertNotNull(program, "Parser should produce AST");
         assertNotNull(program.getBody(), "Program should have statements");
         assertFalse(program.getBody().isEmpty(), "Program should not be empty");
-    }
-
-    /**
-     * Loads an example file from resources.
-     */
-    private String loadExample(String filename) throws Exception {
-        try (InputStream is = getClass().getClassLoader()
-                .getResourceAsStream("examples/" + filename)) {
-            if (is == null) {
-                fail("Example file not found: " + filename);
-            }
-            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        }
     }
 }

@@ -9,25 +9,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-
 import static org.junit.jupiter.api.Assertions.*;
+import static com.elminster.minilang.TestUtils.loadTestScript;
 
 /**
  * Comprehensive test suite for MiniLang organized by feature category.
  */
 public class MiniLangTest {
-
-    private String loadTestScript(String filename) throws Exception {
-        try (InputStream is = getClass().getClassLoader()
-                .getResourceAsStream("test-scripts/" + filename)) {
-            if (is == null) {
-                fail("Test script not found: " + filename);
-            }
-            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        }
-    }
 
     private void assertTestPasses(String scriptFile) throws Exception {
         String source = loadTestScript(scriptFile);
