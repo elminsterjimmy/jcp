@@ -171,51 +171,54 @@ public class FunCallCompiler extends AbstractAstCompiler {
      *
      * <p>Valid patterns:
      * <ul>
+     *   <li>func - global function (base/user module, no module/type prefix)</li>
+     *   <li>module::func - global function with explicit module</li>
      *   <li>Type.method - base/user module type method</li>
      *   <li>module::Type.method - explicit module type method</li>
      * </ul>
      *
      * <p>Invalid patterns:
      * <ul>
-     *   <li>func - global function (no dot)</li>
      *   <li>Type.method.invalid - multiple dots after module delimiter</li>
-     *   <li>::Type.method - empty module name</li>
+     *   <li>::func - empty module name</li>
      * </ul>
      *
      * @param funcName the function name to validate
      * @return true if it matches a valid module function pattern
      */
     private boolean isModuleFunctionPattern(String funcName) {
-        // Must contain at least one dot for Type.method
-        if (!funcName.contains(".")) {
-            return false;
-        }
-
-        // If contains ::, validate module::Type.method pattern
+        // Check for :: delimiter
         if (funcName.contains("::")) {
             int moduleDelimiter = funcName.indexOf("::");
             // Module name must not be empty
             if (moduleDelimiter == 0) {
                 return false;
             }
-            // After :: must be Type.method (exactly one dot)
+            // After :: can be:
+            // - "func" (global function, no dot)
+            // - "Type.method" (type method, exactly one dot)
             String afterModule = funcName.substring(moduleDelimiter + 2);
             int dotCount = afterModule.length() - afterModule.replace(".", "").length();
-            return dotCount == 1;
+            return dotCount == 0 || dotCount == 1;
         } else {
-            // Simple Type.method pattern (exactly one dot)
+            // Without ::, can be:
+            // - "func" (global function, no dot)
+            // - "Type.method" (type method, exactly one dot)
             int dotCount = funcName.length() - funcName.replace(".", "").length();
-            return dotCount == 1;
+            return dotCount == 0 || dotCount == 1;
         }
     }
 
     /**
-     * Compile module function call: module::Type.function(args) or Type.function(args)
+     * Compile module function call: module::Type.function(args), Type.function(args),
+     * module::func(args), or func(args)
      *
      * <p>Syntax:
      * <ul>
-     *   <li>Explicit module: {@code base::Assertions.assertTrue(condition)}</li>
-     *   <li>Base module shorthand: {@code Assertions.assertTrue(condition)} (omits "base::")</li>
+     *   <li>Type method explicit: {@code base::Assertions.assertTrue(condition)}</li>
+     *   <li>Type method shorthand: {@code Assertions.assertTrue(condition)} (omits "base::")</li>
+     *   <li>Global function explicit: {@code base::abs(value)}</li>
+     *   <li>Global function shorthand: {@code abs(value)} (omits "base::" and "global")</li>
      * </ul>
      *
      * <p>Module functions are static methods in Java classes from modules.
@@ -226,25 +229,35 @@ public class FunCallCompiler extends AbstractAstCompiler {
     private void compileModuleFunctionCall(MethodVisitor mv, CompileContext ctx,
                                           String fullName, Expression[] args)
             throws ClassNotFoundException, NoSuchMethodException {
-        // Parse module::Type.method or Type.method (shorthand for base::Type.method)
+        // Parse module::Type.method, Type.method, module::func, or func
         String moduleName;
         String typeAndMethod;
 
         if (fullName.contains("::")) {
-            // Explicit module: "base::Assertions.assertTrue"
+            // Explicit module: "base::Assertions.assertTrue" or "base::abs"
             int moduleDelimiter = fullName.indexOf("::");
             moduleName = fullName.substring(0, moduleDelimiter);
             typeAndMethod = fullName.substring(moduleDelimiter + 2);
         } else {
-            // Shorthand: "Assertions.assertTrue" means base module
+            // Shorthand: "Assertions.assertTrue" or "abs" means base module
             moduleName = null; // Will default to base module
             typeAndMethod = fullName;
         }
 
-        // Split "Assertions.assertTrue" into typeName="Assertions" and method="assertTrue"
-        int dotIndex = typeAndMethod.lastIndexOf('.');
-        String typeName = typeAndMethod.substring(0, dotIndex);
-        String methodName = typeAndMethod.substring(dotIndex + 1);
+        // Determine if this is a type method or global function
+        String typeName;
+        String methodName;
+
+        if (typeAndMethod.contains(".")) {
+            // Type method: "Assertions.assertTrue"
+            int dotIndex = typeAndMethod.lastIndexOf('.');
+            typeName = typeAndMethod.substring(0, dotIndex);
+            methodName = typeAndMethod.substring(dotIndex + 1);
+        } else {
+            // Global function: "abs" → type="global", method="abs"
+            typeName = "global";
+            methodName = typeAndMethod;
+        }
 
         // Construct full class name
         String className = resolveModuleClassName(moduleName, typeName);
