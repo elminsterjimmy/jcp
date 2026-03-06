@@ -236,7 +236,7 @@ public class FunCallCompiler extends AbstractAstCompiler {
         // Base module classes are in com.elminster.jcp.module.base.<lowercase-package>
         // For example: "Assertions" -> "com.elminster.jcp.module.base.assertions.Assertions"
         String packageName = moduleName.toLowerCase();
-        return "com.elminster.jcp.module.base." + packageName + "." + moduleName;
+        return BASE_MODULE_PACKAGE + "." + packageName + "." + moduleName;
     }
 
     /**
