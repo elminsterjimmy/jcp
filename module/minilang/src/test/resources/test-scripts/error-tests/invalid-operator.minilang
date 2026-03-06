@@ -1,2 +1,1 @@
-// Invalid operator
 let result: int = 5 @@ 3

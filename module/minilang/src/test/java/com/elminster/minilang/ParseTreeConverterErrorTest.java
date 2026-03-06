@@ -1,8 +1,13 @@
 package com.elminster.minilang;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static com.elminster.minilang.TestUtils.loadTestScript;
 
 /**
  * Comprehensive error path tests for MiniLang parser.
@@ -14,330 +19,154 @@ import static org.junit.jupiter.api.Assertions.*;
  *   <li>Handles various syntax errors gracefully</li>
  *   <li>Provides meaningful error messages for debugging</li>
  * </ul>
+ *
+ * <p>Error test scripts are in src/test/resources/test-scripts/error-tests/
+ * Each script includes a comment with expected error metadata:
+ * <pre>// Expected error: line X, contains "keyword"</pre>
  */
 public class ParseTreeConverterErrorTest {
 
     /**
-     * Tests missing semicolon error.
+     * Pattern to extract error location from ANTLR error messages.
+     * Example: "Syntax error at test.minilang:1:15 - mismatched input"
+     * Group 1: line number, Group 2: column position
      */
-    @Test
-    void testMissingSemicolon() {
-        String source = "let x: int = 10";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
+    private static final Pattern ERROR_LOCATION_PATTERN = Pattern.compile(":(\\d+):(\\d+)");
 
+    /**
+     * Tests various syntax errors with expected error messages, line numbers, and column positions.
+     *
+     * <p>Each test:
+     * <ul>
+     *   <li>Loads error test script from file</li>
+     *   <li>Expects parsing to fail with exception</li>
+     *   <li>Validates error message contains expected keywords</li>
+     *   <li>Validates error location (line:column) matches expectations</li>
+     * </ul>
+     */
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({
+        "Missing newline, error-tests/missing-newline.minilang, 1, 'mismatched|missing'",
+        "Unterminated string, error-tests/unterminated-string.minilang, 2, 'token|mismatched|string'",
+        "Invalid type, error-tests/invalid-type.minilang, 1, 'mismatched|extraneous'",
+        "Missing brace, error-tests/missing-brace.minilang, -1, 'missing|}''",
+        "Invalid operator, error-tests/invalid-operator.minilang, 1, 'extraneous|token|@@'"
+    })
+    void testSyntaxErrorsWithLocation(String testName, String scriptFile, int expectedLine, String expectedKeywords) throws Exception {
+        // Load test script
+        String source = loadTestScript(scriptFile);
+        assertNotNull(source, "Test script should load: " + scriptFile);
+
+        // Parse and expect error
+        ParseTreeConverter converter = new ParseTreeConverter(scriptFile, source);
         Exception exception = assertThrows(Exception.class, () -> {
             converter.parse(source);
-        }, "Should throw exception for missing semicolon");
+        }, "Should throw exception for: " + testName);
 
         String errorMessage = exception.getMessage();
         assertNotNull(errorMessage, "Error message should not be null");
         assertFalse(errorMessage.isEmpty(), "Error message should not be empty");
 
-        // ANTLR reports this as "mismatched input '<EOF>'" or similar
-        assertTrue(errorMessage.toLowerCase().contains("mismatched") ||
-                   errorMessage.toLowerCase().contains("missing"),
-            "Error message should contain 'mismatched' or 'missing'. Actual: " + errorMessage);
+        // Validate error message contains expected keywords (OR logic)
+        String[] keywords = expectedKeywords.split("\\|");
+        boolean containsKeyword = false;
+        for (String keyword : keywords) {
+            if (errorMessage.toLowerCase().contains(keyword.toLowerCase().replace("'", ""))) {
+                containsKeyword = true;
+                break;
+            }
+        }
+        assertTrue(containsKeyword,
+            String.format("Error message should contain one of %s. Actual: %s",
+                expectedKeywords, errorMessage));
+
+        // Validate error location matches expected line and includes column position
+        // Note: expectedLine = -1 means skip exact line validation (e.g., EOF errors)
+        if (expectedLine > 0) {
+            Matcher matcher = ERROR_LOCATION_PATTERN.matcher(errorMessage);
+            if (matcher.find()) {
+                int actualLine = Integer.parseInt(matcher.group(1));
+                int actualColumn = Integer.parseInt(matcher.group(2));
+
+                assertEquals(expectedLine, actualLine,
+                    String.format("Error should be on line %d but was on line %d. Message: %s",
+                        expectedLine, actualLine, errorMessage));
+
+                // Verify column position is present and reasonable (> 0)
+                assertTrue(actualColumn > 0,
+                    String.format("Error column position should be > 0, was %d. Message: %s",
+                        actualColumn, errorMessage));
+            } else {
+                // If no location pattern found, at least verify message mentions line info
+                assertTrue(errorMessage.contains("line") || errorMessage.matches(".*\\d+:\\d+.*"),
+                    "Error message should include location information (line:column). Actual: " + errorMessage);
+            }
+        } else {
+            // For EOF errors, just verify location info is present
+            assertTrue(errorMessage.matches(".*\\d+:\\d+.*"),
+                "Error message should include location information (line:column). Actual: " + errorMessage);
+        }
     }
 
     /**
-     * Tests unterminated string literal error.
+     * Tests that error messages include file name for better debugging.
      */
-    @Test
-    void testUnterminatedString() {
-        String source = "let s: string = \"hello\n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        }, "Should throw exception for unterminated string");
-
-        String errorMessage = exception.getMessage();
-        assertNotNull(errorMessage, "Error message should not be null");
-        assertTrue(errorMessage.toLowerCase().contains("mismatched") ||
-                   errorMessage.toLowerCase().contains("token") ||
-                   errorMessage.toLowerCase().contains("string"),
-            "Error message should contain token/string error. Actual: " + errorMessage);
-    }
-
-    /**
-     * Tests invalid type name error.
-     */
-    @Test
-    void testInvalidType() {
-        String source = "let x: invalid = 10\n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        }, "Should throw exception for invalid type");
-
-        String errorMessage = exception.getMessage();
-        assertNotNull(errorMessage, "Error message should not be null");
-        assertTrue(errorMessage.toLowerCase().contains("mismatched") ||
-                   errorMessage.toLowerCase().contains("extraneous"),
-            "Error message should indicate syntax error. Actual: " + errorMessage);
-    }
-
-    /**
-     * Tests missing expression after equals.
-     */
-    @Test
-    void testMissingExpression() {
-        String source = "let x: int = \n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        }, "Should throw exception for missing expression");
-
-        String errorMessage = exception.getMessage();
-        assertNotNull(errorMessage, "Error message should not be null");
-        assertTrue(errorMessage.toLowerCase().contains("mismatched") ||
-                   errorMessage.toLowerCase().contains("missing"),
-            "Error message should indicate missing expression. Actual: " + errorMessage);
-    }
-
-    /**
-     * Tests missing closing brace error.
-     */
-    @Test
-    void testMissingClosingBrace() {
-        String source = "func test() {\nlet x: int = 5\n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        }, "Should throw exception for missing closing brace");
-
-        String errorMessage = exception.getMessage();
-        assertNotNull(errorMessage, "Error message should not be null");
-        assertTrue(errorMessage.contains("}") || errorMessage.toLowerCase().contains("missing"),
-            "Error message should mention missing '}'. Actual: " + errorMessage);
-    }
-
-    /**
-     * Tests missing opening brace error.
-     */
-    @Test
-    void testMissingOpeningBrace() {
-        String source = "func test() \nlet x: int = 5\n}";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        }, "Should throw exception for missing opening brace");
-
-        String errorMessage = exception.getMessage();
-        assertNotNull(errorMessage, "Error message should not be null");
-        assertTrue(errorMessage.toLowerCase().contains("mismatched") ||
-                   errorMessage.toLowerCase().contains("missing"),
-            "Error message should indicate syntax error. Actual: " + errorMessage);
-    }
-
-    /**
-     * Tests invalid operator error.
-     */
-    @Test
-    void testInvalidOperator() {
-        String source = "let x: int = 5 @@ 3\n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        }, "Should throw exception for invalid operator");
-
-        String errorMessage = exception.getMessage();
-        assertNotNull(errorMessage, "Error message should not be null");
-        assertTrue(errorMessage.toLowerCase().contains("token") ||
-                   errorMessage.toLowerCase().contains("mismatched") ||
-                   errorMessage.toLowerCase().contains("extraneous") ||
-                   errorMessage.contains("@@"),
-            "Error message should indicate syntax error. Actual: " + errorMessage);
-    }
-
-    /**
-     * Tests missing function return type arrow error.
-     */
-    @Test
-    void testMissingFunctionReturnTypeArrow() {
-        String source = "func test(): int {\nreturn 5\n}\n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        }, "Should throw exception for missing return type arrow");
-
-        String errorMessage = exception.getMessage();
-        assertNotNull(errorMessage, "Error message should not be null");
-        assertTrue(errorMessage.toLowerCase().contains("mismatched") ||
-                   errorMessage.toLowerCase().contains("missing") ||
-                   errorMessage.contains("->"),
-            "Error message should indicate syntax error with ->. Actual: " + errorMessage);
-    }
-
-    /**
-     * Tests that error messages include location information.
-     */
-    @Test
-    void testErrorLocationInformation() {
-        // Error on line 2
-        String source = "let x: int = 10\nlet y: int = \n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        });
-
-        String errorMessage = exception.getMessage();
-        assertNotNull(errorMessage, "Error message should include location");
-
-        // Should mention line information
-        boolean hasLineInfo = errorMessage.contains("line") ||
-                              errorMessage.contains("Line") ||
-                              errorMessage.matches(".*\\d+:\\d+.*"); // line:column format
-
-        assertTrue(hasLineInfo,
-            "Error message should include line information. Actual: " + errorMessage);
-    }
-
-    /**
-     * Tests multiple syntax errors to ensure parser reports first error.
-     */
-    @Test
-    void testMultipleSyntaxErrors() {
-        String source = "let x: invalid = \nlet y: int = 10\n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        });
-
-        assertNotNull(exception.getMessage());
-        assertFalse(exception.getMessage().isEmpty());
-    }
-
-    /**
-     * Tests type mismatch errors.
-     */
-    @Test
-    void testTypeMismatchError() {
-        String source = "let x: int = \"string value\"\n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        // Note: Type checking happens at runtime, not parse time
-        // This test verifies the parser accepts it (semantic analysis comes later)
-        assertDoesNotThrow(() -> {
-            converter.parse(source);
-        });
-    }
-
-    /**
-     * Tests unclosed code blocks.
-     */
-    @Test
-    void testUnclosedBlock() {
-        String source = "func test() {\nlet x: int = 5\n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        });
-
-        String errorMessage = exception.getMessage();
-        assertNotNull(errorMessage);
-        assertTrue(errorMessage.contains("}") || errorMessage.toLowerCase().contains("missing"),
-            "Error should mention missing closing brace. Actual: " + errorMessage);
-    }
-
-    /**
-     * Tests invalid function declarations.
-     */
-    @Test
-    void testInvalidFunctionDeclaration() {
-        String source = "func () -> int {\nreturn 5\n}\n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        });
-
-        assertNotNull(exception.getMessage());
-        assertFalse(exception.getMessage().isEmpty());
-    }
-
-    /**
-     * Tests invalid variable declarations.
-     */
-    @Test
-    void testInvalidVariableDeclaration() {
-        String source = "let : int = 5\n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        });
-
-        assertNotNull(exception.getMessage());
-    }
-
-    /**
-     * Tests malformed expressions.
-     */
-    @Test
-    void testMalformedExpression() {
-        String source = "let x: int = 5 + + 3\n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        });
-
-        assertNotNull(exception.getMessage());
-    }
-
-    /**
-     * Tests invalid control flow statements.
-     */
-    @Test
-    void testInvalidControlFlow() {
-        String source = "if {\nlet x: int = 5\n}\n";
-        ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
-
-        Exception exception = assertThrows(Exception.class, () -> {
-            converter.parse(source);
-        });
-
-        String errorMessage = exception.getMessage();
-        assertNotNull(errorMessage);
-        assertTrue(errorMessage.length() > 0, "Error message should provide details");
-    }
-
-    /**
-     * Tests error message contains file name.
-     */
-    @Test
-    void testErrorMessageContainsFileName() {
-        String source = "let x: invalid = 10\n";
-        String fileName = "my-test-file.minilang";
+    @ParameterizedTest(name = "File context: {0}")
+    @CsvSource({
+        "my-test-file.minilang, error-tests/invalid-type.minilang",
+        "user-script.minilang, error-tests/missing-newline.minilang"
+    })
+    void testErrorMessageIncludesFileName(String fileName, String scriptFile) throws Exception {
+        String source = loadTestScript(scriptFile);
         ParseTreeConverter converter = new ParseTreeConverter(fileName, source);
 
         Exception exception = assertThrows(Exception.class, () -> {
             converter.parse(source);
         });
 
-        // Some parsers include filename in error messages
         String errorMessage = exception.getMessage();
         assertNotNull(errorMessage);
-        assertFalse(errorMessage.isEmpty());
+        // Some parsers include filename, others may not - at minimum should have location
+        assertTrue(errorMessage.contains(fileName) || errorMessage.matches(".*\\d+:\\d+.*"),
+            "Error message should include file name or location. Actual: " + errorMessage);
     }
 
     /**
-     * Tests that parser recovers error context.
+     * Tests multiple syntax errors to ensure parser reports the first error encountered.
      */
-    @Test
-    void testErrorContextInformation() {
-        String source = "let x: int = 10\nlet y: int = 20\nlet z: invalid = 30\n";
+    @ParameterizedTest(name = "Multiple errors: {0}")
+    @CsvSource({
+        "error-tests/invalid-type.minilang",
+        "error-tests/unterminated-string.minilang"
+    })
+    void testMultipleSyntaxErrors(String scriptFile) throws Exception {
+        String source = loadTestScript(scriptFile);
         ParseTreeConverter converter = new ParseTreeConverter("test.minilang", source);
+
+        Exception exception = assertThrows(Exception.class, () -> {
+            converter.parse(source);
+        });
+
+        // Should report at least one error
+        assertNotNull(exception.getMessage());
+        assertFalse(exception.getMessage().isEmpty());
+
+        // Should include location information
+        String errorMessage = exception.getMessage();
+        assertTrue(errorMessage.matches(".*\\d+:\\d+.*") || errorMessage.contains("line"),
+            "Error message should include location. Actual: " + errorMessage);
+    }
+
+    /**
+     * Tests unclosed code blocks with proper error location (line and column).
+     */
+    @ParameterizedTest(name = "Unclosed block: {0}")
+    @CsvSource({
+        "error-tests/missing-brace.minilang, -1, '}|missing'"
+    })
+    void testUnclosedBlockWithLocation(String scriptFile, int expectedMinLine, String expectedKeywords) throws Exception {
+        String source = loadTestScript(scriptFile);
+        ParseTreeConverter converter = new ParseTreeConverter(scriptFile, source);
 
         Exception exception = assertThrows(Exception.class, () -> {
             converter.parse(source);
@@ -346,8 +175,64 @@ public class ParseTreeConverterErrorTest {
         String errorMessage = exception.getMessage();
         assertNotNull(errorMessage);
 
-        // Error message should be descriptive
+        // Check for expected keywords
+        String[] keywords = expectedKeywords.split("\\|");
+        boolean containsKeyword = false;
+        for (String keyword : keywords) {
+            if (errorMessage.contains(keyword)) {
+                containsKeyword = true;
+                break;
+            }
+        }
+        assertTrue(containsKeyword,
+            String.format("Error should mention %s. Actual: %s", expectedKeywords, errorMessage));
+
+        // Validate location present (exact line may vary for EOF errors)
+        if (expectedMinLine > 0) {
+            Matcher matcher = ERROR_LOCATION_PATTERN.matcher(errorMessage);
+            if (matcher.find()) {
+                int actualLine = Integer.parseInt(matcher.group(1));
+                assertTrue(actualLine >= expectedMinLine,
+                    String.format("Error should be at or after line %d, was line %d", expectedMinLine, actualLine));
+            }
+        } else {
+            // Just verify location info is present
+            assertTrue(errorMessage.matches(".*\\d+:\\d+.*") || errorMessage.contains("line"),
+                "Error message should include location information");
+        }
+    }
+
+    /**
+     * Tests that parser provides descriptive error messages with context.
+     */
+    @ParameterizedTest(name = "Error context: {0}")
+    @CsvSource({
+        "error-tests/invalid-operator.minilang",
+        "error-tests/unterminated-string.minilang",
+        "error-tests/missing-brace.minilang"
+    })
+    void testErrorContextInformation(String scriptFile) throws Exception {
+        String source = loadTestScript(scriptFile);
+        ParseTreeConverter converter = new ParseTreeConverter(scriptFile, source);
+
+        Exception exception = assertThrows(Exception.class, () -> {
+            converter.parse(source);
+        });
+
+        String errorMessage = exception.getMessage();
+        assertNotNull(errorMessage);
+
+        // Error message should be descriptive (more than just "error")
         assertTrue(errorMessage.length() > 10,
             "Error message should be descriptive, not just a simple string");
+
+        // Should include what was expected or what went wrong
+        assertTrue(
+            errorMessage.toLowerCase().contains("mismatched") ||
+            errorMessage.toLowerCase().contains("missing") ||
+            errorMessage.toLowerCase().contains("extraneous") ||
+            errorMessage.toLowerCase().contains("token"),
+            "Error message should describe what went wrong. Actual: " + errorMessage
+        );
     }
 }

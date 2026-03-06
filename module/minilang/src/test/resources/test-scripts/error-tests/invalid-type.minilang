@@ -1,2 +1,1 @@
-// This file uses an invalid type name
 let x: invalid_type = 42
