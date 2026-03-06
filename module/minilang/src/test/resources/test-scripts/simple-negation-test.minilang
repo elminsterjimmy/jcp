@@ -1,0 +1,20 @@
+func testNegation() -> boolean {
+    let x: int = 10
+    let negX: int = -x
+    let y: int = 5
+    let z: int = 3
+    let diff: int = y - z
+
+    if negX == -10 {
+        if -negX == 10 {
+            let negDiff: int = -diff
+            if negDiff == -2 {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
+let result: boolean = testNegation()

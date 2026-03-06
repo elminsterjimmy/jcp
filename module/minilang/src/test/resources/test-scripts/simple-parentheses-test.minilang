@@ -1,0 +1,17 @@
+func testParentheses() -> boolean {
+    let x: int = 5
+    let y: int = 3
+    let z: int = 2
+
+    if (x + y) * z == 16 {
+        if x + (y * z) == 11 {
+            if ((x + y) - z) == 6 {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
+let result: boolean = testParentheses()

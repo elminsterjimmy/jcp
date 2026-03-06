@@ -76,7 +76,16 @@ public class MiniLangSimpleTest {
         "simple-edge-cases-test.minilang, result",
         "simple-complex-expressions-test.minilang, result",
         "simple-string-test.minilang, result",
-        "simple-nested-loops-test.minilang, result"
+        "simple-nested-loops-test.minilang, result",
+        "simple-boolean-test.minilang, result",
+        "simple-multiple-functions-test.minilang, result",
+        "simple-else-branches-test.minilang, result",
+        "simple-modulo-test.minilang, result",
+        "simple-void-function-test.minilang, result",
+        "simple-double-test.minilang, result",
+        "simple-parentheses-test.minilang, result",
+        "simple-all-comparisons-test.minilang, result",
+        "simple-division-test.minilang, result"
     })
     void testWithBooleanReturn(String scriptFile, String variableName) throws Exception {
         String source = loadTestScript(scriptFile);

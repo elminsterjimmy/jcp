@@ -1,0 +1,24 @@
+func add(a: int, b: int) -> int {
+    return a + b
+}
+
+func multiply(x: int, y: int) -> int {
+    return x * y
+}
+
+func testMultipleFunctions() -> boolean {
+    let sum: int = add(5, 3)
+    let product: int = multiply(4, 2)
+
+    if sum == 8 {
+        if product == 8 {
+            if add(product, sum) == 16 {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
+let result: boolean = testMultipleFunctions()

@@ -1,0 +1,17 @@
+func testModulo() -> boolean {
+    let a: int = 10
+    let b: int = 3
+    let remainder: int = a % b
+
+    if remainder == 1 {
+        if 15 % 4 == 3 {
+            if 20 % 7 == 6 {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
+let result: boolean = testModulo()

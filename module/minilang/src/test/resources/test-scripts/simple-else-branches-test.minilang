@@ -1,0 +1,19 @@
+func testElseBranches() -> boolean {
+    let x: int = 10
+
+    if x > 20 {
+        return false
+    } else {
+        if x < 5 {
+            return false
+        } else {
+            if x == 10 {
+                return true
+            } else {
+                return false
+            }
+        }
+    }
+}
+
+let result: boolean = testElseBranches()
