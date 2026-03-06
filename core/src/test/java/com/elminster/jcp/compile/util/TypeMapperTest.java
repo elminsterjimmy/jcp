@@ -504,6 +504,277 @@ class TypeMapperTest {
             DataType type = TypeMapper.getExpressionType(expr, ctx);
             assertEquals(SystemDataType.DOUBLE, type);
         }
+
+        /**
+         * Tests expression type for DOUBLE + DOUBLE binary expression.
+         * <pre>
+         * var x = 1.5 + 2.3  // type = DOUBLE
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_DoublePlusDouble() {
+            ctx.allocateLocal("a", SystemDataType.DOUBLE);
+            ctx.allocateLocal("b", SystemDataType.DOUBLE);
+            com.elminster.jcp.ast.expression.operation.Plus expr =
+                new com.elminster.jcp.ast.expression.operation.Plus(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.DOUBLE, type);
+        }
+
+        /**
+         * Tests expression type for INT - INT subtraction.
+         * <pre>
+         * var x = 5 - 3  // type = INT
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_IntMinusInt() {
+            ctx.allocateLocal("a", SystemDataType.INT);
+            ctx.allocateLocal("b", SystemDataType.INT);
+            com.elminster.jcp.ast.expression.operation.Minus expr =
+                new com.elminster.jcp.ast.expression.operation.Minus(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.INT, type);
+        }
+
+        /**
+         * Tests expression type for INT * INT multiplication.
+         * <pre>
+         * var x = 5 * 3  // type = INT
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_IntTimesInt() {
+            ctx.allocateLocal("a", SystemDataType.INT);
+            ctx.allocateLocal("b", SystemDataType.INT);
+            com.elminster.jcp.ast.expression.operation.Multi expr =
+                new com.elminster.jcp.ast.expression.operation.Multi(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.INT, type);
+        }
+
+        /**
+         * Tests expression type for INT / INT division.
+         * <pre>
+         * var x = 10 / 2  // type = INT
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_IntDivideInt() {
+            ctx.allocateLocal("a", SystemDataType.INT);
+            ctx.allocateLocal("b", SystemDataType.INT);
+            com.elminster.jcp.ast.expression.operation.Divide expr =
+                new com.elminster.jcp.ast.expression.operation.Divide(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.INT, type);
+        }
+
+        /**
+         * Tests expression type for unknown variable + known variable (should return null).
+         * <pre>
+         * var x = unknown + 5  // type = null (unknown operand)
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_UnknownOperand() {
+            ctx.allocateLocal("b", SystemDataType.INT);
+            com.elminster.jcp.ast.expression.operation.Plus expr =
+                new com.elminster.jcp.ast.expression.operation.Plus(
+                    new VariableExpression(Identifier.fromName("unknown")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertNull(type);
+        }
+
+        /**
+         * Tests expression type for INT == INT comparison (always BOOLEAN).
+         * <pre>
+         * var result = (x == y)  // type = BOOLEAN
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_EqualComparison() {
+            ctx.allocateLocal("a", SystemDataType.INT);
+            ctx.allocateLocal("b", SystemDataType.INT);
+            com.elminster.jcp.ast.expression.operation.Equal expr =
+                new com.elminster.jcp.ast.expression.operation.Equal(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.BOOLEAN, type);
+        }
+
+        /**
+         * Tests expression type for INT != INT comparison (always BOOLEAN).
+         * <pre>
+         * var result = (x != y)  // type = BOOLEAN
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_NotEqualComparison() {
+            ctx.allocateLocal("a", SystemDataType.INT);
+            ctx.allocateLocal("b", SystemDataType.INT);
+            com.elminster.jcp.ast.expression.operation.NotEqual expr =
+                new com.elminster.jcp.ast.expression.operation.NotEqual(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.BOOLEAN, type);
+        }
+
+        /**
+         * Tests expression type for INT < INT comparison (always BOOLEAN).
+         * <pre>
+         * var result = (x < y)  // type = BOOLEAN
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_LessThanComparison() {
+            ctx.allocateLocal("a", SystemDataType.INT);
+            ctx.allocateLocal("b", SystemDataType.INT);
+            com.elminster.jcp.ast.expression.operation.LessThan expr =
+                new com.elminster.jcp.ast.expression.operation.LessThan(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.BOOLEAN, type);
+        }
+
+        /**
+         * Tests expression type for INT > INT comparison (always BOOLEAN).
+         * <pre>
+         * var result = (x > y)  // type = BOOLEAN
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_GreaterThanComparison() {
+            ctx.allocateLocal("a", SystemDataType.INT);
+            ctx.allocateLocal("b", SystemDataType.INT);
+            com.elminster.jcp.ast.expression.operation.GreaterThan expr =
+                new com.elminster.jcp.ast.expression.operation.GreaterThan(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.BOOLEAN, type);
+        }
+
+        /**
+         * Tests expression type for INT <= INT comparison (always BOOLEAN).
+         * <pre>
+         * var result = (x <= y)  // type = BOOLEAN
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_LessThanOrEqualComparison() {
+            ctx.allocateLocal("a", SystemDataType.INT);
+            ctx.allocateLocal("b", SystemDataType.INT);
+            com.elminster.jcp.ast.expression.operation.LessThanEqual expr =
+                new com.elminster.jcp.ast.expression.operation.LessThanEqual(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.BOOLEAN, type);
+        }
+
+        /**
+         * Tests expression type for INT >= INT comparison (always BOOLEAN).
+         * <pre>
+         * var result = (x >= y)  // type = BOOLEAN
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_GreaterThanOrEqualComparison() {
+            ctx.allocateLocal("a", SystemDataType.INT);
+            ctx.allocateLocal("b", SystemDataType.INT);
+            com.elminster.jcp.ast.expression.operation.GreaterThanEqual expr =
+                new com.elminster.jcp.ast.expression.operation.GreaterThanEqual(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.BOOLEAN, type);
+        }
+    }
+
+    @Nested
+    class LogicalExpressionTypeTests {
+
+        /**
+         * Tests expression type for BOOLEAN && BOOLEAN logical AND (always BOOLEAN).
+         * <pre>
+         * var result = (a && b)  // type = BOOLEAN
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_LogicalAnd() {
+            ctx.allocateLocal("a", SystemDataType.BOOLEAN);
+            ctx.allocateLocal("b", SystemDataType.BOOLEAN);
+            com.elminster.jcp.ast.expression.operation.LogicalAndExpression expr =
+                new com.elminster.jcp.ast.expression.operation.LogicalAndExpression(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.BOOLEAN, type);
+        }
+
+        /**
+         * Tests expression type for BOOLEAN || BOOLEAN logical OR (always BOOLEAN).
+         * <pre>
+         * var result = (a || b)  // type = BOOLEAN
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_LogicalOr() {
+            ctx.allocateLocal("a", SystemDataType.BOOLEAN);
+            ctx.allocateLocal("b", SystemDataType.BOOLEAN);
+            com.elminster.jcp.ast.expression.operation.LogicalOrExpression expr =
+                new com.elminster.jcp.ast.expression.operation.LogicalOrExpression(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.BOOLEAN, type);
+        }
+    }
+
+    @Nested
+    class UnaryExpressionTypeTests {
+
+        /**
+         * Tests expression type for logical NOT operator (always BOOLEAN).
+         * <pre>
+         * var result = !x  // type = BOOLEAN
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_LogicalNotOperator() {
+            ctx.allocateLocal("a", SystemDataType.BOOLEAN);
+            com.elminster.jcp.ast.expression.operation.LogicalNotExpression expr =
+                new com.elminster.jcp.ast.expression.operation.LogicalNotExpression(
+                    new VariableExpression(Identifier.fromName("a"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertEquals(SystemDataType.BOOLEAN, type);
+        }
     }
 
     @Nested

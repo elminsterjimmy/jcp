@@ -323,10 +323,8 @@ public final class TypeMapper {
                 return SystemDataType.BOOLEAN;
             }
 
-            // NEGATE operator returns the same type as operand
-            if ("NEGATE".equals(op)) {
-                return getExpressionType(unary.getExpress(), ctx);
-            }
+            // For other unary operators (e.g., NEGATE), return the same type as operand
+            return getExpressionType(unary.getExpress(), ctx);
         }
         return null;  // Unknown
     }
