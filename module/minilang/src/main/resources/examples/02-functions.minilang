@@ -1,0 +1,26 @@
+func add(a: int, b: int) -> int {
+    return a + b
+}
+
+let result: int = add(5, 3)
+print(result)
+
+func factorial(n: int) -> int {
+    if n <= 1 {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+
+let fact5: int = factorial(5)
+print(fact5)
+
+func fibonacci(n: int) -> int {
+    if n <= 1 {
+        return n
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+let fib7: int = fibonacci(7)
+print(fib7)
