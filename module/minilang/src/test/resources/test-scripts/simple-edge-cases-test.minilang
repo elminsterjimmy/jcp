@@ -1,0 +1,17 @@
+func testEdgeCases() -> boolean {
+    let zero: int = 0
+    let negative: int = -5
+    let positive: int = 5
+
+    if zero == 0 {
+        if negative < 0 {
+            if positive > 0 {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
+let result: boolean = testEdgeCases()

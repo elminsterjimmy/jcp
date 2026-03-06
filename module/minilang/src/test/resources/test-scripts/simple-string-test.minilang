@@ -1,0 +1,13 @@
+func testStringOperations() -> boolean {
+    let greeting: string = "Hello"
+    let name: string = "World"
+    let message: string = greeting + " " + name
+
+    if message == "Hello World" {
+        return true
+    }
+
+    return false
+}
+
+let result: boolean = testStringOperations()
