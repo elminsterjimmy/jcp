@@ -34,11 +34,15 @@ validate_username() {
 
 ## Workflow
 
-### Step 1: Detect Current PR
+### Step 1: Detect Current PR and Fetch Latest Changes
 
 ```bash
 BRANCH=$(git branch --show-current)
 validate_branch "$BRANCH"
+
+# Fetch latest changes from remote to ensure we have up-to-date review comments
+echo "Fetching latest changes from remote..."
+git fetch origin "$BRANCH" 2>/dev/null || echo "Warning: Could not fetch from remote"
 
 # Get PR info in single API call
 PR_INFO=$(gh pr view "$BRANCH" --json number,title,state,body 2>/dev/null) || {
@@ -53,48 +57,93 @@ validate_number "$PR_NUM"
 PR_TITLE=$(echo "$PR_INFO" | jq -r '.title')
 
 echo "PR #${PR_NUM}: $PR_TITLE"
+echo ""
+echo "🔄 Refreshing review data from GitHub..."
 ```
 
 ### Step 2: Fetch All Comments
+
+**IMPORTANT:** Always fetch fresh review data from GitHub API to ensure you have the latest feedback.
 
 Gather all types of review feedback:
 
 #### Get Review Comments (Inline Code Comments)
 
+**Note:** GitHub API caches may be stale. Always fetch with explicit API calls.
+
 ```bash
-# Get all review comments (inline comments on code)
+# Get all review comments (inline comments on code) with fresh API call
+echo "Fetching inline review comments..."
 REVIEW_COMMENTS=$(gh api repos/{owner}/{repo}/pulls/$PR_NUM/comments --jq '.[] | {id: .id, path: .path, line: .line, body: .body, user: .user.login, created_at: .created_at}' 2>/dev/null)
 
+REVIEW_COMMENT_COUNT=0
 if [ -n "$REVIEW_COMMENTS" ]; then
+    REVIEW_COMMENT_COUNT=$(echo "$REVIEW_COMMENTS" | jq -s 'length' 2>/dev/null || echo "0")
     echo ""
-    echo "=== Inline Review Comments ==="
+    echo "=== Inline Review Comments (${REVIEW_COMMENT_COUNT}) ==="
     echo "$REVIEW_COMMENTS"
+else
+    echo "✓ No inline review comments"
 fi
 ```
 
 #### Get PR Conversation Comments
 
 ```bash
-# Get PR conversation comments
+# Get PR conversation comments with fresh data
+echo ""
+echo "Fetching PR conversation comments..."
 PR_COMMENTS=$(gh pr view "$PR_NUM" --json comments --jq '.comments[] | {id: .id, body: .body, author: .author.login, createdAt: .createdAt}' 2>/dev/null)
 
+PR_COMMENT_COUNT=0
 if [ -n "$PR_COMMENTS" ]; then
+    PR_COMMENT_COUNT=$(echo "$PR_COMMENTS" | jq -s 'length' 2>/dev/null || echo "0")
     echo ""
-    echo "=== PR Conversation Comments ==="
+    echo "=== PR Conversation Comments (${PR_COMMENT_COUNT}) ==="
     echo "$PR_COMMENTS"
+else
+    echo "✓ No PR conversation comments"
 fi
 ```
 
 #### Get Review Submissions
 
 ```bash
-# Get review submissions with their bodies
+# Get review submissions with their bodies - ALWAYS FETCH FRESH
+echo ""
+echo "Fetching review submissions..."
 REVIEWS=$(gh pr view "$PR_NUM" --json reviews --jq '.reviews[] | {id: .id, state: .state, body: .body, author: .author.login, submittedAt: .submittedAt}' 2>/dev/null)
 
+REVIEW_COUNT=0
 if [ -n "$REVIEWS" ]; then
+    REVIEW_COUNT=$(echo "$REVIEWS" | jq -s 'length' 2>/dev/null || echo "0")
     echo ""
-    echo "=== Review Submissions ==="
+    echo "=== Review Submissions (${REVIEW_COUNT}) ==="
     echo "$REVIEWS"
+
+    # Count reviews by state
+    CHANGES_REQUESTED=$(echo "$REVIEWS" | jq -s '[.[] | select(.state == "CHANGES_REQUESTED")] | length' 2>/dev/null || echo "0")
+    APPROVED=$(echo "$REVIEWS" | jq -s '[.[] | select(.state == "APPROVED")] | length' 2>/dev/null || echo "0")
+    COMMENTED=$(echo "$REVIEWS" | jq -s '[.[] | select(.state == "COMMENTED")] | length' 2>/dev/null || echo "0")
+
+    echo ""
+    echo "Review Status Summary:"
+    echo "  - Changes Requested: ${CHANGES_REQUESTED}"
+    echo "  - Approved: ${APPROVED}"
+    echo "  - Commented: ${COMMENTED}"
+else
+    echo "✓ No review submissions"
+fi
+
+# Calculate total actionable items
+TOTAL_ITEMS=$((REVIEW_COMMENT_COUNT + PR_COMMENT_COUNT + REVIEW_COUNT))
+echo ""
+echo "📋 Total review items to address: ${TOTAL_ITEMS}"
+
+if [ "$TOTAL_ITEMS" -eq 0 ]; then
+    echo ""
+    echo "✅ No review comments to address. PR is clean!"
+    exit 0
 fi
 ```
 
@@ -183,7 +232,41 @@ For each comment that requires action:
 4. **Make the change** following documented patterns
 5. **Track completion** for the commit message
 
-### Step 6: Commit Changes
+### Step 6: Verify Pipeline Requirements
+
+Before committing, ensure all pipeline requirements are met:
+
+```bash
+# Run tests and coverage verification
+echo "Running tests and coverage verification..."
+mvn verify -pl core
+
+# Check exit code
+if [ $? -ne 0 ]; then
+    echo "❌ Pipeline verification failed!"
+    echo ""
+    echo "Common issues:"
+    echo "- Tests failing"
+    echo "- Coverage below 80% threshold (instruction or branch)"
+    echo "- Build errors"
+    echo ""
+    echo "Fix issues before committing."
+    exit 1
+fi
+
+echo "✅ Pipeline requirements met:"
+echo "  - All tests passing"
+echo "  - Coverage thresholds met (80%+ instruction and branch)"
+echo ""
+```
+
+**Important Notes:**
+- Use `mvn verify` not just `mvn test` - verify includes coverage checks
+- JaCoCo enforces 80% instruction and 80% branch coverage on core module
+- If coverage fails, add tests for new/modified code
+- Check coverage report: `core/target/site/jacoco/index.html`
+
+### Step 7: Commit Changes
 
 After addressing all comments:
 
@@ -204,7 +287,7 @@ PR #${PR_NUM}"
 git push
 ```
 
-### Step 7: Reply to Comments (Optional)
+### Step 8: Reply to Comments (Optional)
 
 For significant changes, reply to the comment threads:
 
@@ -216,7 +299,7 @@ gh pr comment "$PR_NUM" --body "Addressed all review feedback:
 - {Change 3}"
 ```
 
-### Step 8: Compound Knowledge
+### Step 9: Compound Knowledge
 
 After resolving all comments, capture any learnings discovered during the resolution process.
 
@@ -317,7 +400,7 @@ Captured learnings from PR #${PR_NUM} review feedback."
 git push
 ```
 
-### Step 9: Output Results
+### Step 10: Output Results
 
 ```
 === Review Resolution Summary ===
@@ -354,6 +437,7 @@ Next steps:
 - [ ] All review submission feedback fetched
 - [ ] Project knowledge searched for relevant solutions
 - [ ] Each actionable comment addressed
+- [ ] **Pipeline requirements verified (tests + coverage)**
 - [ ] Changes committed with descriptive message
 - [ ] Changes pushed to remote
 - [ ] Learnings compounded if applicable

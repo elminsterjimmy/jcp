@@ -10,6 +10,7 @@ import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.context.CompileContext.FunctionSignature;
 import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
+import com.elminster.jcp.compile.util.CompileModeClassConverter;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
@@ -79,6 +80,9 @@ import java.util.Arrays;
  */
 public class FunCallCompiler extends AbstractAstCompiler {
 
+    /** Base package for JCP base module classes */
+    private static final String BASE_MODULE_PACKAGE = "com.elminster.jcp.module.base";
+
     public FunCallCompiler(Node astNode) {
         super(astNode);
     }
@@ -97,6 +101,29 @@ public class FunCallCompiler extends AbstractAstCompiler {
             if (dataType instanceof ExternalClassType) {
                 compileExternalClassConstructor(mv, ctx, (ExternalClassType) dataType, args);
                 return;
+            }
+        }
+
+        // Check if this is a module function call
+        // Valid patterns: "Type.method" or "module::Type.method"
+        // Must contain "." and if contains "::" it must be before the "."
+        if (isModuleFunctionPattern(funcName)) {
+            // Try to compile as module function call
+            try {
+                compileModuleFunctionCall(mv, ctx, funcName, args);
+                return;
+            } catch (ClassNotFoundException e) {
+                // Module class not found - not a module function
+                // Fall through to user-defined function lookup below
+                // (which will provide appropriate error if that also fails)
+            } catch (NoSuchMethodException e) {
+                // Module class exists but method not found - throw clear error
+                throw new CompileException("Module function not found: " + funcName +
+                    " - " + e.getMessage(), getSourceLocation());
+            } catch (Exception e) {
+                // Other reflection errors during module function call - rethrow
+                throw new CompileException("Error compiling module function: " + funcName +
+                    " - " + e.getMessage(), getSourceLocation());
             }
         }
 
@@ -138,6 +165,270 @@ public class FunCallCompiler extends AbstractAstCompiler {
         );
         // Result (if any) is now on stack
     }
+
+    /**
+     * Check if function name matches a valid module function pattern.
+     *
+     * <p>Valid patterns:
+     * <ul>
+     *   <li>func - global function (base/user module, no module/type prefix)</li>
+     *   <li>module::func - global function with explicit module</li>
+     *   <li>Type.method - base/user module type method</li>
+     *   <li>module::Type.method - explicit module type method</li>
+     * </ul>
+     *
+     * <p>Invalid patterns:
+     * <ul>
+     *   <li>Type.method.invalid - multiple dots after module delimiter</li>
+     *   <li>::func - empty module name</li>
+     * </ul>
+     *
+     * @param funcName the function name to validate
+     * @return true if it matches a valid module function pattern
+     */
+    private boolean isModuleFunctionPattern(String funcName) {
+        // Check for :: delimiter
+        if (funcName.contains("::")) {
+            int moduleDelimiter = funcName.indexOf("::");
+            // Module name must not be empty
+            if (moduleDelimiter == 0) {
+                return false;
+            }
+            // After :: can be:
+            // - "func" (global function, no dot)
+            // - "Type.method" (type method, exactly one dot)
+            String afterModule = funcName.substring(moduleDelimiter + 2);
+            int dotCount = afterModule.length() - afterModule.replace(".", "").length();
+            return dotCount == 0 || dotCount == 1;
+        } else {
+            // Without ::, can be:
+            // - "func" (global function, no dot)
+            // - "Type.method" (type method, exactly one dot)
+            int dotCount = funcName.length() - funcName.replace(".", "").length();
+            return dotCount == 0 || dotCount == 1;
+        }
+    }
+
+    /**
+     * Compile module function call: module::Type.function(args), Type.function(args),
+     * module::func(args), or func(args)
+     *
+     * <p>Syntax:
+     * <ul>
+     *   <li>Type method explicit: {@code base::Assertions.assertTrue(condition)}</li>
+     *   <li>Type method shorthand: {@code Assertions.assertTrue(condition)} (omits "base::")</li>
+     *   <li>Global function explicit: {@code base::abs(value)}</li>
+     *   <li>Global function shorthand: {@code abs(value)} (omits "base::" and "global")</li>
+     * </ul>
+     *
+     * <p>Module functions are static methods in Java classes from modules.
+     *
+     * @throws ClassNotFoundException if the module class cannot be found
+     * @throws NoSuchMethodException if the method is not found in the module class
+     */
+    private void compileModuleFunctionCall(MethodVisitor mv, CompileContext ctx,
+                                          String fullName, Expression[] args)
+            throws ClassNotFoundException, NoSuchMethodException {
+        // Parse module::Type.method, Type.method, module::func, or func
+        String moduleName;
+        String typeAndMethod;
+
+        if (fullName.contains("::")) {
+            // Explicit module: "base::Assertions.assertTrue" or "base::abs"
+            int moduleDelimiter = fullName.indexOf("::");
+            moduleName = fullName.substring(0, moduleDelimiter);
+            typeAndMethod = fullName.substring(moduleDelimiter + 2);
+        } else {
+            // Shorthand: "Assertions.assertTrue" or "abs" means base module
+            moduleName = null; // Will default to base module
+            typeAndMethod = fullName;
+        }
+
+        // Determine if this is a type method or global function
+        String typeName;
+        String methodName;
+
+        if (typeAndMethod.contains(".")) {
+            // Type method: "Assertions.assertTrue"
+            int dotIndex = typeAndMethod.lastIndexOf('.');
+            typeName = typeAndMethod.substring(0, dotIndex);
+            methodName = typeAndMethod.substring(dotIndex + 1);
+        } else {
+            // Global function: "abs" → type="global", method="abs"
+            typeName = "global";
+            methodName = typeAndMethod;
+        }
+
+        // Construct full class name
+        String className = resolveModuleClassName(moduleName, typeName);
+
+        // Load the class to discover method signature
+        Class<?> clazz = Class.forName(className);
+
+        // Determine argument types for descriptor
+        DataType[] argTypes = new DataType[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
+        }
+
+        // Discover the actual return type via reflection
+        DataType returnType;
+        try {
+            returnType = discoverReturnType(clazz, methodName, argTypes);
+        } catch (NoSuchMethodException e) {
+            throw new CompileException("Module function not found: " + methodName +
+                " with argument types " + Arrays.toString(argTypes) +
+                " in class " + className, getSourceLocation());
+        }
+
+        // Compile arguments (push values onto stack)
+        for (int i = 0; i < args.length; i++) {
+            Compilable argCompiler = AstCompilerFactory.getCompiler(args[i]);
+            argCompiler.compile(mv, ctx);
+        }
+
+        // Build method descriptor with discovered return type
+        StringBuilder descriptor = new StringBuilder("(");
+        for (DataType argType : argTypes) {
+            descriptor.append(TypeMapper.toDescriptor(argType));
+        }
+        descriptor.append(")");
+        descriptor.append(TypeMapper.toDescriptor(returnType));
+
+        // Emit INVOKESTATIC
+        String internalName = className.replace('.', '/');
+        mv.visitMethodInsn(
+            Opcodes.INVOKESTATIC,
+            internalName,
+            methodName,
+            descriptor.toString(),
+            false
+        );
+    }
+
+    /**
+     * Resolve module and type name to full Java class name.
+     *
+     * <p>Resolution strategy:
+     * <ol>
+     *   <li>If module is explicitly specified, use it directly</li>
+     *   <li>If module is null (shorthand syntax), default to base module</li>
+     * </ol>
+     *
+     * @param moduleName the module name (e.g., "base") or null for base module shorthand
+     * @param typeName the type name (e.g., "Assertions")
+     * @return the fully qualified class name
+     * @throws ClassNotFoundException if the module class cannot be found
+     */
+    private String resolveModuleClassName(String moduleName, String typeName)
+            throws ClassNotFoundException {
+        if (moduleName != null) {
+            // Explicit module specified: try it first
+            if ("base".equals(moduleName)) {
+                // Base module: com.elminster.jcp.module.base.<lowercase-type>.<Type>
+                String packageName = typeName.toLowerCase();
+                String explicitClass = BASE_MODULE_PACKAGE + "." + packageName + "." + typeName;
+                try {
+                    Class.forName(explicitClass);
+                    return explicitClass;
+                } catch (ClassNotFoundException e) {
+                    throw new ClassNotFoundException("Module '" + moduleName + "::" + typeName +
+                        "' not found: " + explicitClass);
+                }
+            } else {
+                // Future: support other modules
+                throw new ClassNotFoundException("Non-base modules not yet supported: " + moduleName);
+            }
+        } else {
+            // No module specified (shorthand): default to base module
+            String packageName = typeName.toLowerCase();
+            String baseModuleClass = BASE_MODULE_PACKAGE + "." + packageName + "." + typeName;
+            try {
+                Class.forName(baseModuleClass);
+                return baseModuleClass;
+            } catch (ClassNotFoundException e) {
+                throw new ClassNotFoundException("Type '" + typeName +
+                    "' not found in base module: " + baseModuleClass);
+            }
+        }
+    }
+
+    /**
+     * Discover the return type of a module function via reflection.
+     * Matches method by name and compatible parameter types.
+     *
+     * @param clazz      the module class
+     * @param methodName the method name
+     * @param argTypes   the argument types
+     * @return the discovered return type
+     * @throws CompileException if method is not found or ambiguous
+     * @throws NoSuchMethodException if method is not found after exhaustive search
+     */
+    private DataType discoverReturnType(Class<?> clazz, String methodName, DataType[] argTypes)
+            throws NoSuchMethodException {
+        java.lang.reflect.Method[] methods = clazz.getDeclaredMethods();
+        java.lang.reflect.Method matchedMethod = null;
+
+        // Find matching static method by name and compatible parameter types
+        for (java.lang.reflect.Method method : methods) {
+            if (!method.getName().equals(methodName)) {
+                continue;
+            }
+            if (!java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+                continue;
+            }
+
+            Class<?>[] paramTypes = method.getParameterTypes();
+            if (paramTypes.length != argTypes.length) {
+                continue;
+            }
+
+            // Check if parameter types are compatible
+            boolean compatible = true;
+            for (int i = 0; i < paramTypes.length; i++) {
+                if (!isCompatibleType(argTypes[i], paramTypes[i])) {
+                    compatible = false;
+                    break;
+                }
+            }
+
+            if (compatible) {
+                if (matchedMethod != null) {
+                    throw new CompileException("Ambiguous module function: " + methodName +
+                        " in class " + clazz.getName(), getSourceLocation());
+                }
+                matchedMethod = method;
+            }
+        }
+
+        if (matchedMethod == null) {
+            throw new NoSuchMethodException("Module function not found: " + methodName +
+                " with argument types " + Arrays.toString(argTypes) +
+                " in class " + clazz.getName());
+        }
+
+        // Map Java return type to DataType using existing utility
+        return CompileModeClassConverter.mapJavaTypeToDataType(matchedMethod.getReturnType());
+    }
+
+    /**
+     * Check if a JCP DataType is compatible with a Java parameter type.
+     *
+     * <p>Uses existing utilities:
+     * <ul>
+     *   <li>{@link CompileModeClassConverter#mapJavaTypeToDataType} - Convert Java Class to DataType</li>
+     *   <li>{@link DataType#isCompatibleWith} - Check DataType compatibility</li>
+     * </ul>
+     *
+     * @param jcpType the JCP data type (argument type)
+     * @param javaType the Java parameter type
+     * @return true if compatible for method invocation
+     */
+    private boolean isCompatibleType(DataType jcpType, Class<?> javaType) {
+        DataType paramDataType = CompileModeClassConverter.mapJavaTypeToDataType(javaType);
+        return jcpType.isCompatibleWith(paramDataType);
+    }
+
 
     /**
      * Compile external class constructor call: TypeName.new(args)
