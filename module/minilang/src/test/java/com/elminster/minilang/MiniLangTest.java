@@ -35,12 +35,12 @@ public class MiniLangTest {
 
     @ParameterizedTest(name = "Basic: {0}")
     @CsvSource({
-        "simple-arithmetic-test.minilang",
-        "simple-comparison-test.minilang",
-        "simple-logical-test.minilang",
-        "simple-boolean-test.minilang",
-        "simple-string-test.minilang",
-        "simple-double-test.minilang"
+        "basic/simple-arithmetic-test.minilang",
+        "basic/simple-comparison-test.minilang",
+        "basic/simple-logical-test.minilang",
+        "basic/simple-boolean-test.minilang",
+        "basic/simple-string-test.minilang",
+        "basic/simple-double-test.minilang"
     })
     void testBasicFeatures(String scriptFile) throws Exception {
         assertTestPasses(scriptFile);
@@ -50,10 +50,10 @@ public class MiniLangTest {
 
     @ParameterizedTest(name = "Control flow: {0}")
     @CsvSource({
-        "simple-loops-test.minilang",
-        "simple-nested-loops-test.minilang",
-        "simple-nested-conditions-test.minilang",
-        "simple-else-branches-test.minilang"
+        "control-flow/simple-loops-test.minilang",
+        "control-flow/simple-nested-loops-test.minilang",
+        "control-flow/simple-nested-conditions-test.minilang",
+        "control-flow/simple-else-branches-test.minilang"
     })
     void testControlFlow(String scriptFile) throws Exception {
         assertTestPasses(scriptFile);
@@ -63,9 +63,9 @@ public class MiniLangTest {
 
     @ParameterizedTest(name = "Functions: {0}")
     @CsvSource({
-        "simple-recursion-test.minilang",
-        "simple-multiple-functions-test.minilang",
-        "simple-void-function-test.minilang"
+        "functions/simple-recursion-test.minilang",
+        "functions/simple-multiple-functions-test.minilang",
+        "functions/simple-void-function-test.minilang"
     })
     void testFunctions(String scriptFile) throws Exception {
         assertTestPasses(scriptFile);
@@ -75,11 +75,11 @@ public class MiniLangTest {
 
     @ParameterizedTest(name = "Operators: {0}")
     @CsvSource({
-        "simple-division-test.minilang",
-        "simple-modulo-test.minilang",
-        "simple-all-comparisons-test.minilang",
-        "simple-complex-expressions-test.minilang",
-        "simple-parentheses-test.minilang"
+        "operators/simple-division-test.minilang",
+        "operators/simple-modulo-test.minilang",
+        "operators/simple-all-comparisons-test.minilang",
+        "operators/simple-complex-expressions-test.minilang",
+        "operators/simple-parentheses-test.minilang"
     })
     void testOperators(String scriptFile) throws Exception {
         assertTestPasses(scriptFile);
@@ -89,7 +89,7 @@ public class MiniLangTest {
 
     @ParameterizedTest(name = "Edge cases: {0}")
     @CsvSource({
-        "simple-edge-cases-test.minilang"
+        "edge-cases/simple-edge-cases-test.minilang"
     })
     void testEdgeCases(String scriptFile) throws Exception {
         assertTestPasses(scriptFile);

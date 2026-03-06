@@ -25,7 +25,7 @@ public class ParseTreeConverterTest {
 
     @Test
     void testParseSimpleVariableDeclaration() throws Exception {
-        String source = loadTestScript("simple-variable.minilang");
+        String source = loadTestScript("unit-tests/simple-variable.minilang");
         Block program = converter.parse(source);
 
         assertEquals(1, program.getBody().size());
@@ -39,7 +39,7 @@ public class ParseTreeConverterTest {
 
     @Test
     void testParseMultipleVariables() throws Exception {
-        String source = loadTestScript("multiple-variables.minilang");
+        String source = loadTestScript("unit-tests/multiple-variables.minilang");
         Block program = converter.parse(source);
 
         assertEquals(3, program.getBody().size());
@@ -48,7 +48,7 @@ public class ParseTreeConverterTest {
 
     @Test
     void testParseFunctionDeclaration() throws Exception {
-        String source = loadTestScript("function-declaration.minilang");
+        String source = loadTestScript("functions/function-declaration.minilang");
         Block program = converter.parse(source);
 
         assertEquals(1, program.getBody().size());
@@ -62,7 +62,7 @@ public class ParseTreeConverterTest {
 
     @Test
     void testParseIfStatement() throws Exception {
-        String source = loadTestScript("if-statement.minilang");
+        String source = loadTestScript("control-flow/if-statement.minilang");
         Block program = converter.parse(source);
 
         assertEquals(1, program.getBody().size());
@@ -71,7 +71,7 @@ public class ParseTreeConverterTest {
 
     @Test
     void testParseIfElseStatement() throws Exception {
-        String source = loadTestScript("if-else-statement.minilang");
+        String source = loadTestScript("control-flow/if-else-statement.minilang");
         Block program = converter.parse(source);
 
         assertEquals(1, program.getBody().size());
@@ -80,7 +80,7 @@ public class ParseTreeConverterTest {
 
     @Test
     void testParseWhileLoop() throws Exception {
-        String source = loadTestScript("while-loop.minilang");
+        String source = loadTestScript("control-flow/while-loop.minilang");
         Block program = converter.parse(source);
 
         assertEquals(1, program.getBody().size());
@@ -89,7 +89,7 @@ public class ParseTreeConverterTest {
 
     @Test
     void testTypeResolution() throws Exception {
-        String source = loadTestScript("type-resolution.minilang");
+        String source = loadTestScript("unit-tests/type-resolution.minilang");
         Block program = converter.parse(source);
 
         VariableDeclaration intDecl = (VariableDeclaration) program.getBody().get(0);
@@ -107,7 +107,7 @@ public class ParseTreeConverterTest {
 
     @Test
     void testSyntaxError() throws Exception {
-        String source = loadTestScript("syntax-error.minilang");
+        String source = loadTestScript("unit-tests/syntax-error.minilang");
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             converter.parse(source);
@@ -127,7 +127,7 @@ public class ParseTreeConverterTest {
 
     @Test
     void testBlankLines() throws Exception {
-        String source = loadTestScript("blank-lines.minilang");
+        String source = loadTestScript("unit-tests/blank-lines.minilang");
         Block program = converter.parse(source);
 
         // Should only have 2 statements, blank lines filtered out
@@ -136,7 +136,7 @@ public class ParseTreeConverterTest {
 
     @Test
     void testComments() throws Exception {
-        String source = loadTestScript("comments.minilang");
+        String source = loadTestScript("unit-tests/comments.minilang");
         Block program = converter.parse(source);
 
         // Comments should be filtered out

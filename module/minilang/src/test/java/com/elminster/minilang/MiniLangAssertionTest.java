@@ -41,15 +41,15 @@ public class MiniLangAssertionTest {
      */
     @ParameterizedTest(name = "Eval mode: {0}")
     @ValueSource(strings = {
-        "arithmetic-assertions.minilang",
-        "comparison-assertions.minilang",
-        "logical-assertions.minilang",
-        "function-call-assertions.minilang",
-        "recursion-assertions.minilang",
-        "if-else-assertions.minilang",
-        "while-loop-assertions.minilang",
-        "break-assertions.minilang",
-        "continue-assertions.minilang"
+        "basic/arithmetic-assertions.minilang",
+        "basic/comparison-assertions.minilang",
+        "basic/logical-assertions.minilang",
+        "functions/function-call-assertions.minilang",
+        "functions/recursion-assertions.minilang",
+        "control-flow/if-else-assertions.minilang",
+        "control-flow/while-loop-assertions.minilang",
+        "control-flow/break-assertions.minilang",
+        "control-flow/continue-assertions.minilang"
     })
     void testEvalModeWithAssertions(String scriptFile) throws Exception {
         String source = loadTestScript(scriptFile);
