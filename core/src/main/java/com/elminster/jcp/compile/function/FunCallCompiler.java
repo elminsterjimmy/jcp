@@ -10,6 +10,7 @@ import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.context.CompileContext.FunctionSignature;
 import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
+import com.elminster.jcp.compile.util.CompileModeClassConverter;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
@@ -79,6 +80,9 @@ import java.util.Arrays;
  */
 public class FunCallCompiler extends AbstractAstCompiler {
 
+    /** Base package for JCP base module classes */
+    private static final String BASE_MODULE_PACKAGE = "com.elminster.jcp.module.base";
+
     public FunCallCompiler(Node astNode) {
         super(astNode);
     }
@@ -107,8 +111,17 @@ public class FunCallCompiler extends AbstractAstCompiler {
                 compileModuleFunctionCall(mv, ctx, funcName, args);
                 return;
             } catch (ClassNotFoundException e) {
-                // Not a module function - fall through to user-defined function lookup
-                // If this also fails, the final error message will indicate undefined function
+                // Module class not found - not a module function
+                // Fall through to user-defined function lookup below
+                // (which will provide appropriate error if that also fails)
+            } catch (NoSuchMethodException e) {
+                // Module class exists but method not found - throw clear error
+                throw new CompileException("Module function not found: " + funcName +
+                    " - " + e.getMessage(), getSourceLocation());
+            } catch (Exception e) {
+                // Other reflection errors during module function call - rethrow
+                throw new CompileException("Error compiling module function: " + funcName +
+                    " - " + e.getMessage(), getSourceLocation());
             }
         }
 
@@ -158,9 +171,11 @@ public class FunCallCompiler extends AbstractAstCompiler {
      * <p>Module functions are static methods in Java classes from the base module or other modules.
      *
      * @throws ClassNotFoundException if the module class cannot be found
+     * @throws NoSuchMethodException if the method is not found in the module class
      */
     private void compileModuleFunctionCall(MethodVisitor mv, CompileContext ctx,
-                                          String fullName, Expression[] args) throws ClassNotFoundException {
+                                          String fullName, Expression[] args)
+            throws ClassNotFoundException, NoSuchMethodException {
         // Split "Assertions.assertTrue" into module="Assertions" and method="assertTrue"
         int dotIndex = fullName.lastIndexOf('.');
         String moduleName = fullName.substring(0, dotIndex);
@@ -179,7 +194,14 @@ public class FunCallCompiler extends AbstractAstCompiler {
         }
 
         // Discover the actual return type via reflection
-        DataType returnType = discoverReturnType(clazz, methodName, argTypes);
+        DataType returnType;
+        try {
+            returnType = discoverReturnType(clazz, methodName, argTypes);
+        } catch (NoSuchMethodException e) {
+            throw new CompileException("Module function not found: " + methodName +
+                " with argument types " + Arrays.toString(argTypes) +
+                " in class " + className, getSourceLocation());
+        }
 
         // Compile arguments (push values onto stack)
         for (int i = 0; i < args.length; i++) {
@@ -226,8 +248,10 @@ public class FunCallCompiler extends AbstractAstCompiler {
      * @param argTypes   the argument types
      * @return the discovered return type
      * @throws CompileException if method is not found or ambiguous
+     * @throws NoSuchMethodException if method is not found after exhaustive search
      */
-    private DataType discoverReturnType(Class<?> clazz, String methodName, DataType[] argTypes) {
+    private DataType discoverReturnType(Class<?> clazz, String methodName, DataType[] argTypes)
+            throws NoSuchMethodException {
         java.lang.reflect.Method[] methods = clazz.getDeclaredMethods();
         java.lang.reflect.Method matchedMethod = null;
 
@@ -264,13 +288,13 @@ public class FunCallCompiler extends AbstractAstCompiler {
         }
 
         if (matchedMethod == null) {
-            throw new CompileException("Module function not found: " + methodName +
+            throw new NoSuchMethodException("Module function not found: " + methodName +
                 " with argument types " + Arrays.toString(argTypes) +
-                " in class " + clazz.getName(), getSourceLocation());
+                " in class " + clazz.getName());
         }
 
-        // Map Java return type to DataType
-        return mapJavaTypeToDataType(matchedMethod.getReturnType());
+        // Map Java return type to DataType using existing utility
+        return CompileModeClassConverter.mapJavaTypeToDataType(matchedMethod.getReturnType());
     }
 
     /**
@@ -292,24 +316,6 @@ public class FunCallCompiler extends AbstractAstCompiler {
         return javaType.getSimpleName().equals(jcpType.getName());
     }
 
-    /**
-     * Map Java reflection type to JCP DataType.
-     */
-    private DataType mapJavaTypeToDataType(Class<?> javaType) {
-        if (javaType == void.class || javaType == Void.class) {
-            return SystemDataType.VOID;
-        } else if (javaType == boolean.class || javaType == Boolean.class) {
-            return SystemDataType.BOOLEAN;
-        } else if (javaType == int.class || javaType == Integer.class) {
-            return SystemDataType.INT;
-        } else if (javaType == double.class || javaType == Double.class) {
-            return SystemDataType.DOUBLE;
-        } else if (javaType == String.class) {
-            return SystemDataType.STRING;
-        }
-        // For other types, return ANY as a fallback
-        return SystemDataType.ANY;
-    }
 
     /**
      * Compile external class constructor call: TypeName.new(args)
