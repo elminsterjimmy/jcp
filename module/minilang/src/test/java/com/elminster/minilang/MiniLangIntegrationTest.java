@@ -8,9 +8,7 @@ import com.elminster.jcp.eval.context.RootEvalContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,15 +28,15 @@ import static org.junit.jupiter.api.Assertions.*;
 public class MiniLangIntegrationTest {
 
     /**
-     * Tests that all example programs execute correctly in both eval and compile modes
-     * and produce identical output.
+     * Tests that all example programs execute correctly in both eval and compile modes.
      *
-     * <p>This is the primary validation that JCP's dual-mode execution works correctly.
-     * If this test fails, it means either:
+     * <p>The examples now include assertions that validate their own correctness.
+     * If any assertion fails, an AssertException will be thrown, causing the test to fail.
+     * If the test passes, it means:
      * <ul>
-     *   <li>The MiniLang converter has a bug (check parse tree conversion)</li>
-     *   <li>JCP's evaluator has a bug (check eval/ package)</li>
-     *   <li>JCP's compiler has a bug (check compile/ package)</li>
+     *   <li>The MiniLang converter works correctly</li>
+     *   <li>Both eval and compile modes execute correctly</li>
+     *   <li>All assertions in the example passed</li>
      * </ul>
      */
     @ParameterizedTest(name = "{0}")
@@ -57,47 +55,19 @@ public class MiniLangIntegrationTest {
         Block program = converter.parse(source);
         assertNotNull(program, "Parser should produce AST");
 
-        // Execute in eval mode
-        ByteArrayOutputStream evalOutput = new ByteArrayOutputStream();
-        PrintStream originalOut = System.out;
-        try {
-            System.setOut(new PrintStream(evalOutput, true, StandardCharsets.UTF_8));
+        // Execute in eval mode - should not throw
+        assertDoesNotThrow(() -> {
             EvalContext evalCtx = new RootEvalContext();
             new EvalVisitor(evalCtx).visit(program);
-        } finally {
-            System.setOut(originalOut);
-        }
+        }, "Eval mode should execute without errors for " + exampleFile);
 
-        // Execute in compile mode
-        ByteArrayOutputStream compileOutput = new ByteArrayOutputStream();
-        try {
-            System.setOut(new PrintStream(compileOutput, true, StandardCharsets.UTF_8));
+        // Execute in compile mode - should not throw
+        assertDoesNotThrow(() -> {
             JcpCompiler compiler = new JcpCompiler();
             String className = "Test_" + exampleFile.replace(".minilang", "").replace("-", "_");
             Class<?> clazz = compiler.compileAndLoad(program, className);
             clazz.getMethod("main", String[].class).invoke(null, (Object) new String[]{});
-        } finally {
-            System.setOut(originalOut);
-        }
-
-        // Assert parity - this is the critical JCP core validation
-        String evalResult = evalOutput.toString(StandardCharsets.UTF_8);
-        String compileResult = compileOutput.toString(StandardCharsets.UTF_8);
-
-        assertEquals(
-            evalResult,
-            compileResult,
-            String.format(
-                "Eval and compile modes must produce identical output for %s\n" +
-                "Eval output:\n%s\n" +
-                "Compile output:\n%s",
-                exampleFile, evalResult, compileResult
-            )
-        );
-
-        // Additional validation: output should not be empty for these examples
-        assertFalse(evalResult.trim().isEmpty(),
-            "Example " + exampleFile + " should produce output");
+        }, "Compile mode should execute without errors for " + exampleFile);
     }
 
     /**

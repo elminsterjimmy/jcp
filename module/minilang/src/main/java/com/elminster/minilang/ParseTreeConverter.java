@@ -260,39 +260,35 @@ public class ParseTreeConverter extends MiniLangBaseVisitor<Node> {
             args = new Expression[0];
         }
 
-        // Check if this is a known module function
-        Expression call;
-        if (isModuleFunction(funcName)) {
-            // Static method call to module class (e.g., Logger.log)
-            call = new StaticMethodCallExpression(
-                getModuleName(funcName),
-                funcName,
-                args
-            );
-        } else {
-            // Regular function call
-            call = new FunctionCallExpression(Identifier.fromName(funcName), args);
-        }
-
+        // All functions use FunctionCallExpression
+        // JCP's function lookup system will resolve dotted names like "Assertions.assertTrue"
+        FunctionCallExpression call = new FunctionCallExpression(Identifier.fromName(funcName), args);
         attachLocation(call, ctx);
         return call;
     }
 
-    /**
-     * Checks if a function name refers to a module function.
-     */
-    private boolean isModuleFunction(String funcName) {
-        return funcName.equals("log");  // Logger.log
-    }
+    @Override
+    public Expression visitMemberAccess(MiniLangParser.MemberAccessContext ctx) {
+        Expression object = (Expression) visit(ctx.expression());
+        String member = ctx.ID().getText();
 
-    /**
-     * Gets the module name for a module function.
-     */
-    private String getModuleName(String funcName) {
-        if (funcName.equals("log")) {
-            return "Logger";
+        // Get the base identifier name
+        String baseName;
+        if (object instanceof VariableExpression) {
+            baseName = ((VariableExpression) object).getId().getId();
+        } else if (object instanceof IdentifierExpression) {
+            baseName = ((IdentifierExpression) object).getId();
+        } else {
+            throw new RuntimeException("Member access on non-identifier: " + object);
         }
-        return null;
+
+        // Build the dotted name
+        String dottedName = baseName + "." + member;
+
+        // Return as an identifier that can be used in function calls
+        IdentifierExpression result = new IdentifierExpression(dottedName);
+        attachLocation(result, ctx);
+        return result;
     }
 
     @Override

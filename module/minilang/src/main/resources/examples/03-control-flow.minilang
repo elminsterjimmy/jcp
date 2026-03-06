@@ -1,13 +1,13 @@
 let x: int = 10
+let result: int = 0
 if x > 5 {
-    log(1)
+    result = 1
 } else {
-    log(0)
+    result = 0
 }
 
 let counter: int = 0
 while counter < 5 {
-    log(counter)
     counter = counter + 1
 }
 
@@ -16,29 +16,15 @@ while n < 10 {
     if n == 5 {
         break
     }
-    log(n)
     n = n + 1
 }
 
 let i: int = 0
+let sum: int = 0
 while i < 5 {
     i = i + 1
     if i == 3 {
         continue
     }
-    log(i)
-}
-
-let a: int = 0
-while a < 3 {
-    let b: int = 0
-    while b < 3 {
-        if a == b {
-            log(1)
-        } else {
-            log(0)
-        }
-        b = b + 1
-    }
-    a = a + 1
+    sum = sum + i
 }

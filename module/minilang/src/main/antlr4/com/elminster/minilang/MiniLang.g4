@@ -90,6 +90,7 @@ block
 
 expression
     : expression LPAREN argumentList? RPAREN            # FunctionCall    // f(a, b)
+    | expression DOT ID                                 # MemberAccess    // Module.func
     | expression op=(MULT | DIV | MOD) expression       # MultDiv         // a * b
     | expression op=(PLUS | MINUS) expression           # AddSub          // a + b
     | expression op=(LT | GT | LE | GE) expression      # Comparison      // a < b
@@ -176,6 +177,7 @@ RBRACE      : '}' ;
 COMMA       : ',' ;
 COLON       : ':' ;
 ARROW       : '->' ;
+DOT         : '.' ;
 
 // Newline - statement terminator
 NEWLINE     : '\r'? '\n' | '\r' ;
