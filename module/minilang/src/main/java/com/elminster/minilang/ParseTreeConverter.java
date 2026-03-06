@@ -76,7 +76,19 @@ public class ParseTreeConverter extends MiniLangBaseVisitor<Node> {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         MiniLangParser parser = new MiniLangParser(tokens);
 
-        // Remove default error listeners and add custom one
+        // Remove default error listeners and add custom ones for both lexer and parser
+        lexer.removeErrorListeners();
+        lexer.addErrorListener(new BaseErrorListener() {
+            @Override
+            public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol,
+                                  int line, int charPositionInColumn, String msg,
+                                  RecognitionException e) {
+                throw new RuntimeException(
+                    String.format("Syntax error at %s:%d:%d - %s",
+                                sourceFile, line, charPositionInColumn + 1, msg));
+            }
+        });
+
         parser.removeErrorListeners();
         parser.addErrorListener(new BaseErrorListener() {
             @Override

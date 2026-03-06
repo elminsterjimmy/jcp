@@ -47,10 +47,10 @@ public class ParseTreeConverterErrorTest {
     @ParameterizedTest(name = "{0}")
     @CsvSource({
         "Missing newline, error-tests/missing-newline.minilang, 1, 16, 'mismatched|missing'",
-        "Unterminated string, error-tests/unterminated-string.minilang, 2, 1, 'token|mismatched|string'",
+        "Unterminated string, error-tests/unterminated-string.minilang, 1, 17, 'token|recognition error'",
         "Invalid type, error-tests/invalid-type.minilang, 1, 8, 'mismatched|extraneous'",
         "Missing brace, error-tests/missing-brace.minilang, -1, -1, 'missing|}''",
-        "Invalid operator, error-tests/invalid-operator.minilang, 1, 24, 'extraneous|token|@@'"
+        "Invalid operator, error-tests/invalid-operator.minilang, 1, 21, 'extraneous|token|recognition error'"
     })
     void testSyntaxErrorsWithLocation(String testName, String scriptFile, int expectedLine, int expectedColumn, String expectedKeywords) throws Exception {
         // Load test script
