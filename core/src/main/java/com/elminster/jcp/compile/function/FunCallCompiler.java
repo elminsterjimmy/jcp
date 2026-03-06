@@ -107,7 +107,8 @@ public class FunCallCompiler extends AbstractAstCompiler {
                 compileModuleFunctionCall(mv, ctx, funcName, args);
                 return;
             } catch (ClassNotFoundException e) {
-                // Not a module function, fall through to user-defined function lookup
+                // Not a module function - fall through to user-defined function lookup
+                // If this also fails, the final error message will indicate undefined function
             }
         }
 
@@ -168,8 +169,8 @@ public class FunCallCompiler extends AbstractAstCompiler {
         // Construct full class name (base module is in com.elminster.jcp.module.base.assertions)
         String className = resolveModuleClassName(moduleName);
 
-        // Try to load the class to verify it exists
-        Class.forName(className);
+        // Load the class to discover method signature
+        Class<?> clazz = Class.forName(className);
 
         // Determine argument types for descriptor
         DataType[] argTypes = new DataType[args.length];
@@ -177,18 +178,22 @@ public class FunCallCompiler extends AbstractAstCompiler {
             argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
         }
 
+        // Discover the actual return type via reflection
+        DataType returnType = discoverReturnType(clazz, methodName, argTypes);
+
         // Compile arguments (push values onto stack)
         for (int i = 0; i < args.length; i++) {
             Compilable argCompiler = AstCompilerFactory.getCompiler(args[i]);
             argCompiler.compile(mv, ctx);
         }
 
-        // Build method descriptor
+        // Build method descriptor with discovered return type
         StringBuilder descriptor = new StringBuilder("(");
         for (DataType argType : argTypes) {
             descriptor.append(TypeMapper.toDescriptor(argType));
         }
-        descriptor.append(")V"); // Assume void return for now (Assertions.assertTrue returns void)
+        descriptor.append(")");
+        descriptor.append(TypeMapper.toDescriptor(returnType));
 
         // Emit INVOKESTATIC
         String internalName = className.replace('.', '/');
@@ -210,6 +215,100 @@ public class FunCallCompiler extends AbstractAstCompiler {
         // For example: "Assertions" -> "com.elminster.jcp.module.base.assertions.Assertions"
         String packageName = moduleName.toLowerCase();
         return "com.elminster.jcp.module.base." + packageName + "." + moduleName;
+    }
+
+    /**
+     * Discover the return type of a module function via reflection.
+     * Matches method by name and compatible parameter types.
+     *
+     * @param clazz      the module class
+     * @param methodName the method name
+     * @param argTypes   the argument types
+     * @return the discovered return type
+     * @throws CompileException if method is not found or ambiguous
+     */
+    private DataType discoverReturnType(Class<?> clazz, String methodName, DataType[] argTypes) {
+        java.lang.reflect.Method[] methods = clazz.getDeclaredMethods();
+        java.lang.reflect.Method matchedMethod = null;
+
+        // Find matching static method by name and compatible parameter types
+        for (java.lang.reflect.Method method : methods) {
+            if (!method.getName().equals(methodName)) {
+                continue;
+            }
+            if (!java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+                continue;
+            }
+
+            Class<?>[] paramTypes = method.getParameterTypes();
+            if (paramTypes.length != argTypes.length) {
+                continue;
+            }
+
+            // Check if parameter types are compatible
+            boolean compatible = true;
+            for (int i = 0; i < paramTypes.length; i++) {
+                if (!isCompatibleType(argTypes[i], paramTypes[i])) {
+                    compatible = false;
+                    break;
+                }
+            }
+
+            if (compatible) {
+                if (matchedMethod != null) {
+                    throw new CompileException("Ambiguous module function: " + methodName +
+                        " in class " + clazz.getName(), getSourceLocation());
+                }
+                matchedMethod = method;
+            }
+        }
+
+        if (matchedMethod == null) {
+            throw new CompileException("Module function not found: " + methodName +
+                " with argument types " + Arrays.toString(argTypes) +
+                " in class " + clazz.getName(), getSourceLocation());
+        }
+
+        // Map Java return type to DataType
+        return mapJavaTypeToDataType(matchedMethod.getReturnType());
+    }
+
+    /**
+     * Check if a JCP DataType is compatible with a Java parameter type.
+     */
+    private boolean isCompatibleType(DataType jcpType, Class<?> javaType) {
+        if (javaType == boolean.class || javaType == Boolean.class) {
+            return jcpType == SystemDataType.BOOLEAN;
+        } else if (javaType == int.class || javaType == Integer.class) {
+            return jcpType == SystemDataType.INT;
+        } else if (javaType == double.class || javaType == Double.class) {
+            return jcpType == SystemDataType.DOUBLE;
+        } else if (javaType == String.class) {
+            return jcpType == SystemDataType.STRING;
+        } else if (javaType == void.class || javaType == Void.class) {
+            return jcpType == SystemDataType.VOID;
+        }
+        // For other types, consider them compatible if same name
+        return javaType.getSimpleName().equals(jcpType.getName());
+    }
+
+    /**
+     * Map Java reflection type to JCP DataType.
+     */
+    private DataType mapJavaTypeToDataType(Class<?> javaType) {
+        if (javaType == void.class || javaType == Void.class) {
+            return SystemDataType.VOID;
+        } else if (javaType == boolean.class || javaType == Boolean.class) {
+            return SystemDataType.BOOLEAN;
+        } else if (javaType == int.class || javaType == Integer.class) {
+            return SystemDataType.INT;
+        } else if (javaType == double.class || javaType == Double.class) {
+            return SystemDataType.DOUBLE;
+        } else if (javaType == String.class) {
+            return SystemDataType.STRING;
+        }
+        // For other types, return ANY as a fallback
+        return SystemDataType.ANY;
     }
 
     /**
