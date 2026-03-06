@@ -232,7 +232,41 @@ For each comment that requires action:
 4. **Make the change** following documented patterns
 5. **Track completion** for the commit message
 
-### Step 6: Commit Changes
+### Step 6: Verify Pipeline Requirements
+
+Before committing, ensure all pipeline requirements are met:
+
+```bash
+# Run tests and coverage verification
+echo "Running tests and coverage verification..."
+mvn verify -pl core
+
+# Check exit code
+if [ $? -ne 0 ]; then
+    echo "❌ Pipeline verification failed!"
+    echo ""
+    echo "Common issues:"
+    echo "- Tests failing"
+    echo "- Coverage below 80% threshold (instruction or branch)"
+    echo "- Build errors"
+    echo ""
+    echo "Fix issues before committing."
+    exit 1
+fi
+
+echo "✅ Pipeline requirements met:"
+echo "  - All tests passing"
+echo "  - Coverage thresholds met (80%+ instruction and branch)"
+echo ""
+```
+
+**Important Notes:**
+- Use `mvn verify` not just `mvn test` - verify includes coverage checks
+- JaCoCo enforces 80% instruction and 80% branch coverage on core module
+- If coverage fails, add tests for new/modified code
+- Check coverage report: `core/target/site/jacoco/index.html`
+
+### Step 7: Commit Changes
 
 After addressing all comments:
 
@@ -253,7 +287,7 @@ PR #${PR_NUM}"
 git push
 ```
 
-### Step 7: Reply to Comments (Optional)
+### Step 8: Reply to Comments (Optional)
 
 For significant changes, reply to the comment threads:
 
@@ -265,7 +299,7 @@ gh pr comment "$PR_NUM" --body "Addressed all review feedback:
 - {Change 3}"
 ```
 
-### Step 8: Compound Knowledge
+### Step 9: Compound Knowledge
 
 After resolving all comments, capture any learnings discovered during the resolution process.
 
@@ -366,7 +400,7 @@ Captured learnings from PR #${PR_NUM} review feedback."
 git push
 ```
 
-### Step 9: Output Results
+### Step 10: Output Results
 
 ```
 === Review Resolution Summary ===
@@ -403,6 +437,7 @@ Next steps:
 - [ ] All review submission feedback fetched
 - [ ] Project knowledge searched for relevant solutions
 - [ ] Each actionable comment addressed
+- [ ] **Pipeline requirements verified (tests + coverage)**
 - [ ] Changes committed with descriptive message
 - [ ] Changes pushed to remote
 - [ ] Learnings compounded if applicable
