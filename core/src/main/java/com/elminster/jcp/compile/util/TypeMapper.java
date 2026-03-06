@@ -285,6 +285,10 @@ public final class TypeMapper {
             FunctionSignature sig = ctx.lookupFunction(funcName, argTypes);
             return sig != null ? sig.getReturnType() : null;
         }
+        // For logical expressions (AND, OR), always return BOOLEAN
+        if (expr instanceof com.elminster.jcp.ast.expression.operation.LogicalExpression) {
+            return SystemDataType.BOOLEAN;
+        }
         // For binary expressions, determine result type based on operands and operator
         if (expr instanceof BinaryExpression) {
             BinaryExpression bin = (BinaryExpression) expr;
@@ -294,11 +298,6 @@ public final class TypeMapper {
             if ("EQUAL".equals(op) || "NOT_EQUAL".equals(op) ||
                 "LESS_THAN".equals(op) || "GREATER_THAN".equals(op) ||
                 "LESS_THAN_OR_EQUAL".equals(op) || "GREATER_THAN_OR_EQUAL".equals(op)) {
-                return SystemDataType.BOOLEAN;
-            }
-
-            // Logical operators always return BOOLEAN
-            if ("AND".equals(op) || "OR".equals(op)) {
                 return SystemDataType.BOOLEAN;
             }
 
