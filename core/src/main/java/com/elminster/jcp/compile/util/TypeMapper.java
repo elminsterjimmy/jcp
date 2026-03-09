@@ -1,19 +1,11 @@
 package com.elminster.jcp.compile.util;
 
 import com.elminster.jcp.ast.Expression;
-import com.elminster.jcp.ast.Identifier;
-import com.elminster.jcp.ast.expression.BinaryExpression;
-import com.elminster.jcp.ast.expression.LiteralExpression;
-import com.elminster.jcp.ast.expression.ThisExpression;
-import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
-import com.elminster.jcp.ast.expression.base.VariableExpression;
-import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
-import com.elminster.jcp.ast.expression.literal.DoubleLiteral;
-import com.elminster.jcp.ast.expression.literal.IntLiteral;
-import com.elminster.jcp.ast.expression.literal.StringLiteral;
+import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.statement.function.ParameterDef;
+import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
-import com.elminster.jcp.compile.context.CompileContext.FunctionSignature;
+import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.objectweb.asm.Opcodes;
@@ -235,114 +227,18 @@ public final class TypeMapper {
 
     /**
      * Determine the data type of an expression at compile time.
+     * Delegates to the expression's own compiler via {@link AstCompilerFactory}.
      *
      * @param expr the expression
      * @param ctx  the compile context
      * @return the data type, or null if unknown
      */
     public static DataType getExpressionType(Expression expr, CompileContext ctx) {
-        // Try each type resolution strategy
-        DataType type = resolveLiteralType(expr);
-        if (type != null) return type;
-
-        type = resolveVariableType(expr, ctx);
-        if (type != null) return type;
-
-        type = resolveFunctionCallType(expr, ctx);
-        if (type != null) return type;
-
-        type = resolveBinaryExpressionType(expr, ctx);
-        if (type != null) return type;
-
-        return null;  // Unknown expression type
-    }
-
-    private static DataType resolveLiteralType(Expression expr) {
-        if (!(expr instanceof LiteralExpression)) {
+        try {
+            AbstractAstCompiler compiler = (AbstractAstCompiler) AstCompilerFactory.getCompiler((Node) expr);
+            return compiler.resolveType(ctx);
+        } catch (Exception e) {
             return null;
         }
-
-        LiteralExpression litExpr = (LiteralExpression) expr;
-        Object literal = litExpr.getLiteral();
-
-        if (literal instanceof IntLiteral) return SystemDataType.INT;
-        if (literal instanceof DoubleLiteral) return SystemDataType.DOUBLE;
-        if (literal instanceof BooleanLiteral) return SystemDataType.BOOLEAN;
-        if (literal instanceof StringLiteral) return SystemDataType.STRING;
-
-        // Handle generic Literal created by Literal.of() - check value type
-        if (literal instanceof com.elminster.jcp.ast.expression.literal.Literal) {
-            Object value = ((com.elminster.jcp.ast.expression.literal.Literal<?>) literal).getValue();
-            if (value instanceof Integer) return SystemDataType.INT;
-            if (value instanceof Double) return SystemDataType.DOUBLE;
-            if (value instanceof Boolean) return SystemDataType.BOOLEAN;
-            if (value instanceof String) return SystemDataType.STRING;
-        }
-
-        return null;
-    }
-
-    private static DataType resolveVariableType(Expression expr, CompileContext ctx) {
-        // Handle 'this' expression
-        if (expr instanceof ThisExpression) {
-            CompileContext.LocalVariable local = ctx.getLocal("this");
-            return local != null ? local.getType() : null;
-        }
-
-        // Handle direct Identifier
-        if (expr instanceof Identifier) {
-            CompileContext.LocalVariable local = ctx.getLocal(((Identifier) expr).getId());
-            return local != null ? local.getType() : null;
-        }
-
-        // Handle VariableExpression (wraps Identifier)
-        if (expr instanceof VariableExpression) {
-            VariableExpression varExpr = (VariableExpression) expr;
-            CompileContext.LocalVariable local = ctx.getLocal(varExpr.getId().getId());
-            return local != null ? local.getType() : null;
-        }
-
-        return null;
-    }
-
-    private static DataType resolveFunctionCallType(Expression expr, CompileContext ctx) {
-        if (!(expr instanceof FunctionCallExpression)) {
-            return null;
-        }
-
-        FunctionCallExpression call = (FunctionCallExpression) expr;
-        String funcName = call.getId().getId();
-        Expression[] args = call.getArguments();
-
-        // Resolve argument types recursively
-        DataType[] argTypes = new DataType[args.length];
-        for (int i = 0; i < args.length; i++) {
-            argTypes[i] = getExpressionType(args[i], ctx);
-        }
-
-        FunctionSignature sig = ctx.lookupFunction(funcName, argTypes);
-        return sig != null ? sig.getReturnType() : null;
-    }
-
-    private static DataType resolveBinaryExpressionType(Expression expr, CompileContext ctx) {
-        if (!(expr instanceof BinaryExpression)) {
-            return null;
-        }
-
-        BinaryExpression bin = (BinaryExpression) expr;
-        DataType leftType = getExpressionType(bin.getLeft(), ctx);
-        DataType rightType = getExpressionType(bin.getRight(), ctx);
-
-        // Numeric promotion: if either is DOUBLE, result is DOUBLE
-        if (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE) {
-            return SystemDataType.DOUBLE;
-        }
-
-        // Both INT → result is INT
-        if (leftType == SystemDataType.INT && rightType == SystemDataType.INT) {
-            return SystemDataType.INT;
-        }
-
-        return null;
     }
 }

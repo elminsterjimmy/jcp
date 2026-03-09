@@ -100,6 +100,9 @@ public abstract class ArithmeticCompiler extends AbstractAstCompiler {
         if (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE) {
             return SystemDataType.DOUBLE;
         }
-        return SystemDataType.INT;
+        if (leftType == SystemDataType.INT && rightType == SystemDataType.INT) {
+            return SystemDataType.INT;
+        }
+        return null;  // non-numeric operands (e.g. BOOLEAN + BOOLEAN) are invalid
     }
 }
