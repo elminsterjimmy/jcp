@@ -231,14 +231,11 @@ public final class TypeMapper {
      *
      * @param expr the expression
      * @param ctx  the compile context
-     * @return the data type, or null if unknown
+     * @return the data type, or null if the type cannot be determined at compile time
+     * @throws RuntimeException if no compiler is registered for the expression node
      */
     public static DataType getExpressionType(Expression expr, CompileContext ctx) {
-        try {
-            AbstractAstCompiler compiler = (AbstractAstCompiler) AstCompilerFactory.getCompiler((Node) expr);
-            return compiler.resolveType(ctx);
-        } catch (Exception e) {
-            return null;
-        }
+        AbstractAstCompiler compiler = (AbstractAstCompiler) AstCompilerFactory.getCompiler((Node) expr);
+        return compiler.resolveType(ctx);
     }
 }

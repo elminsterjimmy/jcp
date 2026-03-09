@@ -6,6 +6,7 @@ import com.elminster.jcp.ast.expression.ThisExpression;
 import com.elminster.jcp.ast.expression.base.VariableExpression;
 import com.elminster.jcp.ast.statement.function.ParameterDef;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.ExternalClassType;
@@ -862,9 +863,9 @@ class TypeMapperTest {
         }
 
         /**
-         * Tests expression type for undefined function call returns null.
+         * Tests expression type for undefined function call throws CompileException.
          * <pre>
-         * var x = unknownFunc()  // type = null
+         * var x = unknownFunc()  // undefined → CompileException
          * </pre>
          */
         @Test
@@ -873,8 +874,7 @@ class TypeMapperTest {
                 new com.elminster.jcp.ast.expression.base.FunctionCallExpression(
                     Identifier.fromName("unknownFunc")
                 );
-            DataType type = TypeMapper.getExpressionType(expr, ctx);
-            assertNull(type);
+            assertThrows(CompileException.class, () -> TypeMapper.getExpressionType(expr, ctx));
         }
     }
 
