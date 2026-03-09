@@ -6,6 +6,7 @@ import com.elminster.jcp.ast.expression.StructInstantiation;
 import com.elminster.jcp.ast.statement.declaration.StructFieldDef;
 import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.StructType;
@@ -149,6 +150,10 @@ public class StructInstantiationCompiler extends AbstractAstCompiler {
     public com.elminster.jcp.eval.data.DataType resolveType(CompileContext ctx) {
         StructInstantiation structInst = (StructInstantiation) astNode;
         String structName = structInst.getStructType().getId();
-        return ctx.getDataType(structName);
+        com.elminster.jcp.eval.data.DataType dataType = ctx.getDataType(structName);
+        if (dataType == null) {
+            throw new CompileException(String.format("undefined struct type: %s", structName));
+        }
+        return dataType;
     }
 }

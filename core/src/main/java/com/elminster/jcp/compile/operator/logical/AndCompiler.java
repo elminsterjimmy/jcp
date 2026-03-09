@@ -85,7 +85,7 @@ public class AndCompiler extends AbstractAstCompiler {
     }
     @Override
     public DataType resolveType(CompileContext ctx) {
-        return SystemDataType.BOOLEAN;  // Comparison operators return boolean
+        return SystemDataType.BOOLEAN;  // Logical operators always produce a boolean result
     }
 
 }

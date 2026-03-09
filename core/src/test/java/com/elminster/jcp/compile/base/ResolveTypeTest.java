@@ -323,6 +323,33 @@ class ResolveTypeTest {
     }
 
     // -------------------------------------------------------------------------
+    // StructInstantiationCompiler
+    // -------------------------------------------------------------------------
+
+    @Nested
+    class StructInstantiationCompilerResolveType {
+
+        @Test
+        void knownStructTypeReturnsStructType() {
+            com.elminster.jcp.eval.data.StructType pointType =
+                new com.elminster.jcp.eval.data.StructType("Point", java.util.Collections.emptyList());
+            ctx.addDataType(pointType);
+            com.elminster.jcp.compile.struct.StructInstantiationCompiler compiler =
+                new com.elminster.jcp.compile.struct.StructInstantiationCompiler(
+                    new com.elminster.jcp.ast.expression.StructInstantiation("Point"));
+            assertEquals(pointType, compiler.resolveType(ctx));
+        }
+
+        @Test
+        void unknownStructTypeThrows() {
+            com.elminster.jcp.compile.struct.StructInstantiationCompiler compiler =
+                new com.elminster.jcp.compile.struct.StructInstantiationCompiler(
+                    new com.elminster.jcp.ast.expression.StructInstantiation("Unknown"));
+            assertThrows(CompileException.class, () -> compiler.resolveType(ctx));
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Statement compilers return VOID
     // -------------------------------------------------------------------------
 

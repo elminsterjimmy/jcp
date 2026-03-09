@@ -65,12 +65,12 @@ public abstract class AbstractAstCompiler implements AstCompiler {
      * since statements do not produce values on the operand stack.
      *
      * <p>If the type cannot be determined (e.g., undefined variable, incompatible
-     * operands), this method returns {@code null}. If the node refers to an
-     * entity that must exist but does not (e.g., an unregistered function), a
+     * operands, unregistered function), a
      * {@link com.elminster.jcp.compile.exception.CompileException} is thrown.
      *
      * @param ctx the compile context for variable/function lookup
-     * @return the data type, or null if indeterminate
+     * @return the data type that this expression produces on the JVM stack; never null
+     * @throws com.elminster.jcp.compile.exception.CompileException if the type cannot be resolved
      */
     public abstract DataType resolveType(CompileContext ctx);
 }
