@@ -96,6 +96,7 @@ public abstract class ArithmeticCompiler extends AbstractAstCompiler {
         BinaryExpression binaryExpr = (BinaryExpression) astNode;
         DataType leftType = TypeMapper.getExpressionType(binaryExpr.getLeft(), ctx);
         DataType rightType = TypeMapper.getExpressionType(binaryExpr.getRight(), ctx);
+        if (leftType == null || rightType == null) return null;
         if (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE) {
             return SystemDataType.DOUBLE;
         }

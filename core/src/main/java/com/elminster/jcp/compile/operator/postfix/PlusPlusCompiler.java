@@ -10,6 +10,8 @@ import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.context.CompileContext.LocalVariable;
 import com.elminster.jcp.compile.exception.CompileException;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -85,7 +87,7 @@ public class PlusPlusCompiler extends AbstractAstCompiler {
     }
 
     @Override
-    public com.elminster.jcp.eval.data.DataType resolveType(CompileContext ctx) {
-        return com.elminster.jcp.eval.data.DataType.SystemDataType.INT;
+    public DataType resolveType(CompileContext ctx) {
+        return SystemDataType.INT;
     }
 }

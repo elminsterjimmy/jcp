@@ -572,5 +572,85 @@ class ArithmeticEvaluatorTest {
                 new EvalVisitor(context).visit(program)
             );
         }
+
+        /**
+         * Tests INT - BOOLEAN throws UnsupportedOperationException.
+         * <pre>
+         * var result = 5 - true  // throws UnsupportedOperationException
+         * </pre>
+         */
+        @Test
+        void testMinus_IntMinusBooleanThrowsException() {
+            Block program = new BlockImpl();
+            program.addStatement(new VariableDeclarationImpl(
+                "result",
+                SystemDataType.ANY,
+                new Minus(LiteralExpression.of(5), LiteralExpression.of(true))
+            ));
+
+            assertThrows(UnsupportedOperationException.class, () ->
+                new EvalVisitor(context).visit(program)
+            );
+        }
+
+        /**
+         * Tests INT % BOOLEAN throws UnsupportedOperationException.
+         * <pre>
+         * var result = 5 % true  // throws UnsupportedOperationException
+         * </pre>
+         */
+        @Test
+        void testMod_IntModBooleanThrowsException() {
+            Block program = new BlockImpl();
+            program.addStatement(new VariableDeclarationImpl(
+                "result",
+                SystemDataType.ANY,
+                new Mod(LiteralExpression.of(5), LiteralExpression.of(true))
+            ));
+
+            assertThrows(UnsupportedOperationException.class, () ->
+                new EvalVisitor(context).visit(program)
+            );
+        }
+
+        /**
+         * Tests INT * BOOLEAN throws UnsupportedOperationException.
+         * <pre>
+         * var result = 5 * true  // throws UnsupportedOperationException
+         * </pre>
+         */
+        @Test
+        void testMulti_IntTimesBooleanThrowsException() {
+            Block program = new BlockImpl();
+            program.addStatement(new VariableDeclarationImpl(
+                "result",
+                SystemDataType.ANY,
+                new Multi(LiteralExpression.of(5), LiteralExpression.of(true))
+            ));
+
+            assertThrows(UnsupportedOperationException.class, () ->
+                new EvalVisitor(context).visit(program)
+            );
+        }
+
+        /**
+         * Tests INT / BOOLEAN throws UnsupportedOperationException.
+         * <pre>
+         * var result = 5 / true  // throws UnsupportedOperationException
+         * </pre>
+         */
+        @Test
+        void testDivide_IntDividedByBooleanThrowsException() {
+            Block program = new BlockImpl();
+            program.addStatement(new VariableDeclarationImpl(
+                "result",
+                SystemDataType.ANY,
+                new Divide(LiteralExpression.of(5), LiteralExpression.of(true))
+            ));
+
+            assertThrows(UnsupportedOperationException.class, () ->
+                new EvalVisitor(context).visit(program)
+            );
+        }
     }
 }

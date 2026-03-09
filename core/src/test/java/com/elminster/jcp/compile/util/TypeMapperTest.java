@@ -409,6 +409,20 @@ class TypeMapperTest {
             DataType type = TypeMapper.getExpressionType(expr, ctx);
             assertEquals(SystemDataType.STRING, type);
         }
+
+        /**
+         * Tests that a generic Literal with an unsupported value type (e.g. Long) returns null.
+         * <pre>
+         * Literal.of(42L)  // Long not handled → null
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_GenericLiteral_UnknownType_ReturnsNull() {
+            LiteralExpression expr = LiteralExpression.of(
+                com.elminster.jcp.ast.expression.literal.Literal.of(42L));
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertNull(type);
+        }
     }
 
     @Nested
@@ -503,6 +517,27 @@ class TypeMapperTest {
                 );
             DataType type = TypeMapper.getExpressionType(expr, ctx);
             assertEquals(SystemDataType.DOUBLE, type);
+        }
+
+        /**
+         * Tests that a binary expression with non-numeric operands returns null.
+         * <pre>
+         * var a: Boolean = true
+         * var b: Boolean = false
+         * a + b  // no numeric type → null
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_BinaryExpr_BooleanOperands_ReturnsNull() {
+            ctx.allocateLocal("a", SystemDataType.BOOLEAN);
+            ctx.allocateLocal("b", SystemDataType.BOOLEAN);
+            com.elminster.jcp.ast.expression.operation.Plus expr =
+                new com.elminster.jcp.ast.expression.operation.Plus(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            DataType type = TypeMapper.getExpressionType(expr, ctx);
+            assertNull(type);
         }
     }
 

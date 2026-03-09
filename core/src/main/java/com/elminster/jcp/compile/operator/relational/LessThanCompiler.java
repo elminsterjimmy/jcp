@@ -1,9 +1,6 @@
 package com.elminster.jcp.compile.operator.relational;
 
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.compile.context.CompileContext;
-import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.objectweb.asm.Opcodes;
 
 /**
@@ -60,10 +57,6 @@ public class LessThanCompiler extends CompareCompiler {
     @Override
     protected int getDoubleConditionOpcode() {
         return Opcodes.IFLT;  // DCMPL result < 0 means left < right
-    }
-    @Override
-    public DataType resolveType(CompileContext ctx) {
-        return SystemDataType.BOOLEAN;  // Comparison operators return boolean
     }
 
 }

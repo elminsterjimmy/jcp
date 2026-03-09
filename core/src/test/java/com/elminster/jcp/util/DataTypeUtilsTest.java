@@ -89,6 +89,38 @@ class DataTypeUtilsTest {
             DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(LiteralExpression.of("hello"));
             assertEquals(SystemDataType.ANY, type);
         }
+
+        @Test
+        void testGetDataType_TypedStringLiteral_ReturnsString() {
+            LiteralExpression expr = new LiteralExpression(
+                com.elminster.jcp.ast.expression.literal.StringLiteral.of("hello"));
+            DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(expr);
+            assertEquals(SystemDataType.STRING, type);
+        }
+
+        @Test
+        void testGetDataType_TypedBooleanLiteral_ReturnsBoolean() {
+            LiteralExpression expr = new LiteralExpression(
+                com.elminster.jcp.ast.expression.literal.BooleanLiteral.of(true));
+            DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(expr);
+            assertEquals(SystemDataType.BOOLEAN, type);
+        }
+
+        @Test
+        void testGetDataType_TypedIntLiteral_ReturnsInt() {
+            LiteralExpression expr = new LiteralExpression(
+                com.elminster.jcp.ast.expression.literal.IntLiteral.of(42));
+            DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(expr);
+            assertEquals(SystemDataType.INT, type);
+        }
+
+        @Test
+        void testGetDataType_TypedDoubleLiteral_ReturnsDouble() {
+            LiteralExpression expr = new LiteralExpression(
+                com.elminster.jcp.ast.expression.literal.DoubleLiteral.of(3.14));
+            DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(expr);
+            assertEquals(SystemDataType.DOUBLE, type);
+        }
     }
 
     @Nested
