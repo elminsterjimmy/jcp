@@ -506,7 +506,8 @@ public class FunCallCompiler extends AbstractAstCompiler {
         // Note: only resolves user-defined functions registered in the context.
         // Module function calls (e.g. Assertions.assertTrue) and external class
         // constructors (e.g. StringBuilder.new) are not yet handled here and will
-        // return null. Those call paths are handled differently in compile().
+        // return null. Those call paths are handled by compileModuleFunctionCall()
+        // and compileExternalClassConstructor() in compile(), respectively.
         FunctionCallExpression call = (FunctionCallExpression) astNode;
         String funcName = call.getId().getId();
         Expression[] args = call.getArguments();
