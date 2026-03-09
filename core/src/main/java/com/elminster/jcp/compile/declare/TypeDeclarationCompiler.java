@@ -5,6 +5,8 @@ import com.elminster.jcp.ast.statement.declaration.StructDeclaration;
 import com.elminster.jcp.compile.StructClassGenerator;
 import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.StructType;
 import org.objectweb.asm.MethodVisitor;
 
@@ -120,4 +122,9 @@ public class TypeDeclarationCompiler extends AbstractAstCompiler {
 
         // No bytecode needed in the main method for the declaration itself
     }
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        return SystemDataType.VOID;  // Statements don't produce values
+    }
+
 }

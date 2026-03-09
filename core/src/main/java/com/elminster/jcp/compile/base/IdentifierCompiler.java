@@ -7,6 +7,7 @@ import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.context.CompileContext.LocalVariable;
 import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.util.TypeMapper;
+import com.elminster.jcp.eval.data.DataType;
 import org.objectweb.asm.MethodVisitor;
 
 /**
@@ -70,5 +71,25 @@ public class IdentifierCompiler extends AbstractAstCompiler {
         // Load the variable onto the stack
         int loadOpcode = TypeMapper.getLoadOpcode(local.getType());
         mv.visitVarInsn(loadOpcode, local.getIndex());
+    }
+
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        String varName;
+
+        if (astNode instanceof IdentifierExpression) {
+            varName = ((IdentifierExpression) astNode).getId();
+        } else if (astNode instanceof Identifier) {
+            varName = ((Identifier) astNode).getId();
+        } else {
+            throw new CompileException(String.format(
+                "unexpected identifier node type: %s", astNode.getClass().getSimpleName()));
+        }
+
+        LocalVariable local = ctx.getLocal(varName);
+        if (local == null) {
+            throw new CompileException(String.format("undefined variable: %s", varName));
+        }
+        return local.getType();
     }
 }

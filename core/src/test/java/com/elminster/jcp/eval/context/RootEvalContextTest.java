@@ -116,6 +116,40 @@ class RootEvalContextTest {
             Function found = rootContext.getFunction("myFunc#");
             assertNotNull(found);
         }
+
+        /**
+         * Tests that functions in a child context (pushed onto the stack) are found.
+         * Exercises the non-root path in RootEvalContext.getFunction.
+         */
+        @Test
+        void testGetFunction_InChildContext() {
+            DefaultEvalContext childContext = new DefaultEvalContext();
+            Function func = new AbstractFunction(
+                Identifier.fromName("childFunc"),
+                new ParameterDef[]{},
+                SystemDataType.INT
+            );
+            // Add function directly to the child context's function map
+            childContext.getFunctions().put(func.getFullName(), func);
+            rootContext.getContextStack().push(childContext);
+
+            Function found = rootContext.getFunction("childFunc#");
+            assertNotNull(found);
+        }
+
+        /**
+         * Tests that missing function in child context falls through to root.
+         * Exercises the null != function → false path in RootEvalContext.getFunction.
+         */
+        @Test
+        void testGetFunction_NotInChildContext_FallsToRoot() {
+            DefaultEvalContext childContext = new DefaultEvalContext();
+            rootContext.getContextStack().push(childContext);
+
+            // Function not in child, not in root either → null
+            Function found = rootContext.getFunction("noSuchFunc#");
+            assertNull(found);
+        }
     }
 
     @Nested

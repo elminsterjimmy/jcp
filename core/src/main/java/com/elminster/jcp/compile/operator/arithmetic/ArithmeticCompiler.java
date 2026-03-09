@@ -6,6 +6,7 @@ import com.elminster.jcp.ast.expression.BinaryExpression;
 import com.elminster.jcp.compile.Compilable;
 import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
@@ -90,4 +91,19 @@ public abstract class ArithmeticCompiler extends AbstractAstCompiler {
      * @param mv the method visitor
      */
     protected abstract void emitOperation(MethodVisitor mv);
+
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        BinaryExpression binaryExpr = (BinaryExpression) astNode;
+        DataType leftType = TypeMapper.getExpressionType(binaryExpr.getLeft(), ctx);
+        DataType rightType = TypeMapper.getExpressionType(binaryExpr.getRight(), ctx);
+        if (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE) {
+            return SystemDataType.DOUBLE;
+        }
+        if (leftType == SystemDataType.INT && rightType == SystemDataType.INT) {
+            return SystemDataType.INT;
+        }
+        throw new CompileException(String.format(
+            "arithmetic operation not supported for types: %s, %s", leftType, rightType));
+    }
 }

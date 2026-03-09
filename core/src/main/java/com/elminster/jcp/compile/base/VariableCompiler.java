@@ -6,6 +6,7 @@ import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.context.CompileContext.LocalVariable;
 import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.util.TypeMapper;
+import com.elminster.jcp.eval.data.DataType;
 import org.objectweb.asm.MethodVisitor;
 
 /**
@@ -63,5 +64,17 @@ public class VariableCompiler extends AbstractAstCompiler {
         // Load the variable onto the stack
         int loadOpcode = TypeMapper.getLoadOpcode(local.getType());
         mv.visitVarInsn(loadOpcode, local.getIndex());
+    }
+
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        VariableExpression varExpr = (VariableExpression) astNode;
+        String varName = varExpr.getId().getId();
+
+        LocalVariable local = ctx.getLocal(varName);
+        if (local == null) {
+            throw new CompileException(String.format("undefined variable: %s", varName));
+        }
+        return local.getType();
     }
 }

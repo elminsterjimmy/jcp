@@ -108,4 +108,9 @@ public class ReturnCompiler extends AbstractAstCompiler {
             mv.visitInsn(Opcodes.RETURN);
         }
     }
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        return SystemDataType.VOID;  // Statements don't produce values
+    }
+
 }

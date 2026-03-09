@@ -7,6 +7,8 @@ import com.elminster.jcp.ast.statement.control.WhileStatement;
 import com.elminster.jcp.compile.Compilable;
 import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -104,4 +106,9 @@ public class WhileCompiler extends AbstractAstCompiler {
         // Pop loop labels
         ctx.popLoop();
     }
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        return SystemDataType.VOID;  // Statements don't produce values
+    }
+
 }

@@ -228,4 +228,41 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
         }
         // String and Object types don't need boxing
     }
+
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        StaticMethodCallExpression call = (StaticMethodCallExpression) astNode;
+        String typeName = call.getTypeName().getId();
+        String methodName = call.getMethodName();
+        Expression[] args = call.getArguments();
+
+        DataType dataType = ctx.getDataType(typeName);
+        if (dataType == null) {
+            throw new CompileException(String.format("undefined type: %s", typeName));
+        }
+
+        DataType[] argTypes = new DataType[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
+        }
+
+        if (dataType instanceof ExternalClassType) {
+            ExternalMethodDef method = ((ExternalClassType) dataType).getStaticMethod(methodName, argTypes);
+            if (method == null) {
+                throw new CompileException(String.format(
+                    "undefined static method '%s' on type '%s'", methodName, typeName));
+            }
+            return method.getReturnType();
+        } else if (dataType instanceof StructType) {
+            com.elminster.jcp.ast.statement.declaration.MethodDef method =
+                ((StructType) dataType).getStaticMethod(methodName, argTypes);
+            if (method == null) {
+                throw new CompileException(String.format(
+                    "undefined static method '%s' on type '%s'", methodName, typeName));
+            }
+            return method.getReturnType();
+        }
+        throw new CompileException(String.format(
+            "cannot call static method '%s' on non-class type: %s", methodName, typeName));
+    }
 }

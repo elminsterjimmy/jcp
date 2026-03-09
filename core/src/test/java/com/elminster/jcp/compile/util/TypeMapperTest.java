@@ -6,6 +6,7 @@ import com.elminster.jcp.ast.expression.ThisExpression;
 import com.elminster.jcp.ast.expression.base.VariableExpression;
 import com.elminster.jcp.ast.statement.function.ParameterDef;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.ExternalClassType;
@@ -327,8 +328,7 @@ class TypeMapperTest {
         @Test
         void testGetExpressionType_UnknownVariable() {
             VariableExpression varExpr = new VariableExpression(Identifier.fromName("unknown"));
-            DataType type = TypeMapper.getExpressionType(varExpr, ctx);
-            assertNull(type);
+            assertThrows(CompileException.class, () -> TypeMapper.getExpressionType(varExpr, ctx));
         }
 
         @Test
@@ -409,6 +409,19 @@ class TypeMapperTest {
             DataType type = TypeMapper.getExpressionType(expr, ctx);
             assertEquals(SystemDataType.STRING, type);
         }
+
+        /**
+         * Tests that a generic Literal with an unsupported value type (e.g. Long) throws.
+         * <pre>
+         * Literal.of(42L)  // Long not handled → CompileException
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_GenericLiteral_UnknownType_ReturnsNull() {
+            LiteralExpression expr = LiteralExpression.of(
+                com.elminster.jcp.ast.expression.literal.Literal.of(42L));
+            assertThrows(CompileException.class, () -> TypeMapper.getExpressionType(expr, ctx));
+        }
     }
 
     @Nested
@@ -431,17 +444,16 @@ class TypeMapperTest {
         }
 
         /**
-         * Tests unknown Identifier returns null.
+         * Tests unknown Identifier throws CompileException.
          * <pre>
-         * unknownVar  // lookup type = null
+         * unknownVar  // undefined → CompileException
          * </pre>
          */
         @Test
         void testGetExpressionType_UnknownIdentifier() {
             com.elminster.jcp.ast.expression.operation.IdentifierExpression idExpr =
                 new com.elminster.jcp.ast.expression.operation.IdentifierExpression("unknownVar");
-            DataType type = TypeMapper.getExpressionType(idExpr, ctx);
-            assertNull(type);
+            assertThrows(CompileException.class, () -> TypeMapper.getExpressionType(idExpr, ctx));
         }
     }
 
@@ -525,6 +537,26 @@ class TypeMapperTest {
         }
 
         /**
+         * Tests that a binary expression with non-numeric operands throws CompileException.
+         * <pre>
+         * var a: Boolean = true
+         * var b: Boolean = false
+         * a + b  // invalid arithmetic → CompileException
+         * </pre>
+         */
+        @Test
+        void testGetExpressionType_BinaryExpr_BooleanOperands_ReturnsNull() {
+            ctx.allocateLocal("a", SystemDataType.BOOLEAN);
+            ctx.allocateLocal("b", SystemDataType.BOOLEAN);
+            com.elminster.jcp.ast.expression.operation.Plus expr =
+                new com.elminster.jcp.ast.expression.operation.Plus(
+                    new VariableExpression(Identifier.fromName("a")),
+                    new VariableExpression(Identifier.fromName("b"))
+                );
+            assertThrows(CompileException.class, () -> TypeMapper.getExpressionType(expr, ctx));
+        }
+
+        /**
          * Tests expression type for INT - INT subtraction.
          * <pre>
          * var x = 5 - 3  // type = INT
@@ -582,9 +614,9 @@ class TypeMapperTest {
         }
 
         /**
-         * Tests expression type for unknown variable + known variable (should return null).
+         * Tests expression type for unknown variable + known variable throws CompileException.
          * <pre>
-         * var x = unknown + 5  // type = null (unknown operand)
+         * var x = unknown + 5  // undefined variable → CompileException
          * </pre>
          */
         @Test
@@ -595,8 +627,7 @@ class TypeMapperTest {
                     new VariableExpression(Identifier.fromName("unknown")),
                     new VariableExpression(Identifier.fromName("b"))
                 );
-            DataType type = TypeMapper.getExpressionType(expr, ctx);
-            assertNull(type);
+            assertThrows(CompileException.class, () -> TypeMapper.getExpressionType(expr, ctx));
         }
 
         /**
@@ -827,9 +858,9 @@ class TypeMapperTest {
         }
 
         /**
-         * Tests expression type for undefined function call returns null.
+         * Tests expression type for undefined function call throws CompileException.
          * <pre>
-         * var x = unknownFunc()  // type = null
+         * var x = unknownFunc()  // undefined → CompileException
          * </pre>
          */
         @Test
@@ -838,8 +869,7 @@ class TypeMapperTest {
                 new com.elminster.jcp.ast.expression.base.FunctionCallExpression(
                     Identifier.fromName("unknownFunc")
                 );
-            DataType type = TypeMapper.getExpressionType(expr, ctx);
-            assertNull(type);
+            assertThrows(CompileException.class, () -> TypeMapper.getExpressionType(expr, ctx));
         }
     }
 

@@ -500,4 +500,26 @@ public class FunCallCompiler extends AbstractAstCompiler {
                 "(D)Ljava/lang/Double;", false);
         }
     }
+
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        // Note: only resolves user-defined functions registered in the context.
+        // Module function calls (e.g. Assertions.assertTrue) and external class
+        // constructors (e.g. StringBuilder.new) are handled by compileModuleFunctionCall()
+        // and compileExternalClassConstructor() in compile(), respectively.
+        FunctionCallExpression call = (FunctionCallExpression) astNode;
+        String funcName = call.getId().getId();
+        Expression[] args = call.getArguments();
+
+        DataType[] argTypes = new DataType[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
+        }
+
+        FunctionSignature sig = ctx.lookupFunction(funcName, argTypes);
+        if (sig == null) {
+            throw new CompileException(String.format("undefined function: %s", funcName));
+        }
+        return sig.getReturnType();
+    }
 }

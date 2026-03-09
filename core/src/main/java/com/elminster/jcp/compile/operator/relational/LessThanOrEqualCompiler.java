@@ -58,4 +58,5 @@ public class LessThanOrEqualCompiler extends CompareCompiler {
     protected int getDoubleConditionOpcode() {
         return Opcodes.IFLE;  // DCMPL result <= 0 means left <= right
     }
+
 }

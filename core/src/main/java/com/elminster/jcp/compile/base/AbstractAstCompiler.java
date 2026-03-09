@@ -4,6 +4,8 @@ import com.elminster.jcp.ast.Locatable;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.SourceLocation;
 import com.elminster.jcp.compile.Compiler;
+import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.eval.data.DataType;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
@@ -50,4 +52,25 @@ public abstract class AbstractAstCompiler implements AstCompiler {
             mv.visitLineNumber(loc.getStartLine(), label);
         }
     }
+
+    /**
+     * Resolve the data type of this expression at compile time.
+     *
+     * <p>For expression compilers, this returns the type of value produced
+     * by the expression (INT, DOUBLE, BOOLEAN, STRING, struct types, etc.).
+     * Expression compilers should recursively resolve child expression types
+     * using {@code AstCompilerFactory.getCompiler(childExpr).resolveType(ctx)}.
+     *
+     * <p>For statement compilers, this returns {@link com.elminster.jcp.eval.data.DataType.SystemDataType#VOID}
+     * since statements do not produce values on the operand stack.
+     *
+     * <p>If the type cannot be determined (e.g., undefined variable, incompatible
+     * operands, unregistered function), a
+     * {@link com.elminster.jcp.compile.exception.CompileException} is thrown.
+     *
+     * @param ctx the compile context for variable/function lookup
+     * @return the data type that this expression produces on the JVM stack; never null
+     * @throws com.elminster.jcp.compile.exception.CompileException if the type cannot be resolved
+     */
+    public abstract DataType resolveType(CompileContext ctx);
 }

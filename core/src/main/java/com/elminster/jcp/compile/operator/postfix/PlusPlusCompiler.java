@@ -10,6 +10,8 @@ import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.context.CompileContext.LocalVariable;
 import com.elminster.jcp.compile.exception.CompileException;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -82,5 +84,10 @@ public class PlusPlusCompiler extends AbstractAstCompiler {
             return ((IdentifierExpression) expr).getId();
         }
         throw new CompileException("Invalid increment target: " + expr.getClass().getSimpleName());
+    }
+
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        return SystemDataType.INT;
     }
 }

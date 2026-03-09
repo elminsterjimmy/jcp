@@ -5,6 +5,8 @@ import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.compile.Compilable;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import org.objectweb.asm.MethodVisitor;
 
@@ -54,4 +56,9 @@ public class BlockCompiler extends AbstractAstCompiler {
             compilable.compile(mv, blockContext);
         }
     }
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        return SystemDataType.VOID;  // Statements don't produce values
+    }
+
 }

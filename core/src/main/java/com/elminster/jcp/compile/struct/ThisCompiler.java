@@ -3,6 +3,7 @@ package com.elminster.jcp.compile.struct;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.exception.CompileException;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -69,5 +70,14 @@ public class ThisCompiler extends AbstractAstCompiler {
         // 'this' is always local variable slot 0 in instance methods/constructors
         // This is a JVM convention - slot 0 holds the receiver reference
         mv.visitVarInsn(Opcodes.ALOAD, 0);
+    }
+
+    @Override
+    public com.elminster.jcp.eval.data.DataType resolveType(CompileContext ctx) {
+        CompileContext.LocalVariable local = ctx.getLocal("this");
+        if (local == null) {
+            throw new CompileException("'this' is not available in the current context");
+        }
+        return local.getType();
     }
 }

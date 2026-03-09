@@ -147,4 +147,9 @@ public abstract class CompareCompiler extends AbstractAstCompiler {
      * @return IFLT, IFLE, IFGT, IFGE, IFEQ, or IFNE
      */
     protected abstract int getDoubleConditionOpcode();
+
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        return SystemDataType.BOOLEAN;
+    }
 }

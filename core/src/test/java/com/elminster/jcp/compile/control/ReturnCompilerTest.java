@@ -168,6 +168,27 @@ public class ReturnCompilerTest extends AbstractCompileTest {
 
 
     /**
+     * Tests non-void function with no return value throws CompileException.
+     * This test exercises the returnType == null branch by calling ReturnCompiler
+     * outside a function context (no return type set in context).
+     */
+    @Test
+    void testReturnOutsideFunctionContextThrowsException() {
+        // Compile a return statement directly in main (no function context = null returnType)
+        // We can't do this via the normal compiler path easily, so we test it via
+        // a return statement at the top level where there's no function context
+        // Actually, the main method context has null returnType which triggers the exception
+        Block program = new BlockImpl();
+        program.addStatement(new ReturnStatement(LiteralExpression.of(42)));
+
+        String className = uniqueClassName("TestReturnOutsideFunc");
+
+        assertThrows(CompileException.class, () ->
+            compiler.compileToBytes(program, className)
+        );
+    }
+
+    /**
      * Helper method to load a class from bytecode.
      */
     private Class<?> loadClass(String name, byte[] bytecode) {

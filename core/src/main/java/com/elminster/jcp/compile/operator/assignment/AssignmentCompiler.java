@@ -7,6 +7,8 @@ import com.elminster.jcp.ast.expression.operation.AssignmentExpression;
 import com.elminster.jcp.compile.Compilable;
 import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.compile.context.CompileContext.LocalVariable;
 import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
@@ -84,4 +86,9 @@ public class AssignmentCompiler extends AbstractAstCompiler {
         int storeOpcode = TypeMapper.getStoreOpcode(local.getType());
         mv.visitVarInsn(storeOpcode, local.getIndex());
     }
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        return SystemDataType.VOID;  // Statements don't produce values
+    }
+
 }

@@ -67,4 +67,5 @@ public class GreaterThanOrEqualCompiler extends CompareCompiler {
     protected int getDoubleConditionOpcode() {
         return Opcodes.IFGE;  // DCMPG result >= 0 means left >= right
     }
+
 }

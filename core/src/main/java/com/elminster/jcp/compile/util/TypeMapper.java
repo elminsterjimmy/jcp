@@ -1,20 +1,11 @@
 package com.elminster.jcp.compile.util;
 
 import com.elminster.jcp.ast.Expression;
-import com.elminster.jcp.ast.Identifier;
-import com.elminster.jcp.ast.expression.BinaryExpression;
-import com.elminster.jcp.ast.expression.LiteralExpression;
-import com.elminster.jcp.ast.expression.ThisExpression;
-import com.elminster.jcp.ast.expression.UnaryExpression;
-import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
-import com.elminster.jcp.ast.expression.base.VariableExpression;
-import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
-import com.elminster.jcp.ast.expression.literal.DoubleLiteral;
-import com.elminster.jcp.ast.expression.literal.IntLiteral;
-import com.elminster.jcp.ast.expression.literal.StringLiteral;
+import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.statement.function.ParameterDef;
+import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
-import com.elminster.jcp.compile.context.CompileContext.FunctionSignature;
+import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.objectweb.asm.Opcodes;
@@ -236,96 +227,15 @@ public final class TypeMapper {
 
     /**
      * Determine the data type of an expression at compile time.
+     * Delegates to the expression's own compiler via {@link AstCompilerFactory}.
      *
      * @param expr the expression
      * @param ctx  the compile context
-     * @return the data type, or null if unknown
+     * @return the data type, or null if the type cannot be determined at compile time
+     * @throws RuntimeException if no compiler is registered for the expression node
      */
     public static DataType getExpressionType(Expression expr, CompileContext ctx) {
-        if (expr instanceof LiteralExpression) {
-            LiteralExpression litExpr = (LiteralExpression) expr;
-            Object literal = litExpr.getLiteral();
-            if (literal instanceof IntLiteral) return SystemDataType.INT;
-            if (literal instanceof DoubleLiteral) return SystemDataType.DOUBLE;
-            if (literal instanceof BooleanLiteral) return SystemDataType.BOOLEAN;
-            if (literal instanceof StringLiteral) return SystemDataType.STRING;
-            // Handle generic Literal created by Literal.of() - check value type
-            if (literal instanceof com.elminster.jcp.ast.expression.literal.Literal) {
-                Object value = ((com.elminster.jcp.ast.expression.literal.Literal<?>) literal).getValue();
-                if (value instanceof Integer) return SystemDataType.INT;
-                if (value instanceof Double) return SystemDataType.DOUBLE;
-                if (value instanceof Boolean) return SystemDataType.BOOLEAN;
-                if (value instanceof String) return SystemDataType.STRING;
-            }
-        }
-        // Handle 'this' expression
-        if (expr instanceof ThisExpression) {
-            CompileContext.LocalVariable local = ctx.getLocal("this");
-            return local != null ? local.getType() : null;
-        }
-        if (expr instanceof Identifier) {
-            CompileContext.LocalVariable local = ctx.getLocal(((Identifier) expr).getId());
-            return local != null ? local.getType() : null;
-        }
-        // Handle VariableExpression (wraps Identifier)
-        if (expr instanceof VariableExpression) {
-            VariableExpression varExpr = (VariableExpression) expr;
-            CompileContext.LocalVariable local = ctx.getLocal(varExpr.getId().getId());
-            return local != null ? local.getType() : null;
-        }
-        // Handle function call expressions - return type from function signature
-        if (expr instanceof FunctionCallExpression) {
-            FunctionCallExpression call = (FunctionCallExpression) expr;
-            String funcName = call.getId().getId();
-            Expression[] args = call.getArguments();
-            DataType[] argTypes = new DataType[args.length];
-            for (int i = 0; i < args.length; i++) {
-                argTypes[i] = getExpressionType(args[i], ctx);
-            }
-            FunctionSignature sig = ctx.lookupFunction(funcName, argTypes);
-            return sig != null ? sig.getReturnType() : null;
-        }
-        // For logical expressions (AND, OR), always return BOOLEAN
-        if (expr instanceof com.elminster.jcp.ast.expression.operation.LogicalExpression) {
-            return SystemDataType.BOOLEAN;
-        }
-        // For binary expressions, determine result type based on operands and operator
-        if (expr instanceof BinaryExpression) {
-            BinaryExpression bin = (BinaryExpression) expr;
-            String op = bin.getName();
-
-            // Comparison operators always return BOOLEAN
-            if ("EQUAL".equals(op) || "NOT_EQUAL".equals(op) ||
-                "LESS_THAN".equals(op) || "GREATER_THAN".equals(op) ||
-                "LESS_THAN_OR_EQUAL".equals(op) || "GREATER_THAN_OR_EQUAL".equals(op)) {
-                return SystemDataType.BOOLEAN;
-            }
-
-            // Arithmetic operators: determine result type based on operands
-            DataType leftType = getExpressionType(bin.getLeft(), ctx);
-            DataType rightType = getExpressionType(bin.getRight(), ctx);
-            // Numeric promotion: if either is DOUBLE, result is DOUBLE
-            if (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE) {
-                return SystemDataType.DOUBLE;
-            }
-            // Both INT → result is INT
-            if (leftType == SystemDataType.INT && rightType == SystemDataType.INT) {
-                return SystemDataType.INT;
-            }
-        }
-        // For unary expressions, determine result type based on operator
-        if (expr instanceof UnaryExpression) {
-            UnaryExpression unary = (UnaryExpression) expr;
-            String op = unary.getName();
-
-            // NOT operator returns BOOLEAN
-            if ("NOT".equals(op)) {
-                return SystemDataType.BOOLEAN;
-            }
-
-            // For other unary operators (e.g., NEGATE), return the same type as operand
-            return getExpressionType(unary.getExpress(), ctx);
-        }
-        return null;  // Unknown
+        AbstractAstCompiler compiler = (AbstractAstCompiler) AstCompilerFactory.getCompiler((Node) expr);
+        return compiler.resolveType(ctx);
     }
 }

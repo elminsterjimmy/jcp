@@ -8,6 +8,9 @@ import com.elminster.jcp.ast.expression.literal.IntLiteral;
 import com.elminster.jcp.ast.expression.literal.Literal;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.exception.CompileException;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -161,5 +164,28 @@ public class LiteralCompiler extends AbstractAstCompiler {
             // ASM handles LDC2_W automatically for doubles
             mv.visitLdcInsn(value);
         }
+    }
+
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        LiteralExpression litExpr = (LiteralExpression) astNode;
+        Literal literal = litExpr.getLiteral();
+
+        // Check specific literal types
+        if (literal instanceof IntLiteral) return SystemDataType.INT;
+        if (literal instanceof DoubleLiteral) return SystemDataType.DOUBLE;
+        if (literal instanceof BooleanLiteral) return SystemDataType.BOOLEAN;
+        if (literal instanceof StringLiteral) return SystemDataType.STRING;
+
+        // Handle generic Literal created by Literal.of() - check value type
+        Object value = literal.getValue();
+        if (value instanceof Integer) return SystemDataType.INT;
+        if (value instanceof Double) return SystemDataType.DOUBLE;
+        if (value instanceof Boolean) return SystemDataType.BOOLEAN;
+        if (value instanceof String) return SystemDataType.STRING;
+        if (value == null) return SystemDataType.ANY;  // null can be any reference type
+
+        throw new CompileException(String.format(
+            "unsupported literal value type: %s", value.getClass().getName()));
     }
 }
