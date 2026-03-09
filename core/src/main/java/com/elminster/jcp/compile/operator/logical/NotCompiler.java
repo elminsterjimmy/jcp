@@ -6,6 +6,8 @@ import com.elminster.jcp.ast.expression.operation.LogicalNotExpression;
 import com.elminster.jcp.compile.Compilable;
 import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -56,4 +58,9 @@ public class NotCompiler extends AbstractAstCompiler {
         mv.visitInsn(Opcodes.ICONST_1);
         mv.visitInsn(Opcodes.IXOR);
     }
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        return SystemDataType.BOOLEAN;  // Comparison operators return boolean
+    }
+
 }

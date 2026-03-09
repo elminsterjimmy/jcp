@@ -131,4 +131,9 @@ public class VariableDeclarationCompiler extends AbstractAstCompiler {
             mv.visitInsn(Opcodes.ACONST_NULL);
         }
     }
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        return SystemDataType.VOID;  // Statements don't produce values
+    }
+
 }

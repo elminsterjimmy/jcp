@@ -3,6 +3,8 @@ package com.elminster.jcp.compile.control;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.compile.context.CompileContext.LoopLabels;
 import com.elminster.jcp.compile.exception.CompileException;
 import org.objectweb.asm.MethodVisitor;
@@ -66,4 +68,9 @@ public class BreakCompiler extends AbstractAstCompiler {
         // Jump to the end of the loop
         mv.visitJumpInsn(Opcodes.GOTO, loop.getEndLabel());
     }
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        return SystemDataType.VOID;  // Statements don't produce values
+    }
+
 }

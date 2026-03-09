@@ -176,4 +176,14 @@ public class FieldAccessCompiler extends AbstractAstCompiler {
 
         return null;
     }
+
+    @Override
+    public com.elminster.jcp.eval.data.DataType resolveType(CompileContext ctx) {
+        FieldAccessExpression fieldAccess = (FieldAccessExpression) astNode;
+        String fieldName = fieldAccess.getFieldName().getId();
+        StructType structType = getStructTypeFromExpression(fieldAccess.getObject(), ctx);
+        if (structType == null) return null;
+        StructFieldDef field = structType.getField(fieldName);
+        return field != null ? field.getDataType() : null;
+    }
 }

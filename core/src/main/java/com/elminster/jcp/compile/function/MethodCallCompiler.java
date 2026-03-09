@@ -230,4 +230,28 @@ public class MethodCallCompiler extends AbstractAstCompiler {
         }
         // String and Object types don't need boxing
     }
+
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        MethodCallExpression call = (MethodCallExpression) astNode;
+        String methodName = call.getMethodName();
+        Expression targetExpr = call.getExpression();
+        Expression[] args = call.getArguments();
+
+        DataType targetType = TypeMapper.getExpressionType(targetExpr, ctx);
+        DataType[] argTypes = new DataType[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
+        }
+
+        if (targetType instanceof ExternalClassType) {
+            ExternalMethodDef method = ((ExternalClassType) targetType).getInstanceMethod(methodName, argTypes);
+            return method != null ? method.getReturnType() : null;
+        } else if (targetType instanceof StructType) {
+            com.elminster.jcp.ast.statement.declaration.MethodDef method =
+                ((StructType) targetType).getInstanceMethod(methodName, argTypes);
+            return method != null ? method.getReturnType() : null;
+        }
+        return null;
+    }
 }

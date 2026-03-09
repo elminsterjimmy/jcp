@@ -144,4 +144,11 @@ public class StructInstantiationCompiler extends AbstractAstCompiler {
 
         // Result: struct instance reference is on the stack
     }
+
+    @Override
+    public com.elminster.jcp.eval.data.DataType resolveType(CompileContext ctx) {
+        StructInstantiation structInst = (StructInstantiation) astNode;
+        String structName = structInst.getStructType().getId();
+        return ctx.getDataType(structName);
+    }
 }

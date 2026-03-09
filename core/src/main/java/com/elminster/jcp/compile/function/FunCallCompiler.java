@@ -497,4 +497,19 @@ public class FunCallCompiler extends AbstractAstCompiler {
                 "(D)Ljava/lang/Double;", false);
         }
     }
+
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        FunctionCallExpression call = (FunctionCallExpression) astNode;
+        String funcName = call.getId().getId();
+        Expression[] args = call.getArguments();
+
+        DataType[] argTypes = new DataType[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
+        }
+
+        FunctionSignature sig = ctx.lookupFunction(funcName, argTypes);
+        return sig != null ? sig.getReturnType() : null;
+    }
 }

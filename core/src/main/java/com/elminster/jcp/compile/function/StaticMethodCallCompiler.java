@@ -228,4 +228,30 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
         }
         // String and Object types don't need boxing
     }
+
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        StaticMethodCallExpression call = (StaticMethodCallExpression) astNode;
+        String typeName = call.getTypeName().getId();
+        String methodName = call.getMethodName();
+        Expression[] args = call.getArguments();
+
+        DataType dataType = ctx.getDataType(typeName);
+        if (dataType == null) return null;
+
+        DataType[] argTypes = new DataType[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
+        }
+
+        if (dataType instanceof ExternalClassType) {
+            ExternalMethodDef method = ((ExternalClassType) dataType).getStaticMethod(methodName, argTypes);
+            return method != null ? method.getReturnType() : null;
+        } else if (dataType instanceof StructType) {
+            com.elminster.jcp.ast.statement.declaration.MethodDef method =
+                ((StructType) dataType).getStaticMethod(methodName, argTypes);
+            return method != null ? method.getReturnType() : null;
+        }
+        return null;
+    }
 }

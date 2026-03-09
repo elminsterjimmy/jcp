@@ -90,4 +90,15 @@ public abstract class ArithmeticCompiler extends AbstractAstCompiler {
      * @param mv the method visitor
      */
     protected abstract void emitOperation(MethodVisitor mv);
+
+    @Override
+    public DataType resolveType(CompileContext ctx) {
+        BinaryExpression binaryExpr = (BinaryExpression) astNode;
+        DataType leftType = TypeMapper.getExpressionType(binaryExpr.getLeft(), ctx);
+        DataType rightType = TypeMapper.getExpressionType(binaryExpr.getRight(), ctx);
+        if (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE) {
+            return SystemDataType.DOUBLE;
+        }
+        return SystemDataType.INT;
+    }
 }

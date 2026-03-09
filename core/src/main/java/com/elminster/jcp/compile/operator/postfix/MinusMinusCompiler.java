@@ -83,4 +83,9 @@ public class MinusMinusCompiler extends AbstractAstCompiler {
         }
         throw new CompileException("Invalid decrement target: " + expr.getClass().getSimpleName());
     }
+
+    @Override
+    public com.elminster.jcp.eval.data.DataType resolveType(CompileContext ctx) {
+        return com.elminster.jcp.eval.data.DataType.SystemDataType.INT;
+    }
 }

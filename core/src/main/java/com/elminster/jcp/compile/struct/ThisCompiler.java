@@ -70,4 +70,10 @@ public class ThisCompiler extends AbstractAstCompiler {
         // This is a JVM convention - slot 0 holds the receiver reference
         mv.visitVarInsn(Opcodes.ALOAD, 0);
     }
+
+    @Override
+    public com.elminster.jcp.eval.data.DataType resolveType(CompileContext ctx) {
+        CompileContext.LocalVariable local = ctx.getLocal("this");
+        return local != null ? local.getType() : null;
+    }
 }
