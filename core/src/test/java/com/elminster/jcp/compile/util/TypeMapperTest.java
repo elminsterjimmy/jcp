@@ -328,8 +328,7 @@ class TypeMapperTest {
         @Test
         void testGetExpressionType_UnknownVariable() {
             VariableExpression varExpr = new VariableExpression(Identifier.fromName("unknown"));
-            DataType type = TypeMapper.getExpressionType(varExpr, ctx);
-            assertNull(type);
+            assertThrows(CompileException.class, () -> TypeMapper.getExpressionType(varExpr, ctx));
         }
 
         @Test
@@ -412,17 +411,16 @@ class TypeMapperTest {
         }
 
         /**
-         * Tests that a generic Literal with an unsupported value type (e.g. Long) returns null.
+         * Tests that a generic Literal with an unsupported value type (e.g. Long) throws.
          * <pre>
-         * Literal.of(42L)  // Long not handled → null
+         * Literal.of(42L)  // Long not handled → CompileException
          * </pre>
          */
         @Test
         void testGetExpressionType_GenericLiteral_UnknownType_ReturnsNull() {
             LiteralExpression expr = LiteralExpression.of(
                 com.elminster.jcp.ast.expression.literal.Literal.of(42L));
-            DataType type = TypeMapper.getExpressionType(expr, ctx);
-            assertNull(type);
+            assertThrows(CompileException.class, () -> TypeMapper.getExpressionType(expr, ctx));
         }
     }
 
@@ -446,17 +444,16 @@ class TypeMapperTest {
         }
 
         /**
-         * Tests unknown Identifier returns null.
+         * Tests unknown Identifier throws CompileException.
          * <pre>
-         * unknownVar  // lookup type = null
+         * unknownVar  // undefined → CompileException
          * </pre>
          */
         @Test
         void testGetExpressionType_UnknownIdentifier() {
             com.elminster.jcp.ast.expression.operation.IdentifierExpression idExpr =
                 new com.elminster.jcp.ast.expression.operation.IdentifierExpression("unknownVar");
-            DataType type = TypeMapper.getExpressionType(idExpr, ctx);
-            assertNull(type);
+            assertThrows(CompileException.class, () -> TypeMapper.getExpressionType(idExpr, ctx));
         }
     }
 
@@ -540,11 +537,11 @@ class TypeMapperTest {
         }
 
         /**
-         * Tests that a binary expression with non-numeric operands returns null.
+         * Tests that a binary expression with non-numeric operands throws CompileException.
          * <pre>
          * var a: Boolean = true
          * var b: Boolean = false
-         * a + b  // no numeric type → null
+         * a + b  // invalid arithmetic → CompileException
          * </pre>
          */
         @Test
@@ -556,8 +553,7 @@ class TypeMapperTest {
                     new VariableExpression(Identifier.fromName("a")),
                     new VariableExpression(Identifier.fromName("b"))
                 );
-            DataType type = TypeMapper.getExpressionType(expr, ctx);
-            assertNull(type);
+            assertThrows(CompileException.class, () -> TypeMapper.getExpressionType(expr, ctx));
         }
 
         /**
@@ -618,9 +614,9 @@ class TypeMapperTest {
         }
 
         /**
-         * Tests expression type for unknown variable + known variable (should return null).
+         * Tests expression type for unknown variable + known variable throws CompileException.
          * <pre>
-         * var x = unknown + 5  // type = null (unknown operand)
+         * var x = unknown + 5  // undefined variable → CompileException
          * </pre>
          */
         @Test
@@ -631,8 +627,7 @@ class TypeMapperTest {
                     new VariableExpression(Identifier.fromName("unknown")),
                     new VariableExpression(Identifier.fromName("b"))
                 );
-            DataType type = TypeMapper.getExpressionType(expr, ctx);
-            assertNull(type);
+            assertThrows(CompileException.class, () -> TypeMapper.getExpressionType(expr, ctx));
         }
 
         /**

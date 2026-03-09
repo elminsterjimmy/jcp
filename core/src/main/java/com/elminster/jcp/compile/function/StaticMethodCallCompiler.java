@@ -237,7 +237,9 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
         Expression[] args = call.getArguments();
 
         DataType dataType = ctx.getDataType(typeName);
-        if (dataType == null) return null;
+        if (dataType == null) {
+            throw new CompileException(String.format("undefined type: %s", typeName));
+        }
 
         DataType[] argTypes = new DataType[args.length];
         for (int i = 0; i < args.length; i++) {
@@ -246,12 +248,21 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
 
         if (dataType instanceof ExternalClassType) {
             ExternalMethodDef method = ((ExternalClassType) dataType).getStaticMethod(methodName, argTypes);
-            return method != null ? method.getReturnType() : null;
+            if (method == null) {
+                throw new CompileException(String.format(
+                    "undefined static method '%s' on type '%s'", methodName, typeName));
+            }
+            return method.getReturnType();
         } else if (dataType instanceof StructType) {
             com.elminster.jcp.ast.statement.declaration.MethodDef method =
                 ((StructType) dataType).getStaticMethod(methodName, argTypes);
-            return method != null ? method.getReturnType() : null;
+            if (method == null) {
+                throw new CompileException(String.format(
+                    "undefined static method '%s' on type '%s'", methodName, typeName));
+            }
+            return method.getReturnType();
         }
-        return null;
+        throw new CompileException(String.format(
+            "cannot call static method '%s' on non-class type: %s", methodName, typeName));
     }
 }

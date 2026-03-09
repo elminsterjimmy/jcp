@@ -3,6 +3,7 @@ package com.elminster.jcp.compile.struct;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.exception.CompileException;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -74,6 +75,9 @@ public class ThisCompiler extends AbstractAstCompiler {
     @Override
     public com.elminster.jcp.eval.data.DataType resolveType(CompileContext ctx) {
         CompileContext.LocalVariable local = ctx.getLocal("this");
-        return local != null ? local.getType() : null;
+        if (local == null) {
+            throw new CompileException("'this' is not available in the current context");
+        }
+        return local.getType();
     }
 }

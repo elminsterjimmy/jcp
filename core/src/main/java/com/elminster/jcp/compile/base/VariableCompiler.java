@@ -72,6 +72,9 @@ public class VariableCompiler extends AbstractAstCompiler {
         String varName = varExpr.getId().getId();
 
         LocalVariable local = ctx.getLocal(varName);
-        return local != null ? local.getType() : null;
+        if (local == null) {
+            throw new CompileException(String.format("undefined variable: %s", varName));
+        }
+        return local.getType();
     }
 }

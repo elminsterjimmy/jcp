@@ -6,6 +6,7 @@ import com.elminster.jcp.ast.expression.FieldAccessExpression;
 import com.elminster.jcp.ast.statement.declaration.StructFieldDef;
 import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.StructType;
@@ -182,8 +183,14 @@ public class FieldAccessCompiler extends AbstractAstCompiler {
         FieldAccessExpression fieldAccess = (FieldAccessExpression) astNode;
         String fieldName = fieldAccess.getFieldName().getId();
         StructType structType = getStructTypeFromExpression(fieldAccess.getObject(), ctx);
-        if (structType == null) return null;
+        if (structType == null) {
+            throw new CompileException("cannot resolve struct type for field access: " + fieldName);
+        }
         StructFieldDef field = structType.getField(fieldName);
-        return field != null ? field.getDataType() : null;
+        if (field == null) {
+            throw new CompileException(String.format(
+                "undefined field '%s' on type '%s'", fieldName, structType.getName()));
+        }
+        return field.getDataType();
     }
 }

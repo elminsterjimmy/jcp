@@ -246,12 +246,21 @@ public class MethodCallCompiler extends AbstractAstCompiler {
 
         if (targetType instanceof ExternalClassType) {
             ExternalMethodDef method = ((ExternalClassType) targetType).getInstanceMethod(methodName, argTypes);
-            return method != null ? method.getReturnType() : null;
+            if (method == null) {
+                throw new CompileException(String.format(
+                    "undefined method '%s' on type '%s'", methodName, targetType));
+            }
+            return method.getReturnType();
         } else if (targetType instanceof StructType) {
             com.elminster.jcp.ast.statement.declaration.MethodDef method =
                 ((StructType) targetType).getInstanceMethod(methodName, argTypes);
-            return method != null ? method.getReturnType() : null;
+            if (method == null) {
+                throw new CompileException(String.format(
+                    "undefined method '%s' on type '%s'", methodName, targetType));
+            }
+            return method.getReturnType();
         }
-        return null;
+        throw new CompileException(String.format(
+            "cannot call method '%s' on non-object type: %s", methodName, targetType));
     }
 }

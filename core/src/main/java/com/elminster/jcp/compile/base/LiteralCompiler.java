@@ -8,6 +8,7 @@ import com.elminster.jcp.ast.expression.literal.IntLiteral;
 import com.elminster.jcp.ast.expression.literal.Literal;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.objectweb.asm.MethodVisitor;
@@ -184,6 +185,7 @@ public class LiteralCompiler extends AbstractAstCompiler {
         if (value instanceof String) return SystemDataType.STRING;
         if (value == null) return SystemDataType.ANY;  // null can be any reference type
 
-        return null;  // Unknown literal type
+        throw new CompileException(String.format(
+            "unsupported literal value type: %s", value.getClass().getName()));
     }
 }

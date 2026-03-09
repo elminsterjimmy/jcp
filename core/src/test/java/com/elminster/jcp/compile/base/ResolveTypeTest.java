@@ -17,6 +17,7 @@ import com.elminster.jcp.compile.base.IdentifierCompiler;
 import com.elminster.jcp.compile.base.LiteralCompiler;
 import com.elminster.jcp.compile.base.VariableCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
+import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.operator.arithmetic.ArithmeticCompiler;
 import com.elminster.jcp.compile.operator.arithmetic.PlusCompiler;
 import com.elminster.jcp.compile.operator.postfix.MinusMinusCompiler;
@@ -121,7 +122,7 @@ class ResolveTypeTest {
             LiteralCompiler compiler = new LiteralCompiler(
                 new com.elminster.jcp.ast.expression.LiteralExpression(
                     com.elminster.jcp.ast.expression.literal.Literal.of(42L)));
-            assertNull(compiler.resolveType(ctx));
+            assertThrows(CompileException.class, () -> compiler.resolveType(ctx));
         }
     }
 
@@ -152,7 +153,7 @@ class ResolveTypeTest {
         void unknownVariableReturnsNull() {
             IdentifierCompiler compiler = new IdentifierCompiler(
                 new IdentifierExpression("unknown"));
-            assertNull(compiler.resolveType(ctx));
+            assertThrows(CompileException.class, () -> compiler.resolveType(ctx));
         }
 
         @Test
@@ -165,7 +166,7 @@ class ResolveTypeTest {
         @Test
         void rawIdentifierNodeUnknownReturnsNull() {
             IdentifierCompiler compiler = new IdentifierCompiler(new IdentifierExpression("notDeclared"));
-            assertNull(compiler.resolveType(ctx));
+            assertThrows(CompileException.class, () -> compiler.resolveType(ctx));
         }
     }
 
@@ -193,7 +194,7 @@ class ResolveTypeTest {
         @Test
         void unknownVariableReturnsNull() {
             VariableCompiler compiler = new VariableCompiler(VariableExpression.of("unknown"));
-            assertNull(compiler.resolveType(ctx));
+            assertThrows(CompileException.class, () -> compiler.resolveType(ctx));
         }
     }
 
@@ -227,17 +228,17 @@ class ResolveTypeTest {
 
         @Test
         void unknownLeftOperandReturnsNull() {
-            // IdentifierExpression for undeclared variable → getExpressionType returns null
+            // IdentifierExpression for undeclared variable → CompileException
             PlusCompiler compiler = new PlusCompiler(
                 new Plus(new IdentifierExpression("undeclared"), LiteralExpression.of(1)));
-            assertNull(compiler.resolveType(ctx));
+            assertThrows(CompileException.class, () -> compiler.resolveType(ctx));
         }
 
         @Test
         void unknownRightOperandReturnsNull() {
             PlusCompiler compiler = new PlusCompiler(
                 new Plus(LiteralExpression.of(1), new IdentifierExpression("undeclared")));
-            assertNull(compiler.resolveType(ctx));
+            assertThrows(CompileException.class, () -> compiler.resolveType(ctx));
         }
     }
 
@@ -317,7 +318,7 @@ class ResolveTypeTest {
             com.elminster.jcp.compile.struct.ThisCompiler compiler =
                 new com.elminster.jcp.compile.struct.ThisCompiler(
                     new com.elminster.jcp.ast.expression.ThisExpression());
-            assertNull(compiler.resolveType(ctx));
+            assertThrows(CompileException.class, () -> compiler.resolveType(ctx));
         }
     }
 
