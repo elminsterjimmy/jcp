@@ -5,10 +5,7 @@ import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.statement.control.WhileStatement;
 import com.elminster.jcp.compile.Compilable;
-import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
-import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -64,7 +61,7 @@ import org.objectweb.asm.Opcodes;
  *
  * @see com.elminster.jcp.eval.control.WhileEvaluator
  */
-public class WhileCompiler extends AbstractAstCompiler {
+public class WhileCompiler extends ControlCompiler {
 
     public WhileCompiler(Node astNode) {
         super(astNode);
@@ -105,10 +102,6 @@ public class WhileCompiler extends AbstractAstCompiler {
 
         // Pop loop labels
         ctx.popLoop();
-    }
-    @Override
-    public DataType resolveType(CompileContext ctx) {
-        return SystemDataType.VOID;  // Statements don't produce values
     }
 
 }

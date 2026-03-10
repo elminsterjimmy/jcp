@@ -3,10 +3,7 @@ package com.elminster.jcp.compile.declare;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.statement.declaration.StructDeclaration;
 import com.elminster.jcp.compile.StructClassGenerator;
-import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
-import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.objectweb.asm.MethodVisitor;
 
 /**
@@ -57,7 +54,7 @@ import org.objectweb.asm.MethodVisitor;
  * <h4>Main Method Effect:</h4>
  * <p>No bytecode emitted - struct class is loaded alongside the main class.
  */
-public class StructDeclarationCompiler extends AbstractAstCompiler {
+public class StructDeclarationCompiler extends DeclarationCompiler {
 
     public StructDeclarationCompiler(Node astNode) {
         super(astNode);
@@ -83,10 +80,6 @@ public class StructDeclarationCompiler extends AbstractAstCompiler {
 
         // No bytecode needed in the main method for the declaration itself
         // The struct class will be loaded alongside the main class
-    }
-    @Override
-    public DataType resolveType(CompileContext ctx) {
-        return SystemDataType.VOID;  // Statements don't produce values
     }
 
 }

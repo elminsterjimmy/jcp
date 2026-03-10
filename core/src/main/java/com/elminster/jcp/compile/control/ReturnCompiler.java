@@ -4,7 +4,6 @@ import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.statement.control.ReturnStatement;
 import com.elminster.jcp.compile.Compilable;
-import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
@@ -67,7 +66,7 @@ import org.objectweb.asm.Opcodes;
  *         doesn't return a value, or return appears outside function context
  * @see com.elminster.jcp.eval.control.ReturnEvaluator
  */
-public class ReturnCompiler extends AbstractAstCompiler {
+public class ReturnCompiler extends ControlCompiler {
 
     public ReturnCompiler(Node astNode) {
         super(astNode);
@@ -107,10 +106,6 @@ public class ReturnCompiler extends AbstractAstCompiler {
             // Return void
             mv.visitInsn(Opcodes.RETURN);
         }
-    }
-    @Override
-    public DataType resolveType(CompileContext ctx) {
-        return SystemDataType.VOID;  // Statements don't produce values
     }
 
 }

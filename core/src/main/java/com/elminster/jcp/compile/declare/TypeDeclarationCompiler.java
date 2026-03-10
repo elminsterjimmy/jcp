@@ -3,10 +3,7 @@ package com.elminster.jcp.compile.declare;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.statement.declaration.StructDeclaration;
 import com.elminster.jcp.compile.StructClassGenerator;
-import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
-import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.StructType;
 import org.objectweb.asm.MethodVisitor;
 
@@ -92,7 +89,7 @@ import org.objectweb.asm.MethodVisitor;
  * <h4>Main Method Effect:</h4>
  * <p>No bytecode emitted - type class is loaded alongside the main class.
  */
-public class TypeDeclarationCompiler extends AbstractAstCompiler {
+public class TypeDeclarationCompiler extends DeclarationCompiler {
 
     public TypeDeclarationCompiler(Node astNode) {
         super(astNode);
@@ -121,10 +118,6 @@ public class TypeDeclarationCompiler extends AbstractAstCompiler {
         ctx.addGeneratedClass(typeName, bytecode);
 
         // No bytecode needed in the main method for the declaration itself
-    }
-    @Override
-    public DataType resolveType(CompileContext ctx) {
-        return SystemDataType.VOID;  // Statements don't produce values
     }
 
 }
