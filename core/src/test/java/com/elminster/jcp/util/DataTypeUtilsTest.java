@@ -78,16 +78,16 @@ class DataTypeUtilsTest {
 
         @Test
         void testGetDataType_GenericLiteral_ReturnsAny() {
-            // Generic LiteralExpression returns ANY (the instanceof checks in the method
-            // never match because LiteralExpression.of() creates generic Literal objects)
+            // Literal.of(int) now dispatches to IntLiteral, so the type is INT
             DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(LiteralExpression.of(42));
-            assertEquals(SystemDataType.ANY, type);
+            assertEquals(SystemDataType.INT, type);
         }
 
         @Test
         void testGetDataType_StringLiteral_ReturnsAny() {
+            // Literal.of(String) now dispatches to StringLiteral, so the type is STRING
             DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(LiteralExpression.of("hello"));
-            assertEquals(SystemDataType.ANY, type);
+            assertEquals(SystemDataType.STRING, type);
         }
 
         @Test
