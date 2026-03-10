@@ -2,6 +2,7 @@ package com.elminster.jcp.compile.base;
 
 import com.elminster.jcp.ast.expression.LiteralExpression;
 import com.elminster.jcp.ast.expression.base.VariableExpression;
+import com.elminster.jcp.ast.expression.literal.NullLiteral;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
@@ -353,5 +354,41 @@ public class LiteralCompilerTest extends AbstractCompileTest {
                 return defineClass(name, bytecode, 0, bytecode.length);
             }
         }.defineClass();
+    }
+
+    @Nested
+    class NullLiteralTests {
+
+        /**
+         * Tests null literal compiles to ACONST_NULL and evaluates to null.
+         * <pre>
+         * return null  // uses ACONST_NULL + ARETURN
+         * </pre>
+         */
+        @Test
+        void testNullLiteral_compilesToNull() throws Exception {
+            Block program = new BlockImpl();
+            String className = uniqueClassName("NullLiteralTest");
+            BytecodeGenerator generator = new BytecodeGenerator(className);
+            byte[] bytecode = generator.compileWithReturn(
+                    program,
+                    LiteralExpression.of(NullLiteral.INSTANCE),
+                    SystemDataType.ANY);
+
+            Class<?> clazz = loadClass(className, bytecode);
+            Method evaluate = clazz.getMethod("evaluate");
+            Object result = evaluate.invoke(null);
+            assertNull(result);
+        }
+
+        /**
+         * Tests that LiteralCompiler.resolveType() returns ANY for a NullLiteral.
+         */
+        @Test
+        void testNullLiteral_resolveTypeIsAny() throws Exception {
+            LiteralCompiler compiler = new LiteralCompiler(
+                    LiteralExpression.of(NullLiteral.INSTANCE));
+            assertEquals(SystemDataType.ANY, compiler.resolveType(null));
+        }
     }
 }

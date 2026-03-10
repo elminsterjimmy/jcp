@@ -5,11 +5,8 @@ import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.compile.Compilable;
 import com.elminster.jcp.compile.context.CompileContext;
-import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
 /**
  * Compiler for expression statements.
@@ -35,7 +32,7 @@ import org.objectweb.asm.Opcodes;
  *
  * @see com.elminster.jcp.eval.base.ExpressionStatementEvaluator
  */
-public class ExpressionStatementCompiler extends AbstractAstCompiler {
+public class ExpressionStatementCompiler extends AbstractStatementCompiler {
 
     public ExpressionStatementCompiler(Node astNode) {
         super(astNode);
@@ -52,10 +49,6 @@ public class ExpressionStatementCompiler extends AbstractAstCompiler {
         // Pop the result if the expression leaves a value on the stack
         // TODO: Track whether expressions leave values on the stack
         // For now, we'll handle this on a case-by-case basis
-    }
-    @Override
-    public DataType resolveType(CompileContext ctx) {
-        return SystemDataType.VOID;  // Statements don't produce values
     }
 
 }

@@ -1,10 +1,7 @@
 package com.elminster.jcp.compile.control;
 
 import com.elminster.jcp.ast.Node;
-import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
-import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.compile.context.CompileContext.LoopLabels;
 import com.elminster.jcp.compile.exception.CompileException;
 import org.objectweb.asm.MethodVisitor;
@@ -61,7 +58,7 @@ import org.objectweb.asm.Opcodes;
  * @throws CompileException if continue is used outside a loop
  * @see com.elminster.jcp.eval.control.ContinueEvaluator
  */
-public class ContinueCompiler extends AbstractAstCompiler {
+public class ContinueCompiler extends ControlCompiler {
 
     public ContinueCompiler(Node astNode) {
         super(astNode);
@@ -76,10 +73,6 @@ public class ContinueCompiler extends AbstractAstCompiler {
 
         // Jump to the start of the loop
         mv.visitJumpInsn(Opcodes.GOTO, loop.getStartLabel());
-    }
-    @Override
-    public DataType resolveType(CompileContext ctx) {
-        return SystemDataType.VOID;  // Statements don't produce values
     }
 
 }

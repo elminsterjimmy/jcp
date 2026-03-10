@@ -5,11 +5,9 @@ import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.statement.declaration.FunctionDeclaration;
 import com.elminster.jcp.ast.statement.function.ParameterDef;
 import com.elminster.jcp.compile.Compilable;
-import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -60,7 +58,7 @@ import org.objectweb.asm.Opcodes;
  * <p>For static methods, parameters start at local variable index 0 (no 'this').
  * Each parameter occupies one slot, except doubles which occupy two.
  */
-public class FunctionDeclarationCompiler extends AbstractAstCompiler {
+public class FunctionDeclarationCompiler extends DeclarationCompiler {
 
     public FunctionDeclarationCompiler(Node astNode) {
         super(astNode);
@@ -107,10 +105,6 @@ public class FunctionDeclarationCompiler extends AbstractAstCompiler {
         if (fd.getDataType() == DataType.SystemDataType.VOID) {
             mv.visitInsn(Opcodes.RETURN);
         }
-    }
-    @Override
-    public DataType resolveType(CompileContext ctx) {
-        return SystemDataType.VOID;  // Statements don't produce values
     }
 
 }
