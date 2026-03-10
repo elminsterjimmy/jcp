@@ -6,6 +6,7 @@ import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
 import com.elminster.jcp.ast.expression.literal.DoubleLiteral;
 import com.elminster.jcp.ast.expression.literal.IntLiteral;
 import com.elminster.jcp.ast.expression.literal.Literal;
+import com.elminster.jcp.ast.expression.literal.NullLiteral;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.exception.CompileException;
@@ -90,7 +91,6 @@ public class LiteralCompiler extends AbstractAstCompiler {
     }
 
     private void compileLiteral(Literal literal, MethodVisitor mv) {
-        // First check for specific interfaces
         if (literal instanceof IntLiteral) {
             compileInt(((IntLiteral) literal).getValue(), mv);
         } else if (literal instanceof DoubleLiteral) {
@@ -99,23 +99,11 @@ public class LiteralCompiler extends AbstractAstCompiler {
             compileBoolean(((BooleanLiteral) literal).getValue(), mv);
         } else if (literal instanceof StringLiteral) {
             compileString(((StringLiteral) literal).getValue(), mv);
+        } else if (literal instanceof NullLiteral) {
+            mv.visitInsn(Opcodes.ACONST_NULL);
         } else {
-            // Handle generic Literal (e.g., created by Literal.of())
-            Object value = literal.getValue();
-            if (value instanceof Integer) {
-                compileInt((Integer) value, mv);
-            } else if (value instanceof Double) {
-                compileDouble((Double) value, mv);
-            } else if (value instanceof Boolean) {
-                compileBoolean((Boolean) value, mv);
-            } else if (value instanceof String) {
-                compileString((String) value, mv);
-            } else if (value == null) {
-                mv.visitInsn(Opcodes.ACONST_NULL);
-            } else {
-                throw new UnsupportedOperationException(
-                        "Unsupported literal value type: " + value.getClass().getSimpleName());
-            }
+            throw new UnsupportedOperationException(
+                    "Unsupported literal type: " + literal.getClass().getSimpleName());
         }
     }
 
@@ -171,21 +159,13 @@ public class LiteralCompiler extends AbstractAstCompiler {
         LiteralExpression litExpr = (LiteralExpression) astNode;
         Literal literal = litExpr.getLiteral();
 
-        // Check specific literal types
-        if (literal instanceof IntLiteral) return SystemDataType.INT;
-        if (literal instanceof DoubleLiteral) return SystemDataType.DOUBLE;
+        if (literal instanceof IntLiteral)     return SystemDataType.INT;
+        if (literal instanceof DoubleLiteral)  return SystemDataType.DOUBLE;
         if (literal instanceof BooleanLiteral) return SystemDataType.BOOLEAN;
-        if (literal instanceof StringLiteral) return SystemDataType.STRING;
-
-        // Handle generic Literal created by Literal.of() - check value type
-        Object value = literal.getValue();
-        if (value instanceof Integer) return SystemDataType.INT;
-        if (value instanceof Double) return SystemDataType.DOUBLE;
-        if (value instanceof Boolean) return SystemDataType.BOOLEAN;
-        if (value instanceof String) return SystemDataType.STRING;
-        if (value == null) return SystemDataType.ANY;  // null can be any reference type
+        if (literal instanceof StringLiteral)  return SystemDataType.STRING;
+        if (literal instanceof NullLiteral)    return SystemDataType.ANY;
 
         throw new CompileException(String.format(
-            "unsupported literal value type: %s", value.getClass().getName()));
+            "unsupported literal type: %s", literal.getClass().getName()));
     }
 }
