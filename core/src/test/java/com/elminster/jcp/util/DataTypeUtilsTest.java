@@ -77,29 +77,19 @@ class DataTypeUtilsTest {
     class GetDataTypeFromLiteralTests {
 
         @Test
-        void testGetDataType_GenericLiteral_ReturnsAny() {
-            // Literal.of(int) now dispatches to IntLiteral, so the type is INT
+        void testGetDataType_IntLiteral_ReturnsInt() {
             DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(LiteralExpression.of(42));
             assertEquals(SystemDataType.INT, type);
         }
 
         @Test
-        void testGetDataType_StringLiteral_ReturnsAny() {
-            // Literal.of(String) now dispatches to StringLiteral, so the type is STRING
+        void testGetDataType_StringLiteral_ReturnsString() {
             DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(LiteralExpression.of("hello"));
             assertEquals(SystemDataType.STRING, type);
         }
 
         @Test
-        void testGetDataType_TypedStringLiteral_ReturnsString() {
-            LiteralExpression expr = new LiteralExpression(
-                com.elminster.jcp.ast.expression.literal.StringLiteral.of("hello"));
-            DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(expr);
-            assertEquals(SystemDataType.STRING, type);
-        }
-
-        @Test
-        void testGetDataType_TypedBooleanLiteral_ReturnsBoolean() {
+        void testGetDataType_BooleanLiteral_ReturnsBoolean() {
             LiteralExpression expr = new LiteralExpression(
                 com.elminster.jcp.ast.expression.literal.BooleanLiteral.of(true));
             DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(expr);
@@ -107,7 +97,7 @@ class DataTypeUtilsTest {
         }
 
         @Test
-        void testGetDataType_TypedIntLiteral_ReturnsInt() {
+        void testGetDataType_ExplicitIntLiteral_ReturnsInt() {
             LiteralExpression expr = new LiteralExpression(
                 com.elminster.jcp.ast.expression.literal.IntLiteral.of(42));
             DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(expr);
@@ -115,7 +105,7 @@ class DataTypeUtilsTest {
         }
 
         @Test
-        void testGetDataType_TypedDoubleLiteral_ReturnsDouble() {
+        void testGetDataType_DoubleLiteral_ReturnsDouble() {
             LiteralExpression expr = new LiteralExpression(
                 com.elminster.jcp.ast.expression.literal.DoubleLiteral.of(3.14));
             DataType type = DataTypeUtils.getDataTypeAndCreateOnMissing(expr);
