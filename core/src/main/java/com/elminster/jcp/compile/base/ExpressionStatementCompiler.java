@@ -7,7 +7,6 @@ import com.elminster.jcp.compile.Compilable;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
 /**
  * Compiler for expression statements.
