@@ -5,10 +5,7 @@ import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.Statement;
 import com.elminster.jcp.ast.statement.control.IfElseStatement;
 import com.elminster.jcp.compile.Compilable;
-import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
-import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -74,7 +71,7 @@ import org.objectweb.asm.Opcodes;
  *
  * @see com.elminster.jcp.eval.control.IfelseEvaluator
  */
-public class IfelseCompiler extends AbstractAstCompiler {
+public class IfelseCompiler extends ControlCompiler {
 
     public IfelseCompiler(Node astNode) {
         super(astNode);
@@ -113,10 +110,6 @@ public class IfelseCompiler extends AbstractAstCompiler {
         }
 
         mv.visitLabel(endLabel);
-    }
-    @Override
-    public DataType resolveType(CompileContext ctx) {
-        return SystemDataType.VOID;  // Statements don't produce values
     }
 
 }

@@ -5,7 +5,6 @@ import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclaration;
 import com.elminster.jcp.compile.Compilable;
-import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.TypeMapper;
@@ -64,7 +63,7 @@ import org.objectweb.asm.Opcodes;
  *
  * @see com.elminster.jcp.eval.declare.VariableDeclarationEvaluator
  */
-public class VariableDeclarationCompiler extends AbstractAstCompiler {
+public class VariableDeclarationCompiler extends DeclarationCompiler {
 
     public VariableDeclarationCompiler(Node astNode) {
         super(astNode);
@@ -130,10 +129,6 @@ public class VariableDeclarationCompiler extends AbstractAstCompiler {
             // For reference types, push null
             mv.visitInsn(Opcodes.ACONST_NULL);
         }
-    }
-    @Override
-    public DataType resolveType(CompileContext ctx) {
-        return SystemDataType.VOID;  // Statements don't produce values
     }
 
 }
