@@ -3,6 +3,9 @@ package com.elminster.jcp.compile.module;
 import com.elminster.jcp.ast.expression.LiteralExpression;
 import com.elminster.jcp.ast.expression.StaticMethodCallExpression;
 import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
+import com.elminster.jcp.ast.expression.literal.DoubleLiteral;
+import com.elminster.jcp.ast.expression.literal.NullLiteral;
+import com.elminster.jcp.ast.expression.literal.StringLiteral;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.ast.statement.ExpressionStatement;
@@ -16,76 +19,214 @@ import java.lang.reflect.Method;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for Assertions module type in compile mode.
- * Verifies that Assertions.assertTrue() can be called from compiled JCP code.
+ * Tests for Assertions module in compile mode.
  */
 public class AssertionsCompileTest extends AbstractCompileTest {
 
+    private StaticMethodCallExpression call(String method, LiteralExpression... args) {
+        return new StaticMethodCallExpression("Assertions", method, args);
+    }
+
+    private Method compileAndGetMain(String baseName, StaticMethodCallExpression... calls) throws Exception {
+        Block program = new BlockImpl();
+        for (StaticMethodCallExpression c : calls) {
+            program.addStatement(new ExpressionStatement(c));
+        }
+        String className = uniqueClassName(baseName);
+        Class<?> clazz = compiler.compileAndLoad(program, className);
+        return clazz.getMethod("main", String[].class);
+    }
+
     @Test
     void testAssertTrueWithTrue() throws Exception {
-        // Assertions.assertTrue(true);
-        Block program = new BlockImpl();
-
-        StaticMethodCallExpression assertCall = new StaticMethodCallExpression(
-            "Assertions",
-            "assertTrue",
-            LiteralExpression.of(BooleanLiteral.of(true))
-        );
-        program.addStatement(new ExpressionStatement(assertCall));
-
-        // Compile and run
-        String className = uniqueClassName("TestAssertTrueWithTrue");
-        Class<?> clazz = compiler.compileAndLoad(program, className);
-        Method mainMethod = clazz.getMethod("main", String[].class);
-
-        // Should execute without throwing
-        assertDoesNotThrow(() -> mainMethod.invoke(null, (Object) new String[]{}));
+        Method main = compileAndGetMain("TestAssertTruePass",
+            call("assertTrue", LiteralExpression.of(BooleanLiteral.of(true))));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
     @Test
     void testAssertTrueWithFalse() throws Exception {
-        // Assertions.assertTrue(false); - should throw
-        Block program = new BlockImpl();
+        Method main = compileAndGetMain("TestAssertTrueFail",
+            call("assertTrue", LiteralExpression.of(BooleanLiteral.of(false))));
+        InvocationTargetException ex = assertThrows(InvocationTargetException.class,
+            () -> main.invoke(null, (Object) new String[]{}));
+        assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
+    }
 
-        StaticMethodCallExpression assertCall = new StaticMethodCallExpression(
-            "Assertions",
-            "assertTrue",
-            LiteralExpression.of(BooleanLiteral.of(false))
-        );
-        program.addStatement(new ExpressionStatement(assertCall));
+    @Test
+    void testAssertFalseWithFalse() throws Exception {
+        Method main = compileAndGetMain("TestAssertFalsePass",
+            call("assertFalse", LiteralExpression.of(BooleanLiteral.of(false))));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
+    }
 
-        // Compile and run
-        String className = uniqueClassName("TestAssertTrueWithFalse");
-        Class<?> clazz = compiler.compileAndLoad(program, className);
-        Method mainMethod = clazz.getMethod("main", String[].class);
+    @Test
+    void testAssertFalseWithTrue() throws Exception {
+        Method main = compileAndGetMain("TestAssertFalseFail",
+            call("assertFalse", LiteralExpression.of(BooleanLiteral.of(true))));
+        InvocationTargetException ex = assertThrows(InvocationTargetException.class,
+            () -> main.invoke(null, (Object) new String[]{}));
+        assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
+    }
 
-        // Should throw AssertException
-        InvocationTargetException ex = assertThrows(
-            InvocationTargetException.class,
-            () -> mainMethod.invoke(null, (Object) new String[]{})
-        );
+    @Test
+    void testAssertEqualsIntPass() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsIntPass",
+            call("assertEquals", LiteralExpression.of(42), LiteralExpression.of(42)));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
+    }
+
+    @Test
+    void testAssertEqualsIntFail() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsIntFail",
+            call("assertEquals", LiteralExpression.of(1), LiteralExpression.of(2)));
+        InvocationTargetException ex = assertThrows(InvocationTargetException.class,
+            () -> main.invoke(null, (Object) new String[]{}));
+        assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
+    }
+
+    /** assertEquals(200, 200) — outside Integer cache range [0, 127], equals() must not rely on reference identity */
+    @Test
+    void testAssertEqualsLargeIntPass() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsLargeIntPass",
+            call("assertEquals", LiteralExpression.of(200), LiteralExpression.of(200)));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
+    }
+
+    /** assertEquals(200, 201) — large ints, should fail */
+    @Test
+    void testAssertEqualsLargeIntFail() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsLargeIntFail",
+            call("assertEquals", LiteralExpression.of(200), LiteralExpression.of(201)));
+        InvocationTargetException ex = assertThrows(InvocationTargetException.class,
+            () -> main.invoke(null, (Object) new String[]{}));
+        assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
+    }
+
+    /**
+     * assertEquals(1.0, 1.0) — Double cache covers only a small range; assertEquals uses Double.equals()
+     * which compares bit patterns exactly (no IEEE 754 epsilon). Exact literal equality is safe here.
+     */
+    @Test
+    void testAssertEqualsDoublePass() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsDoublePass",
+            call("assertEquals",
+                LiteralExpression.of(DoubleLiteral.of(1.0)),
+                LiteralExpression.of(DoubleLiteral.of(1.0))));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
+    }
+
+    @Test
+    void testAssertEqualsDoubleFail() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsDoubleFail",
+            call("assertEquals",
+                LiteralExpression.of(DoubleLiteral.of(1.0)),
+                LiteralExpression.of(DoubleLiteral.of(2.0))));
+        InvocationTargetException ex = assertThrows(InvocationTargetException.class,
+            () -> main.invoke(null, (Object) new String[]{}));
+        assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
+    }
+
+    /** assertEquals(1.5, 1.5) — 1.5 is outside the Double cache range, equals() must use value comparison */
+    @Test
+    void testAssertEqualsDoubleOutsideCachePass() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsDoubleOutsideCachePass",
+            call("assertEquals",
+                LiteralExpression.of(DoubleLiteral.of(1.5)),
+                LiteralExpression.of(DoubleLiteral.of(1.5))));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
+    }
+
+    /** assertEquals(1.5, 2.5) — large doubles outside cache, should fail */
+    @Test
+    void testAssertEqualsDoubleOutsideCacheFail() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsDoubleOutsideCacheFail",
+            call("assertEquals",
+                LiteralExpression.of(DoubleLiteral.of(1.5)),
+                LiteralExpression.of(DoubleLiteral.of(2.5))));
+        InvocationTargetException ex = assertThrows(InvocationTargetException.class,
+            () -> main.invoke(null, (Object) new String[]{}));
+        assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
+    }
+
+    @Test
+    void testAssertEqualsBooleanPass() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsBooleanPass",
+            call("assertEquals",
+                LiteralExpression.of(BooleanLiteral.of(true)),
+                LiteralExpression.of(BooleanLiteral.of(true))));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
+    }
+
+    @Test
+    void testAssertEqualsBooleanFail() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsBooleanFail",
+            call("assertEquals",
+                LiteralExpression.of(BooleanLiteral.of(true)),
+                LiteralExpression.of(BooleanLiteral.of(false))));
+        InvocationTargetException ex = assertThrows(InvocationTargetException.class,
+            () -> main.invoke(null, (Object) new String[]{}));
+        assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
+    }
+
+    @Test
+    void testAssertEqualsStringPass() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsStringPass",
+            call("assertEquals",
+                LiteralExpression.of(StringLiteral.of("hello")),
+                LiteralExpression.of(StringLiteral.of("hello"))));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
+    }
+
+    @Test
+    void testAssertEqualsStringFail() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsStringFail",
+            call("assertEquals",
+                LiteralExpression.of(StringLiteral.of("hello")),
+                LiteralExpression.of(StringLiteral.of("world"))));
+        InvocationTargetException ex = assertThrows(InvocationTargetException.class,
+            () -> main.invoke(null, (Object) new String[]{}));
+        assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
+    }
+
+    @Test
+    void testAssertNullWithNull() throws Exception {
+        Method main = compileAndGetMain("TestAssertNullPass",
+            call("assertNull", LiteralExpression.of(NullLiteral.INSTANCE)));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
+    }
+
+    @Test
+    void testAssertNullWithNonNull() throws Exception {
+        Method main = compileAndGetMain("TestAssertNullFail",
+            call("assertNull", LiteralExpression.of(StringLiteral.of("not-null"))));
+        InvocationTargetException ex = assertThrows(InvocationTargetException.class,
+            () -> main.invoke(null, (Object) new String[]{}));
+        assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
+    }
+
+    @Test
+    void testAssertNotNullWithNonNull() throws Exception {
+        Method main = compileAndGetMain("TestAssertNotNullPass",
+            call("assertNotNull", LiteralExpression.of(StringLiteral.of("value"))));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
+    }
+
+    @Test
+    void testAssertNotNullWithNull() throws Exception {
+        Method main = compileAndGetMain("TestAssertNotNullFail",
+            call("assertNotNull", LiteralExpression.of(NullLiteral.INSTANCE)));
+        InvocationTargetException ex = assertThrows(InvocationTargetException.class,
+            () -> main.invoke(null, (Object) new String[]{}));
         assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
     }
 
     @Test
     void testMultipleAssertions() throws Exception {
-        // Assertions.assertTrue(true);
-        // Assertions.assertTrue(true);
-        Block program = new BlockImpl();
-
-        program.addStatement(new ExpressionStatement(new StaticMethodCallExpression(
-            "Assertions", "assertTrue", LiteralExpression.of(BooleanLiteral.of(true))
-        )));
-        program.addStatement(new ExpressionStatement(new StaticMethodCallExpression(
-            "Assertions", "assertTrue", LiteralExpression.of(BooleanLiteral.of(true))
-        )));
-
-        // Compile and run
-        String className = uniqueClassName("TestMultipleAssertions");
-        Class<?> clazz = compiler.compileAndLoad(program, className);
-        Method mainMethod = clazz.getMethod("main", String[].class);
-
-        // Should execute without throwing
-        assertDoesNotThrow(() -> mainMethod.invoke(null, (Object) new String[]{}));
+        Method main = compileAndGetMain("TestMultipleAssertions",
+            call("assertTrue", LiteralExpression.of(BooleanLiteral.of(true))),
+            call("assertFalse", LiteralExpression.of(BooleanLiteral.of(false))),
+            call("assertEquals", LiteralExpression.of(1), LiteralExpression.of(1)));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 }
