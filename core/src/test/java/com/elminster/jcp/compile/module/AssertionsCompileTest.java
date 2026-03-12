@@ -85,6 +85,28 @@ public class AssertionsCompileTest extends AbstractCompileTest {
         assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
     }
 
+    /** assertEquals(200, 200) — outside Integer cache range [0, 127], equals() must not rely on reference identity */
+    @Test
+    void testAssertEqualsLargeIntPass() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsLargeIntPass",
+            call("assertEquals", LiteralExpression.of(200), LiteralExpression.of(200)));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
+    }
+
+    /** assertEquals(200, 201) — large ints, should fail */
+    @Test
+    void testAssertEqualsLargeIntFail() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsLargeIntFail",
+            call("assertEquals", LiteralExpression.of(200), LiteralExpression.of(201)));
+        InvocationTargetException ex = assertThrows(InvocationTargetException.class,
+            () -> main.invoke(null, (Object) new String[]{}));
+        assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
+    }
+
+    /**
+     * assertEquals(1.0, 1.0) — Double cache covers only a small range; assertEquals uses Double.equals()
+     * which compares bit patterns exactly (no IEEE 754 epsilon). Exact literal equality is safe here.
+     */
     @Test
     void testAssertEqualsDoublePass() throws Exception {
         Method main = compileAndGetMain("TestAssertEqualsDoublePass",
@@ -100,6 +122,28 @@ public class AssertionsCompileTest extends AbstractCompileTest {
             call("assertEquals",
                 LiteralExpression.of(DoubleLiteral.of(1.0)),
                 LiteralExpression.of(DoubleLiteral.of(2.0))));
+        InvocationTargetException ex = assertThrows(InvocationTargetException.class,
+            () -> main.invoke(null, (Object) new String[]{}));
+        assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
+    }
+
+    /** assertEquals(1.5, 1.5) — 1.5 is outside the Double cache range, equals() must use value comparison */
+    @Test
+    void testAssertEqualsDoubleOutsideCachePass() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsDoubleOutsideCachePass",
+            call("assertEquals",
+                LiteralExpression.of(DoubleLiteral.of(1.5)),
+                LiteralExpression.of(DoubleLiteral.of(1.5))));
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
+    }
+
+    /** assertEquals(1.5, 2.5) — large doubles outside cache, should fail */
+    @Test
+    void testAssertEqualsDoubleOutsideCacheFail() throws Exception {
+        Method main = compileAndGetMain("TestAssertEqualsDoubleOutsideCacheFail",
+            call("assertEquals",
+                LiteralExpression.of(DoubleLiteral.of(1.5)),
+                LiteralExpression.of(DoubleLiteral.of(2.5))));
         InvocationTargetException ex = assertThrows(InvocationTargetException.class,
             () -> main.invoke(null, (Object) new String[]{}));
         assertTrue(ex.getCause().getMessage().contains("Assertions failed"));
