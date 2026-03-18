@@ -17,11 +17,11 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for Strings module in compile mode.
  *
- * <p>Boolean-returning methods are verified using {@code Assertions.assertTrue} /
- * {@code Assertions.assertFalse} (which exist in the base module).
- * Non-boolean methods (String, int, String[]) are verified by compiling the call
- * as a discarded expression statement — confirming the bytecode compiles and executes
- * without error.
+ * <p>All methods are verified by compiling inline {@code Assertions.assertEquals} /
+ * {@code Assertions.assertTrue} / {@code Assertions.assertFalse} calls inside the
+ * generated {@code main} method. If the assertion fails at runtime, the JCP-compiled
+ * program throws, which surfaces as an {@link java.lang.reflect.InvocationTargetException}
+ * and causes the test to fail.
  */
 public class StringsCompileTest extends AbstractCompileTest {
 
@@ -33,13 +33,13 @@ public class StringsCompileTest extends AbstractCompileTest {
         return new StaticMethodCallExpression("Assertions", "assertTrue", actual);
     }
 
-    private StaticMethodCallExpression assertFalseA(StaticMethodCallExpression actual) {
-        // assertFalse: negate with NOT, then assertTrue
-        // Simpler: just call assertTrue on the negation is not available —
-        // instead compile as a standalone call and trust eval-mode tests for value assertion.
-        // We use assertTrue on the negation of the contains result here by testing the
-        // positive case with assertTrue directly.
-        return new StaticMethodCallExpression("Assertions", "assertTrue", actual);
+    private StaticMethodCallExpression assertFalse(StaticMethodCallExpression actual) {
+        return new StaticMethodCallExpression("Assertions", "assertFalse", actual);
+    }
+
+    private StaticMethodCallExpression assertEq(LiteralExpression expected,
+                                                StaticMethodCallExpression actual) {
+        return new StaticMethodCallExpression("Assertions", "assertEquals", expected, actual);
     }
 
     private LiteralExpression str(String s) {
@@ -60,124 +60,99 @@ public class StringsCompileTest extends AbstractCompileTest {
         return clazz.getMethod("main", String[].class);
     }
 
-    // --- String-returning methods: compile + execute without error ---
+    // --- String-returning methods ---
 
     @Test
-    void testUpperCompiles() throws Exception {
+    void testUpper() throws Exception {
         Method main = compileStatements("TestStringsUpper",
-            strings("upper", str("hello")));
+            assertEq(str("HELLO"), strings("upper", str("hello"))));
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
     @Test
-    void testLowerCompiles() throws Exception {
+    void testLower() throws Exception {
         Method main = compileStatements("TestStringsLower",
-            strings("lower", str("HELLO")));
+            assertEq(str("hello"), strings("lower", str("HELLO"))));
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
     @Test
-    void testTrimCompiles() throws Exception {
+    void testTrim() throws Exception {
         Method main = compileStatements("TestStringsTrim",
-            strings("trim", str("  hi  ")));
+            assertEq(str("hi"), strings("trim", str("  hi  "))));
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
     @Test
-    void testConcatCompiles() throws Exception {
+    void testConcat() throws Exception {
         Method main = compileStatements("TestStringsConcat",
-            strings("concat", str("foo"), str("bar")));
+            assertEq(str("foobar"), strings("concat", str("foo"), str("bar"))));
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
     @Test
-    void testReplaceCompiles() throws Exception {
+    void testReplace() throws Exception {
         Method main = compileStatements("TestStringsReplace",
-            strings("replace", str("aXbXc"), str("X"), str("-")));
+            assertEq(str("a-b-c"), strings("replace", str("aXbXc"), str("X"), str("-"))));
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
     @Test
-    void testSubCompiles() throws Exception {
+    void testSub() throws Exception {
         Method main = compileStatements("TestStringsSub",
-            strings("sub", str("hello"), int_(1), int_(3)));
+            assertEq(str("el"), strings("sub", str("hello"), int_(1), int_(3))));
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
     // --- int-returning methods ---
 
     @Test
-    void testLengthCompiles() throws Exception {
+    void testLength() throws Exception {
         Method main = compileStatements("TestStringsLength",
-            strings("length", str("hello")),
-            strings("length", str("")));
+            assertEq(int_(5), strings("length", str("hello"))),
+            assertEq(int_(0), strings("length", str(""))));
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
     @Test
-    void testIndexOfCompiles() throws Exception {
+    void testIndexOf() throws Exception {
         Method main = compileStatements("TestStringsIndexOf",
-            strings("indexOf", str("hello"), str("ll")),
-            strings("indexOf", str("hello"), str("x")));
+            assertEq(int_(2), strings("indexOf", str("hello"), str("ll"))),
+            assertEq(int_(-1), strings("indexOf", str("hello"), str("x"))));
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
-    // --- boolean-returning methods: verified via Assertions.assertTrue ---
+    // --- boolean-returning methods ---
 
     @Test
-    void testContainsTrue() throws Exception {
-        Method main = compileStatements("TestStringsContainsTrue",
-            assertTrue(strings("contains", str("hello"), str("ell"))));
-        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
-    }
-
-    @Test
-    void testContainsFalseCompiles() throws Exception {
-        // contains("hello", "x") returns false — just compile and run without assertion
-        Method main = compileStatements("TestStringsContainsFalse",
-            strings("contains", str("hello"), str("x")));
+    void testContains() throws Exception {
+        Method main = compileStatements("TestStringsContains",
+            assertTrue(strings("contains", str("hello"), str("ell"))),
+            assertFalse(strings("contains", str("hello"), str("x"))));
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
     @Test
-    void testStartsWithTrue() throws Exception {
-        Method main = compileStatements("TestStringsStartsWithTrue",
-            assertTrue(strings("startsWith", str("hello"), str("he"))));
+    void testStartsWith() throws Exception {
+        Method main = compileStatements("TestStringsStartsWith",
+            assertTrue(strings("startsWith", str("hello"), str("he"))),
+            assertFalse(strings("startsWith", str("hello"), str("lo"))));
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
     @Test
-    void testStartsWithFalseCompiles() throws Exception {
-        Method main = compileStatements("TestStringsStartsWithFalse",
-            strings("startsWith", str("hello"), str("lo")));
+    void testEndsWith() throws Exception {
+        Method main = compileStatements("TestStringsEndsWith",
+            assertTrue(strings("endsWith", str("hello"), str("lo"))),
+            assertFalse(strings("endsWith", str("hello"), str("he"))));
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
     @Test
-    void testEndsWithTrue() throws Exception {
-        Method main = compileStatements("TestStringsEndsWithTrue",
-            assertTrue(strings("endsWith", str("hello"), str("lo"))));
-        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
-    }
-
-    @Test
-    void testEndsWithFalseCompiles() throws Exception {
-        Method main = compileStatements("TestStringsEndsWithFalse",
-            strings("endsWith", str("hello"), str("he")));
-        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
-    }
-
-    @Test
-    void testIsEmptyTrue() throws Exception {
-        Method main = compileStatements("TestStringsIsEmptyTrue",
-            assertTrue(strings("isEmpty", str(""))));
-        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
-    }
-
-    @Test
-    void testIsEmptyFalseCompiles() throws Exception {
-        Method main = compileStatements("TestStringsIsEmptyFalse",
-            strings("isEmpty", str("x")));
+    void testIsEmpty() throws Exception {
+        Method main = compileStatements("TestStringsIsEmpty",
+            assertTrue(strings("isEmpty", str(""))),
+            assertFalse(strings("isEmpty", str("x"))));
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
     }
 
