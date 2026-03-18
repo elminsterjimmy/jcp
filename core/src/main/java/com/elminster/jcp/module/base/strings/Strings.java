@@ -18,6 +18,8 @@ package com.elminster.jcp.module.base.strings;
  */
 public class Strings {
 
+    private Strings() {}
+
     public static int length(String s) {
         return s.length();
     }
