@@ -10,6 +10,8 @@ import com.elminster.common.util.AssertException;
  */
 public class Assertions {
 
+    private Assertions() {}
+
     public static void assertTrue(boolean condition) {
         if (!condition) {
             fastfail(true, false);
