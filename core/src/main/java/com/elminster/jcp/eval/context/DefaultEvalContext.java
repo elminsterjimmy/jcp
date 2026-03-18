@@ -108,6 +108,8 @@ public class DefaultEvalContext implements EvalContext {
             return DataType.SystemDataType.ANY.getName();
         } else if ("int".equals(name)) {
             return DataType.SystemDataType.INT.getName();
+        } else if ("double".equals(name)) {
+            return DataType.SystemDataType.DOUBLE.getName();
         } else if ("boolean".equals(name)) {
             return DataType.SystemDataType.BOOLEAN.getName();
         } else if ("void".equals(name)) {
