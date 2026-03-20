@@ -1,6 +1,7 @@
 package com.elminster.jcp.module.base;
 
 import com.elminster.jcp.module.base.arrays.Arrays;
+import com.elminster.jcp.module.base.arrays.SortKey;
 import com.elminster.jcp.module.base.assertions.Assertions;
 import com.elminster.jcp.module.base.logger.Logger;
 import com.elminster.jcp.module.base.strings.Strings;
@@ -13,6 +14,7 @@ public class BaseModuleRegister {
 
     public static List<Class<?>> classToRegister() {
         List<Class<?>> classes = new ArrayList<>();
+        classes.add(SortKey.class);  // must precede Arrays so SortKey DataType exists when Arrays methods are scanned
         classes.add(Arrays.class);
         classes.add(Assertions.class);
         classes.add(Logger.class);
