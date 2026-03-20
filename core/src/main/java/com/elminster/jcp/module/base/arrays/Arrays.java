@@ -1,17 +1,14 @@
 package com.elminster.jcp.module.base.arrays;
 
 import java.lang.reflect.Array;
+import java.util.Objects;
 
 /**
  * Array utility functions for the JCP base module.
  *
- * <p>All methods are static. Overloads use primitive array types ({@code int[]}, {@code boolean[]},
- * {@code double[]}) so that {@code CompileModeClassConverter} maps them to the correct
- * {@code SystemDataType} ({@code INT_ARRAY}, {@code BOOLEAN_ARRAY}, {@code DOUBLE_ARRAY}).
- *
- * <p>In eval mode, {@code ClassConverter} resolves {@code int[].class.getSimpleName()} = {@code
- * "int[]"} via {@code DataTypeUtils.getDataType("int[]", ctx)} which strips {@code []} → looks up
- * {@code "int"} → {@code convertSystemDataTypeName} maps to {@code "Integer"} → found in context.
+ * <p>All methods are static. Typed overloads exist for {@code int[]}, {@code String[]},
+ * {@code boolean[]}, {@code double[]}, and {@code Object[]}. The {@code Object[]} overloads
+ * handle any array type not covered by a more specific overload.
  *
  * <p>Callable from JCP programs as:
  * <pre>
@@ -61,6 +58,10 @@ public class Arrays {
         return java.util.Arrays.copyOfRange(a, from, to);
     }
 
+    public static Object[] slice(Object[] a, int from, int to) {
+        return java.util.Arrays.copyOfRange(a, from, to);
+    }
+
     // --- contains ---
 
     /** Returns {@code true} if the array contains the given value. */
@@ -73,7 +74,7 @@ public class Arrays {
 
     public static boolean contains(String[] a, String v) {
         for (String elem : a) {
-            if (v.equals(elem)) return true;
+            if (Objects.equals(v, elem)) return true;
         }
         return false;
     }
@@ -89,6 +90,13 @@ public class Arrays {
     public static boolean contains(double[] a, double v) {
         for (double elem : a) {
             if (elem == v) return true;
+        }
+        return false;
+    }
+
+    public static boolean contains(Object[] a, Object v) {
+        for (Object elem : a) {
+            if (Objects.equals(v, elem)) return true;
         }
         return false;
     }
@@ -116,13 +124,19 @@ public class Arrays {
             if (!b) falseCount++;
         }
         for (int i = 0; i < a.length; i++) {
-            a[i] = i < falseCount ? false : true;
+            a[i] = i >= falseCount;
         }
         return a;
     }
 
     public static double[] sort(double[] a) {
         java.util.Arrays.sort(a);
+        return a;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static Object[] sort(Object[] a) {
+        java.util.Arrays.sort(a, (x, y) -> ((Comparable) x).compareTo(y));
         return a;
     }
 }

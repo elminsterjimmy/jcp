@@ -135,6 +135,12 @@ public class ArraysTest {
     }
 
     @Test
+    void testContains_stringNullValue() {
+        assertEquals(false, evalOnArray("a", new String[]{"apple", "banana"}, SystemDataType.STRING_ARRAY,
+            "contains", SystemDataType.BOOLEAN, str(null)));
+    }
+
+    @Test
     void testContains_booleanFound() {
         assertEquals(true, evalOnArray("a", new boolean[]{true, false}, SystemDataType.BOOLEAN_ARRAY,
             "contains", SystemDataType.BOOLEAN, bool_(false)));

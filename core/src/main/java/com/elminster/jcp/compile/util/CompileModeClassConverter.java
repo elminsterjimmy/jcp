@@ -149,6 +149,9 @@ public final class CompileModeClassConverter {
         if (javaType == Boolean[].class) {
             return SystemDataType.BOOLEAN_ARRAY;
         }
+        if (javaType == Object[].class) {
+            return SystemDataType.ANY_ARRAY;
+        }
 
         // Object and other types map to ANY
         // This allows parameters like Object to accept any JCP value
