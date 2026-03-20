@@ -134,9 +134,12 @@ public class Arrays {
         return a;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    /**
+     * Sorts the array in-place and returns it.
+     * Elements must implement {@link Comparable}; throws {@link ClassCastException} otherwise.
+     */
     public static Object[] sort(Object[] a) {
-        java.util.Arrays.sort(a, (x, y) -> ((Comparable) x).compareTo(y));
+        java.util.Arrays.sort(a);
         return a;
     }
 }
