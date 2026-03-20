@@ -136,7 +136,10 @@ public class Arrays {
 
     /**
      * Sorts the array in-place and returns it.
-     * Elements must implement {@link Comparable}; throws {@link ClassCastException} otherwise.
+     *
+     * <p>Elements must implement {@link Comparable}; throws {@link ClassCastException} otherwise.
+     * JCP custom types (structs) do not implement {@code Comparable} and cannot be sorted with
+     * this method. A comparator-based overload will be added once JCP supports function references.
      */
     public static Object[] sort(Object[] a) {
         java.util.Arrays.sort(a);
