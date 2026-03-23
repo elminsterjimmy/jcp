@@ -173,9 +173,9 @@ public class Arrays {
     }
 
     private static Object[] sortByKeys(Object[] a, SortKey... keys) {
-        java.util.Comparator<Object> comparator = (x, y) -> 0;
-        for (SortKey key : keys) {
-            comparator = comparator.thenComparing(key.toComparator());
+        java.util.Comparator<Object> comparator = keys[0].toComparator();
+        for (int i = 1; i < keys.length; i++) {
+            comparator = comparator.thenComparing(keys[i].toComparator());
         }
         java.util.Arrays.sort(a, comparator);
         return a;
@@ -188,35 +188,45 @@ public class Arrays {
      */
     public static int[] reverse(int[] a) {
         for (int i = 0, j = a.length - 1; i < j; i++, j--) {
-            int tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+            int tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
         }
         return a;
     }
 
     public static String[] reverse(String[] a) {
         for (int i = 0, j = a.length - 1; i < j; i++, j--) {
-            String tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+            String tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
         }
         return a;
     }
 
     public static boolean[] reverse(boolean[] a) {
         for (int i = 0, j = a.length - 1; i < j; i++, j--) {
-            boolean tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+            boolean tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
         }
         return a;
     }
 
     public static double[] reverse(double[] a) {
         for (int i = 0, j = a.length - 1; i < j; i++, j--) {
-            double tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+            double tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
         }
         return a;
     }
 
     public static Object[] reverse(Object[] a) {
         for (int i = 0, j = a.length - 1; i < j; i++, j--) {
-            Object tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+            Object tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
         }
         return a;
     }

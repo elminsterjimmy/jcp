@@ -27,28 +27,33 @@ import java.util.Comparator;
 public class SortKey {
 
     private final String fieldPath;
-    private boolean descending;
+    private final boolean descending;
 
-    private SortKey(String fieldPath) {
+    private SortKey(String fieldPath, boolean descending) {
         this.fieldPath = fieldPath;
-        this.descending = false;
+        this.descending = descending;
     }
 
-    /** Creates a sort key for the given field path, ascending by default. */
+    /**
+     * Creates a sort key for the given field path, ascending by default.
+     *
+     * @throws IllegalArgumentException if {@code fieldPath} is null or empty
+     */
     public static SortKey by(String fieldPath) {
-        return new SortKey(fieldPath);
+        if (fieldPath == null || fieldPath.isEmpty()) {
+            throw new IllegalArgumentException("fieldPath must not be null or empty");
+        }
+        return new SortKey(fieldPath, false);
     }
 
-    /** Sets direction to ascending. Returns {@code this} for chaining. */
+    /** Returns a new sort key with ascending direction. */
     public SortKey asc() {
-        this.descending = false;
-        return this;
+        return new SortKey(this.fieldPath, false);
     }
 
-    /** Sets direction to descending. Returns {@code this} for chaining. */
+    /** Returns a new sort key with descending direction. */
     public SortKey desc() {
-        this.descending = true;
-        return this;
+        return new SortKey(this.fieldPath, true);
     }
 
     /**
