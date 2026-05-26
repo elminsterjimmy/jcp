@@ -13,7 +13,9 @@ import java.util.Comparator;
  * {@link Arrays#sort(Object[], SortKey, SortKey, SortKey)}.
  *
  * <p>Field paths use dot notation for nested structs: {@code "address.city"}.
- * Elements whose field is missing or non-navigable sort last regardless of direction.
+ * An illegal field path (intermediate segment missing or not a struct) raises
+ * {@link IllegalArgumentException} during comparison. Elements that are not
+ * {@link StructData} or whose leaf value is missing/non-Comparable sort last.
  *
  * <pre>
  *   SortKey.by("age")               // ascending
@@ -26,12 +28,17 @@ import java.util.Comparator;
  */
 public class SortKey {
 
-    private final String fieldPath;
-    private final boolean descending;
+    /** Sort direction. */
+    public enum Direction {
+        ASC, DESC
+    }
 
-    private SortKey(String fieldPath, boolean descending) {
+    private final String fieldPath;
+    private final Direction direction;
+
+    private SortKey(String fieldPath, Direction direction) {
         this.fieldPath = fieldPath;
-        this.descending = descending;
+        this.direction = direction;
     }
 
     /**
@@ -43,22 +50,26 @@ public class SortKey {
         if (fieldPath == null || fieldPath.isEmpty()) {
             throw new IllegalArgumentException("fieldPath must not be null or empty");
         }
-        return new SortKey(fieldPath, false);
+        return new SortKey(fieldPath, Direction.ASC);
     }
 
     /** Returns a new sort key with ascending direction. */
     public SortKey asc() {
-        return new SortKey(this.fieldPath, false);
+        return new SortKey(this.fieldPath, Direction.ASC);
     }
 
     /** Returns a new sort key with descending direction. */
     public SortKey desc() {
-        return new SortKey(this.fieldPath, true);
+        return new SortKey(this.fieldPath, Direction.DESC);
     }
 
     /**
      * Returns a {@link Comparator} that compares two elements by this key's field path.
-     * Null values (missing or non-navigable fields) sort last in both directions.
+     *
+     * <p>Elements that are not {@link StructData} sort last. Elements whose leaf field is
+     * missing or not {@link Comparable} sort last. An illegal field path — one that
+     * traverses through a non-struct or references a missing intermediate segment —
+     * raises {@link IllegalArgumentException}.
      */
     Comparator<Object> toComparator() {
         return (a, b) -> {
@@ -70,15 +81,16 @@ public class SortKey {
             if (vb == null) return -1;  // nulls last
 
             int cmp = va.compareTo(vb);
-            return descending ? -cmp : cmp;
+            return direction == Direction.DESC ? -cmp : cmp;
         };
     }
 
     /**
      * Resolves the field path from a struct element.
-     * Returns {@code null} if the element is not a {@link StructData}, any path segment is
-     * missing, any intermediate node is not a {@link StructData}, or the leaf value is not
-     * {@link Comparable}.
+     * Returns {@code null} if the element is not a {@link StructData} or the leaf value is
+     * missing/non-{@link Comparable}. Throws {@link IllegalArgumentException} if any
+     * intermediate segment is missing or not a {@link StructData} — that path is illegal
+     * for this element's schema.
      */
     @SuppressWarnings("unchecked")
     private Comparable<Object> resolveField(Object element) {
@@ -91,7 +103,9 @@ public class SortKey {
         for (int i = 0; i < segments.length - 1; i++) {
             Data field = current.getField(segments[i]);
             if (field == null || !(field.get() instanceof StructData)) {
-                return null;
+                throw new IllegalArgumentException(
+                    "Illegal field path '" + fieldPath + "': segment '" + segments[i]
+                        + "' is missing or not a struct");
             }
             current = (StructData) field.get();
         }

@@ -177,17 +177,60 @@ class SortKeyTest {
         assertEquals("Amsterdam", firstAddr.getField("city").get());
     }
 
-    // --- non-struct mid-node → null-last ---
+    // --- illegal field path → IllegalArgumentException ---
 
     @Test
-    void testNestedPath_nonStructMidNode_sortsLast() {
+    void testNestedPath_nonStructMidNode_throws() {
         StructType t = new StructType("T", Arrays.asList(new StructFieldDef("x", SystemDataType.STRING)));
         StructData s = new StructData(Identifier.fromName("s"), t);
-        // "x" is a String, not a StructData — navigating "x.sub" should null-out
+        // "x" is a String, not a StructData — navigating "x.sub" is an illegal field path
         s.setField("x", new StringData("hello", false));
 
-        Object[] arr = { s };
         Comparator<Object> cmp = SortKey.by("x.sub").toComparator();
-        assertEquals(0, cmp.compare(s, s)); // both resolve null → equal
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            () -> cmp.compare(s, s));
+        assertTrue(ex.getMessage().contains("x.sub"));
+    }
+
+    @Test
+    void testNestedPath_missingMidSegment_throws() {
+        StructType t = new StructType("T", Arrays.asList(new StructFieldDef("x", SystemDataType.STRING)));
+        StructData s = new StructData(Identifier.fromName("s"), t);
+        // "missing" segment is not present in the struct — illegal path
+        Comparator<Object> cmp = SortKey.by("missing.leaf").toComparator();
+        assertThrows(IllegalArgumentException.class, () -> cmp.compare(s, s));
+    }
+
+    // --- by() rejects null/empty fieldPath ---
+
+    @Test
+    void testBy_nullFieldPath_throws() {
+        assertThrows(IllegalArgumentException.class, () -> SortKey.by(null));
+    }
+
+    @Test
+    void testBy_emptyFieldPath_throws() {
+        assertThrows(IllegalArgumentException.class, () -> SortKey.by(""));
+    }
+
+    // --- Direction enum: asc()/desc() are independent and immutable ---
+
+    @Test
+    void testAscDesc_returnNewInstances() {
+        SortKey base = SortKey.by("age");
+        SortKey desc = base.desc();
+        SortKey asc = desc.asc();
+        // base unchanged: still ascending
+        Object[] arr1 = { person("B", 30), person("A", 10) };
+        Arrays.sort(arr1, base.toComparator());
+        assertEquals(10, ((StructData) arr1[0]).getField("age").get());
+        // desc sorts descending
+        Object[] arr2 = { person("B", 10), person("A", 30) };
+        Arrays.sort(arr2, desc.toComparator());
+        assertEquals(30, ((StructData) arr2[0]).getField("age").get());
+        // asc sorts ascending
+        Object[] arr3 = { person("B", 30), person("A", 10) };
+        Arrays.sort(arr3, asc.toComparator());
+        assertEquals(10, ((StructData) arr3[0]).getField("age").get());
     }
 }
