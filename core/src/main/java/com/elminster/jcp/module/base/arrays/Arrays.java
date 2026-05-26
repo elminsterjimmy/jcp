@@ -16,6 +16,9 @@ import java.util.Objects;
  *   Arrays.slice(a, 1, 3)
  *   Arrays.contains(a, v)
  *   Arrays.sort(a)
+ *   Arrays.sort(persons, SortKey.by("age"))
+ *   Arrays.sort(persons, SortKey.by("lastName"), SortKey.by("firstName"))
+ *   Arrays.reverse(a)
  *   base::Arrays.length(a)  // explicit module form
  * </pre>
  *
@@ -138,11 +141,93 @@ public class Arrays {
      * Sorts the array in-place and returns it.
      *
      * <p>Elements must implement {@link Comparable}; throws {@link ClassCastException} otherwise.
-     * JCP custom types (structs) do not implement {@code Comparable} and cannot be sorted with
-     * this method. A comparator-based overload will be added once JCP supports function references.
+     * For struct arrays, use the {@link SortKey}-based overloads instead.
      */
     public static Object[] sort(Object[] a) {
         java.util.Arrays.sort(a);
+        return a;
+    }
+
+    /**
+     * Sorts a struct array in-place by a single field and returns it.
+     * Elements whose field is missing or non-navigable sort last.
+     */
+    public static Object[] sort(Object[] a, SortKey k1) {
+        return sortByKeys(a, k1);
+    }
+
+    /**
+     * Sorts a struct array in-place by two fields (primary, secondary) and returns it.
+     * Elements whose field is missing or non-navigable sort last.
+     */
+    public static Object[] sort(Object[] a, SortKey k1, SortKey k2) {
+        return sortByKeys(a, k1, k2);
+    }
+
+    /**
+     * Sorts a struct array in-place by three fields and returns it.
+     * Elements whose field is missing or non-navigable sort last.
+     */
+    public static Object[] sort(Object[] a, SortKey k1, SortKey k2, SortKey k3) {
+        return sortByKeys(a, k1, k2, k3);
+    }
+
+    private static Object[] sortByKeys(Object[] a, SortKey... keys) {
+        java.util.Comparator<Object> comparator = keys[0].toComparator();
+        for (int i = 1; i < keys.length; i++) {
+            comparator = comparator.thenComparing(keys[i].toComparator());
+        }
+        java.util.Arrays.sort(a, comparator);
+        return a;
+    }
+
+    // --- reverse ---
+
+    /**
+     * Reverses the array in-place and returns it.
+     */
+    public static int[] reverse(int[] a) {
+        for (int i = 0, j = a.length - 1; i < j; i++, j--) {
+            int tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
+        }
+        return a;
+    }
+
+    public static String[] reverse(String[] a) {
+        for (int i = 0, j = a.length - 1; i < j; i++, j--) {
+            String tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
+        }
+        return a;
+    }
+
+    public static boolean[] reverse(boolean[] a) {
+        for (int i = 0, j = a.length - 1; i < j; i++, j--) {
+            boolean tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
+        }
+        return a;
+    }
+
+    public static double[] reverse(double[] a) {
+        for (int i = 0, j = a.length - 1; i < j; i++, j--) {
+            double tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
+        }
+        return a;
+    }
+
+    public static Object[] reverse(Object[] a) {
+        for (int i = 0, j = a.length - 1; i < j; i++, j--) {
+            Object tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
+        }
         return a;
     }
 }

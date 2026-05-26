@@ -189,4 +189,69 @@ public class ArraysTest {
             (double[]) evalOnArray("a", new double[]{3.0, 1.0, 2.0}, SystemDataType.DOUBLE_ARRAY,
                 "sort", SystemDataType.DOUBLE_ARRAY));
     }
+
+    // --- reverse ---
+
+    @Test
+    void testReverse_intArray() {
+        assertArrayEquals(new int[]{3, 2, 1},
+            (int[]) evalOnArray("a", new int[]{1, 2, 3}, SystemDataType.INT_ARRAY,
+                "reverse", SystemDataType.INT_ARRAY));
+    }
+
+    @Test
+    void testReverse_intArray_single() {
+        assertArrayEquals(new int[]{42},
+            (int[]) evalOnArray("a", new int[]{42}, SystemDataType.INT_ARRAY,
+                "reverse", SystemDataType.INT_ARRAY));
+    }
+
+    @Test
+    void testReverse_intArray_empty() {
+        assertArrayEquals(new int[]{},
+            (int[]) evalOnArray("a", new int[]{}, SystemDataType.INT_ARRAY,
+                "reverse", SystemDataType.INT_ARRAY));
+    }
+
+    @Test
+    void testReverse_intArray_even() {
+        assertArrayEquals(new int[]{4, 3, 2, 1},
+            (int[]) evalOnArray("a", new int[]{1, 2, 3, 4}, SystemDataType.INT_ARRAY,
+                "reverse", SystemDataType.INT_ARRAY));
+    }
+
+    @Test
+    void testReverse_intArray_odd() {
+        assertArrayEquals(new int[]{5, 4, 3, 2, 1},
+            (int[]) evalOnArray("a", new int[]{1, 2, 3, 4, 5}, SystemDataType.INT_ARRAY,
+                "reverse", SystemDataType.INT_ARRAY));
+    }
+
+    @Test
+    void testReverse_stringArray() {
+        assertArrayEquals(new String[]{"c", "b", "a"},
+            (String[]) evalOnArray("a", new String[]{"a", "b", "c"}, SystemDataType.STRING_ARRAY,
+                "reverse", SystemDataType.STRING_ARRAY));
+    }
+
+    @Test
+    void testReverse_booleanArray() {
+        assertArrayEquals(new boolean[]{false, true, false},
+            (boolean[]) evalOnArray("a", new boolean[]{false, true, false}, SystemDataType.BOOLEAN_ARRAY,
+                "reverse", SystemDataType.BOOLEAN_ARRAY));
+    }
+
+    @Test
+    void testReverse_doubleArray() {
+        assertArrayEquals(new double[]{3.0, 2.0, 1.0},
+            (double[]) evalOnArray("a", new double[]{1.0, 2.0, 3.0}, SystemDataType.DOUBLE_ARRAY,
+                "reverse", SystemDataType.DOUBLE_ARRAY));
+    }
+
+    @Test
+    void testReverse_objectArray() {
+        assertArrayEquals(new String[]{"z", "y", "x"},
+            (Object[]) evalOnArray("a", new String[]{"x", "y", "z"}, SystemDataType.ANY_ARRAY,
+                "reverse", SystemDataType.ANY_ARRAY));
+    }
 }
