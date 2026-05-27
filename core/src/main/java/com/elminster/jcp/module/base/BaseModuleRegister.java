@@ -3,6 +3,7 @@ package com.elminster.jcp.module.base;
 import com.elminster.jcp.module.base.arrays.Arrays;
 import com.elminster.jcp.module.base.arrays.SortKey;
 import com.elminster.jcp.module.base.assertions.Assertions;
+import com.elminster.jcp.module.base.convert.Convert;
 import com.elminster.jcp.module.base.logger.Logger;
 import com.elminster.jcp.module.base.strings.Strings;
 import com.elminster.jcp.module.base.vb.ValueBuffer;
@@ -17,6 +18,7 @@ public class BaseModuleRegister {
         classes.add(SortKey.class);  // must precede Arrays so SortKey DataType exists when Arrays methods are scanned
         classes.add(Arrays.class);
         classes.add(Assertions.class);
+        classes.add(Convert.class);
         classes.add(Logger.class);
         classes.add(Strings.class);
         classes.add(ValueBuffer.class);
