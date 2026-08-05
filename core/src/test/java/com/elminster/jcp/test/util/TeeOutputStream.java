@@ -34,4 +34,9 @@ public class TeeOutputStream extends OutputStream {
         primary.flush();
         secondary.flush();
     }
+
+    @Override
+    public void close() throws IOException {
+        try { primary.close(); } finally { secondary.close(); }
+    }
 }

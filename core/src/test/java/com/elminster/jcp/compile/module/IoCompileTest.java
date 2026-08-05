@@ -9,7 +9,7 @@ import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.compile.AbstractCompileTest;
-import com.elminster.jcp.module.base.io.IO;
+import com.elminster.jcp.module.base.io.Stdio;
 import com.elminster.jcp.test.util.TeeOutputStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,7 +24,7 @@ import java.lang.reflect.Method;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for the {@code IO} base-module STD class in compile mode.
+ * Tests for the {@code Stdio} base-module STD class in compile mode.
  *
  * <p>Void print/println: tee-captured (output goes to both capture buffer and real stdout);
  * capture buffer reset immediately before invoking main so log noise is excluded.
@@ -49,11 +49,11 @@ public class IoCompileTest extends AbstractCompileTest {
     void tearDown() {
         System.setOut(originalOut);
         System.setIn(originalIn);
-        IO.resetReaderForTest();
+        Stdio.resetReaderForTest();
     }
 
-    private StaticMethodCallExpression io(String method, Expression... args) {
-        return new StaticMethodCallExpression("IO", method, args);
+    private StaticMethodCallExpression stdio(String method, Expression... args) {
+        return new StaticMethodCallExpression("Stdio", method, args);
     }
 
     private StaticMethodCallExpression assertEq(Expression expected, Expression actual) {
@@ -83,25 +83,25 @@ public class IoCompileTest extends AbstractCompileTest {
 
     @Test
     void testPrintInt() throws Exception {
-        String out = runCapturingOutput("TestIoPrintInt", io("print", int_(42)));
+        String out = runCapturingOutput("TestStdioPrintInt", stdio("print", int_(42)));
         assertEquals("42", out);
     }
 
     @Test
     void testPrintDouble() throws Exception {
-        String out = runCapturingOutput("TestIoPrintDouble", io("print", dbl(3.14)));
+        String out = runCapturingOutput("TestStdioPrintDouble", stdio("print", dbl(3.14)));
         assertEquals("3.14", out);
     }
 
     @Test
     void testPrintBoolean() throws Exception {
-        String out = runCapturingOutput("TestIoPrintBoolean", io("print", bool(true)));
+        String out = runCapturingOutput("TestStdioPrintBoolean", stdio("print", bool(true)));
         assertEquals("true", out);
     }
 
     @Test
     void testPrintString() throws Exception {
-        String out = runCapturingOutput("TestIoPrintString", io("print", str("hello")));
+        String out = runCapturingOutput("TestStdioPrintString", stdio("print", str("hello")));
         assertEquals("hello", out);
     }
 
@@ -109,26 +109,32 @@ public class IoCompileTest extends AbstractCompileTest {
 
     @Test
     void testPrintlnInt() throws Exception {
-        String out = runCapturingOutput("TestIoPrintlnInt", io("println", int_(7)));
+        String out = runCapturingOutput("TestStdioPrintlnInt", stdio("println", int_(7)));
         assertEquals("7" + System.lineSeparator(), out);
     }
 
     @Test
     void testPrintlnDouble() throws Exception {
-        String out = runCapturingOutput("TestIoPrintlnDouble", io("println", dbl(1.5)));
+        String out = runCapturingOutput("TestStdioPrintlnDouble", stdio("println", dbl(1.5)));
         assertEquals("1.5" + System.lineSeparator(), out);
     }
 
     @Test
     void testPrintlnBoolean() throws Exception {
-        String out = runCapturingOutput("TestIoPrintlnBoolean", io("println", bool(false)));
+        String out = runCapturingOutput("TestStdioPrintlnBoolean", stdio("println", bool(false)));
         assertEquals("false" + System.lineSeparator(), out);
     }
 
     @Test
     void testPrintlnString() throws Exception {
-        String out = runCapturingOutput("TestIoPrintlnString", io("println", str("world")));
+        String out = runCapturingOutput("TestStdioPrintlnString", stdio("println", str("world")));
         assertEquals("world" + System.lineSeparator(), out);
+    }
+
+    @Test
+    void testPrintlnNoArg() throws Exception {
+        String out = runCapturingOutput("TestStdioPrintlnNoArg", stdio("println"));
+        assertEquals(System.lineSeparator(), out);
     }
 
     // --- readLine: in-DSL Assertions.assertEquals (Math pattern) ---
@@ -136,12 +142,12 @@ public class IoCompileTest extends AbstractCompileTest {
     @Test
     void testReadLineSingleLine() throws Exception {
         System.setIn(new ByteArrayInputStream("hello\n".getBytes()));
-        IO.resetReaderForTest();
+        Stdio.resetReaderForTest();
 
         Block program = new BlockImpl();
         program.addStatement(new ExpressionStatement(
-            assertEq(str("hello"), io("readLine"))));
-        String className = uniqueClassName("TestIoReadLine");
+            assertEq(str("hello"), stdio("readLine"))));
+        String className = uniqueClassName("TestStdioReadLine");
         Class<?> clazz = compiler.compileAndLoad(program, className);
         Method main = clazz.getMethod("main", String[].class);
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
@@ -150,12 +156,12 @@ public class IoCompileTest extends AbstractCompileTest {
     @Test
     void testReadLineMultiLine() throws Exception {
         System.setIn(new ByteArrayInputStream("first\nsecond\n".getBytes()));
-        IO.resetReaderForTest();
+        Stdio.resetReaderForTest();
 
         Block program = new BlockImpl();
-        program.addStatement(new ExpressionStatement(assertEq(str("first"), io("readLine"))));
-        program.addStatement(new ExpressionStatement(assertEq(str("second"), io("readLine"))));
-        String className = uniqueClassName("TestIoReadLineMulti");
+        program.addStatement(new ExpressionStatement(assertEq(str("first"), stdio("readLine"))));
+        program.addStatement(new ExpressionStatement(assertEq(str("second"), stdio("readLine"))));
+        String className = uniqueClassName("TestStdioReadLineMulti");
         Class<?> clazz = compiler.compileAndLoad(program, className);
         Method main = clazz.getMethod("main", String[].class);
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
@@ -164,12 +170,12 @@ public class IoCompileTest extends AbstractCompileTest {
     @Test
     void testReadLineEof() throws Exception {
         System.setIn(new ByteArrayInputStream(new byte[0]));
-        IO.resetReaderForTest();
+        Stdio.resetReaderForTest();
 
         Block program = new BlockImpl();
         program.addStatement(new ExpressionStatement(
-            assertEq(str(""), io("readLine"))));
-        String className = uniqueClassName("TestIoReadLineEof");
+            assertEq(str(""), stdio("readLine"))));
+        String className = uniqueClassName("TestStdioReadLineEof");
         Class<?> clazz = compiler.compileAndLoad(program, className);
         Method main = clazz.getMethod("main", String[].class);
         assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));

@@ -13,7 +13,7 @@ import com.elminster.jcp.eval.EvalVisitor;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
-import com.elminster.jcp.module.base.io.IO;
+import com.elminster.jcp.module.base.io.Stdio;
 import com.elminster.jcp.test.util.TeeOutputStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +27,7 @@ import java.io.PrintStream;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for the {@code IO} base-module STD class in eval mode.
+ * Tests for the {@code Stdio} base-module STD class in eval mode.
  *
  * <p>print/println: tee-captured (output goes to both capture buffer and real stdout);
  * capture buffer is reset immediately before each IO call so log noise is excluded.
@@ -51,7 +51,7 @@ public class IoTest {
     void tearDown() {
         System.setOut(originalOut);
         System.setIn(originalIn);
-        IO.resetReaderForTest();
+        Stdio.resetReaderForTest();
     }
 
     private void run(Block program) {
@@ -59,9 +59,9 @@ public class IoTest {
         new EvalVisitor(context).visit(program);
     }
 
-    private ExpressionStatement ioCall(String method, LiteralExpression... args) {
+    private ExpressionStatement stdioCall(String method, LiteralExpression... args) {
         return new ExpressionStatement(
-            new FunctionCallExpression(Identifier.fromName("IO." + method), args));
+            new FunctionCallExpression(Identifier.fromName("Stdio." + method), args));
     }
 
     private Object evalReadLine() {
@@ -69,7 +69,7 @@ public class IoTest {
         Block program = new BlockImpl();
         program.addStatement(new VariableDeclarationImpl(
             "result", SystemDataType.STRING,
-            new FunctionCallExpression(Identifier.fromName("IO.readLine"))));
+            new FunctionCallExpression(Identifier.fromName("Stdio.readLine"))));
         new EvalVisitor(context).visit(program);
         return context.getVariable("result").get();
     }
@@ -84,7 +84,7 @@ public class IoTest {
     @Test
     void testPrintInt() {
         Block p = new BlockImpl();
-        p.addStatement(ioCall("print", int_(42)));
+        p.addStatement(stdioCall("print", int_(42)));
         captured.reset();
         run(p);
         assertEquals("42", captured.toString());
@@ -93,7 +93,7 @@ public class IoTest {
     @Test
     void testPrintDouble() {
         Block p = new BlockImpl();
-        p.addStatement(ioCall("print", dbl(3.14)));
+        p.addStatement(stdioCall("print", dbl(3.14)));
         captured.reset();
         run(p);
         assertEquals("3.14", captured.toString());
@@ -102,13 +102,13 @@ public class IoTest {
     @Test
     void testPrintBoolean() {
         Block p = new BlockImpl();
-        p.addStatement(ioCall("print", bool(true)));
+        p.addStatement(stdioCall("print", bool(true)));
         captured.reset();
         run(p);
         assertEquals("true", captured.toString());
 
         Block p2 = new BlockImpl();
-        p2.addStatement(ioCall("print", bool(false)));
+        p2.addStatement(stdioCall("print", bool(false)));
         captured.reset();
         run(p2);
         assertEquals("false", captured.toString());
@@ -117,7 +117,7 @@ public class IoTest {
     @Test
     void testPrintString() {
         Block p = new BlockImpl();
-        p.addStatement(ioCall("print", str("hello")));
+        p.addStatement(stdioCall("print", str("hello")));
         captured.reset();
         run(p);
         assertEquals("hello", captured.toString());
@@ -128,7 +128,7 @@ public class IoTest {
     @Test
     void testPrintlnInt() {
         Block p = new BlockImpl();
-        p.addStatement(ioCall("println", int_(7)));
+        p.addStatement(stdioCall("println", int_(7)));
         captured.reset();
         run(p);
         assertEquals("7" + System.lineSeparator(), captured.toString());
@@ -137,7 +137,7 @@ public class IoTest {
     @Test
     void testPrintlnDouble() {
         Block p = new BlockImpl();
-        p.addStatement(ioCall("println", dbl(1.5)));
+        p.addStatement(stdioCall("println", dbl(1.5)));
         captured.reset();
         run(p);
         assertEquals("1.5" + System.lineSeparator(), captured.toString());
@@ -146,7 +146,7 @@ public class IoTest {
     @Test
     void testPrintlnBoolean() {
         Block p = new BlockImpl();
-        p.addStatement(ioCall("println", bool(false)));
+        p.addStatement(stdioCall("println", bool(false)));
         captured.reset();
         run(p);
         assertEquals("false" + System.lineSeparator(), captured.toString());
@@ -155,10 +155,20 @@ public class IoTest {
     @Test
     void testPrintlnString() {
         Block p = new BlockImpl();
-        p.addStatement(ioCall("println", str("world")));
+        p.addStatement(stdioCall("println", str("world")));
         captured.reset();
         run(p);
         assertEquals("world" + System.lineSeparator(), captured.toString());
+    }
+
+    @Test
+    void testPrintlnNoArg() {
+        Block p = new BlockImpl();
+        p.addStatement(new ExpressionStatement(
+            new FunctionCallExpression(Identifier.fromName("Stdio.println"))));
+        captured.reset();
+        run(p);
+        assertEquals(System.lineSeparator(), captured.toString());
     }
 
     // --- readLine ---
@@ -166,23 +176,23 @@ public class IoTest {
     @Test
     void testReadLineSingleLine() {
         System.setIn(new ByteArrayInputStream("hello\n".getBytes()));
-        IO.resetReaderForTest();
+        Stdio.resetReaderForTest();
         assertEquals("hello", evalReadLine());
     }
 
     @Test
     void testReadLineMultiLine() {
         System.setIn(new ByteArrayInputStream("first\nsecond\n".getBytes()));
-        IO.resetReaderForTest();
+        Stdio.resetReaderForTest();
 
         EvalContext context = new RootEvalContext();
         Block program = new BlockImpl();
         program.addStatement(new VariableDeclarationImpl(
             "a", SystemDataType.STRING,
-            new FunctionCallExpression(Identifier.fromName("IO.readLine"))));
+            new FunctionCallExpression(Identifier.fromName("Stdio.readLine"))));
         program.addStatement(new VariableDeclarationImpl(
             "b", SystemDataType.STRING,
-            new FunctionCallExpression(Identifier.fromName("IO.readLine"))));
+            new FunctionCallExpression(Identifier.fromName("Stdio.readLine"))));
         new EvalVisitor(context).visit(program);
 
         assertEquals("first", context.getVariable("a").get());
@@ -192,7 +202,7 @@ public class IoTest {
     @Test
     void testReadLineEof() {
         System.setIn(new ByteArrayInputStream(new byte[0]));
-        IO.resetReaderForTest();
+        Stdio.resetReaderForTest();
         assertEquals("", evalReadLine());
     }
 }

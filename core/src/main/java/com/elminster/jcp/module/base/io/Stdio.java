@@ -19,16 +19,17 @@ import java.io.InputStreamReader;
  *
  * <p>Callable from JCP programs as:
  * <pre>
- *   IO.print(42)          // writes "42" to stdout, no newline
- *   IO.println("hello")   // writes "hello\n" to stdout
- *   IO.readLine()         // reads one line from stdin
+ *   Stdio.print(42)          // writes "42" to stdout, no newline
+ *   Stdio.println("hello")   // writes "hello\n" to stdout
+ *   Stdio.println()          // writes a blank line to stdout
+ *   Stdio.readLine()         // reads one line from stdin
  * </pre>
  */
-public class IO {
+public class Stdio {
 
-    private IO() {}
+    private Stdio() {}
 
-    private static BufferedReader reader;
+    private static volatile BufferedReader reader;
 
     private static BufferedReader reader() {
         if (reader == null) {
@@ -47,6 +48,7 @@ public class IO {
     public static void print(boolean v) { System.out.print(v); }
     public static void print(String v)  { System.out.print(v); }
 
+    public static void println()          { System.out.println(); }
     public static void println(int v)     { System.out.println(v); }
     public static void println(double v)  { System.out.println(v); }
     public static void println(boolean v) { System.out.println(v); }

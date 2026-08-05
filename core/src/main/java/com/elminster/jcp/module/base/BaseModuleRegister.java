@@ -4,7 +4,7 @@ import com.elminster.jcp.module.base.arrays.Arrays;
 import com.elminster.jcp.module.base.arrays.SortKey;
 import com.elminster.jcp.module.base.assertions.Assertions;
 import com.elminster.jcp.module.base.convert.Convert;
-import com.elminster.jcp.module.base.io.IO;
+import com.elminster.jcp.module.base.io.Stdio;
 import com.elminster.jcp.module.base.logger.Logger;
 import com.elminster.jcp.module.base.math.Math;
 import com.elminster.jcp.module.base.strings.Strings;
@@ -21,7 +21,7 @@ public class BaseModuleRegister {
         classes.add(Arrays.class);
         classes.add(Assertions.class);
         classes.add(Convert.class);
-        classes.add(IO.class);
+        classes.add(Stdio.class);
         classes.add(Logger.class);
         classes.add(Math.class);
         classes.add(Strings.class);
