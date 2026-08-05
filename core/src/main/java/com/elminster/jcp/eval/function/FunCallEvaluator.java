@@ -63,6 +63,12 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
     List<Function> functionCandidates = getFunctionCandidates(functionName,
             moduleName,
             argumentData, evalContext);
+    // When multiple candidates are compatible, prefer an exact-type match over a
+    // widening/hierarchy match (e.g. abs(int) vs abs(double) for an INT arg), mirroring
+    // the compile-mode resolver in ExternalClassType.
+    if (functionCandidates.size() > 1) {
+      functionCandidates = narrowToExactMatches(functionCandidates, argumentData);
+    }
     int functionCandidateSize = functionCandidates.size();
     if (0 == functionCandidateSize) {
       DataType[] dataTypes = Arrays.stream(argumentData).map(
@@ -107,6 +113,31 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
       result[i] = arg;  // No conversion needed
     }
     return result;
+  }
+
+  /**
+   * From a list of already-compatible candidates, keep only those whose parameter
+   * types are an exact match for the argument types. If exactly one exact match
+   * exists, return just that one; otherwise (zero or multiple exact matches) return
+   * the original candidates unchanged so the caller preserves its ambiguity handling.
+   */
+  private List<Function> narrowToExactMatches(List<Function> candidates, Data[] arguments) {
+    if (arguments == null) {
+      return candidates;
+    }
+    DataType[] argTypes = Arrays.stream(arguments)
+            .map(Data::getDataType)
+            .toArray(DataType[]::new);
+    List<Function> exactMatches = candidates.stream()
+            .filter(function -> {
+              ParameterDef[] params = function.getParameterDefs();
+              DataType[] paramTypes = Arrays.stream(params)
+                      .map(ParameterDef::getDataType)
+                      .toArray(DataType[]::new);
+              return DataType.allExactMatch(argTypes, paramTypes);
+            })
+            .collect(Collectors.toList());
+    return exactMatches.size() == 1 ? exactMatches : candidates;
   }
 
   private List<Function> getFunctionCandidates(final String functionName,
