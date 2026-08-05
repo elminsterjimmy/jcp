@@ -14,6 +14,7 @@ import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.module.base.io.IO;
+import com.elminster.jcp.test.util.TeeOutputStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,8 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for the {@code IO} base-module STD class in eval mode.
  *
- * <p>print/println: captured via System.setOut; each overload verified.
+ * <p>print/println: tee-captured (output goes to both capture buffer and real stdout);
+ * capture buffer is reset immediately before each IO call so log noise is excluded.
  * readLine: fed via System.setIn + resetReaderForTest(); multi-line and EOF verified.
  */
 public class IoTest {
@@ -42,7 +44,7 @@ public class IoTest {
         originalOut = System.out;
         originalIn = System.in;
         captured = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(captured));
+        System.setOut(new PrintStream(new TeeOutputStream(originalOut, captured)));
     }
 
     @AfterEach
@@ -83,6 +85,7 @@ public class IoTest {
     void testPrintInt() {
         Block p = new BlockImpl();
         p.addStatement(ioCall("print", int_(42)));
+        captured.reset();
         run(p);
         assertEquals("42", captured.toString());
     }
@@ -91,6 +94,7 @@ public class IoTest {
     void testPrintDouble() {
         Block p = new BlockImpl();
         p.addStatement(ioCall("print", dbl(3.14)));
+        captured.reset();
         run(p);
         assertEquals("3.14", captured.toString());
     }
@@ -99,12 +103,13 @@ public class IoTest {
     void testPrintBoolean() {
         Block p = new BlockImpl();
         p.addStatement(ioCall("print", bool(true)));
+        captured.reset();
         run(p);
         assertEquals("true", captured.toString());
 
-        captured.reset();
         Block p2 = new BlockImpl();
         p2.addStatement(ioCall("print", bool(false)));
+        captured.reset();
         run(p2);
         assertEquals("false", captured.toString());
     }
@@ -113,6 +118,7 @@ public class IoTest {
     void testPrintString() {
         Block p = new BlockImpl();
         p.addStatement(ioCall("print", str("hello")));
+        captured.reset();
         run(p);
         assertEquals("hello", captured.toString());
     }
@@ -123,6 +129,7 @@ public class IoTest {
     void testPrintlnInt() {
         Block p = new BlockImpl();
         p.addStatement(ioCall("println", int_(7)));
+        captured.reset();
         run(p);
         assertEquals("7" + System.lineSeparator(), captured.toString());
     }
@@ -131,6 +138,7 @@ public class IoTest {
     void testPrintlnDouble() {
         Block p = new BlockImpl();
         p.addStatement(ioCall("println", dbl(1.5)));
+        captured.reset();
         run(p);
         assertEquals("1.5" + System.lineSeparator(), captured.toString());
     }
@@ -139,6 +147,7 @@ public class IoTest {
     void testPrintlnBoolean() {
         Block p = new BlockImpl();
         p.addStatement(ioCall("println", bool(false)));
+        captured.reset();
         run(p);
         assertEquals("false" + System.lineSeparator(), captured.toString());
     }
@@ -147,6 +156,7 @@ public class IoTest {
     void testPrintlnString() {
         Block p = new BlockImpl();
         p.addStatement(ioCall("println", str("world")));
+        captured.reset();
         run(p);
         assertEquals("world" + System.lineSeparator(), captured.toString());
     }

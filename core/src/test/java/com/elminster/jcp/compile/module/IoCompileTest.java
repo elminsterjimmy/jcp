@@ -10,6 +10,7 @@ import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.ast.statement.ExpressionStatement;
 import com.elminster.jcp.compile.AbstractCompileTest;
 import com.elminster.jcp.module.base.io.IO;
+import com.elminster.jcp.test.util.TeeOutputStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,8 +26,8 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for the {@code IO} base-module STD class in compile mode.
  *
- * <p>Void print/println: System.out captured around the reflective main invocation
- * and asserted (Logger pattern + output capture).
+ * <p>Void print/println: tee-captured (output goes to both capture buffer and real stdout);
+ * capture buffer reset immediately before invoking main so log noise is excluded.
  * Non-void readLine: in-DSL {@code Assertions.assertEquals} compiled into main,
  * then {@code assertDoesNotThrow} (Math pattern).
  */
@@ -34,11 +35,14 @@ public class IoCompileTest extends AbstractCompileTest {
 
     private PrintStream originalOut;
     private InputStream originalIn;
+    private ByteArrayOutputStream captured;
 
     @BeforeEach
     void setUp() {
         originalOut = System.out;
         originalIn = System.in;
+        captured = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(new TeeOutputStream(originalOut, captured)));
     }
 
     @AfterEach
@@ -70,13 +74,8 @@ public class IoCompileTest extends AbstractCompileTest {
         Class<?> clazz = compiler.compileAndLoad(program, className);
         Method main = clazz.getMethod("main", String[].class);
 
-        ByteArrayOutputStream captured = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(captured));
-        try {
-            assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
-        } finally {
-            System.setOut(originalOut);
-        }
+        captured.reset();
+        assertDoesNotThrow(() -> main.invoke(null, (Object) new String[]{}));
         return captured.toString();
     }
 
