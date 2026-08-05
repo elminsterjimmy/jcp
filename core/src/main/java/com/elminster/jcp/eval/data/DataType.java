@@ -94,4 +94,43 @@ public interface DataType {
   default boolean isCompatibleWith(DataType target) {
     return isCastableTo(target) || isTypePromotableTo(target);
   }
+
+  /**
+   * Check if this type is an <em>exact</em> match for the target type, i.e. the same
+   * type by name — no hierarchy walk, no numeric widening.
+   *
+   * <p>Used by overload resolution to prefer an exact-type overload over a
+   * widening/hierarchy-compatible one. For example, given {@code abs(int)} and
+   * {@code abs(double)}, an INT argument is compatible with both (INT widens to
+   * DOUBLE) but is an exact match only for {@code abs(int)}.
+   *
+   * @param target the target data type (e.g., parameter type)
+   * @return true if this type equals the target type by name
+   */
+  default boolean isExactMatch(DataType target) {
+    return getName().equals(target.getName());
+  }
+
+  /**
+   * Check whether every argument type is an {@link #isExactMatch(DataType) exact match}
+   * for the corresponding parameter type. Array lengths must already be equal.
+   *
+   * <p>Shared by the eval and compile overload resolvers so both narrow candidates
+   * identically.
+   *
+   * @param argTypes   the argument types of a call
+   * @param paramTypes the parameter types of a candidate method/function
+   * @return true if all positions match exactly by name
+   */
+  static boolean allExactMatch(DataType[] argTypes, DataType[] paramTypes) {
+    if (argTypes.length != paramTypes.length) {
+      return false;
+    }
+    for (int i = 0; i < argTypes.length; i++) {
+      if (!argTypes[i].isExactMatch(paramTypes[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

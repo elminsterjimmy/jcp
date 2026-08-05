@@ -173,11 +173,24 @@ public class ExternalClassType implements DataType {
             return null;
         } else if (matches.size() == 1) {
             return matches.get(0);
-        } else {
-            throw new IllegalArgumentException(
-                String.format("Ambiguous method call: multiple methods named '%s' match the argument types",
-                    methodName));
         }
+
+        // More than one compatible candidate: prefer an exact-type match over a
+        // widening/hierarchy match (e.g. abs(int) vs abs(double) for an INT arg).
+        List<ExternalMethodDef> exactMatches = new ArrayList<>();
+        for (ExternalMethodDef method : matches) {
+            if (DataType.allExactMatch(argTypes, method.getParameterTypes())) {
+                exactMatches.add(method);
+            }
+        }
+        if (exactMatches.size() == 1) {
+            return exactMatches.get(0);
+        }
+
+        // Zero or multiple exact matches: genuinely ambiguous.
+        throw new IllegalArgumentException(
+            String.format("Ambiguous method call: multiple methods named '%s' match the argument types",
+                methodName));
     }
 
     /**

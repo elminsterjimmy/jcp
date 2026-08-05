@@ -460,16 +460,21 @@ class FunCallEvaluatorTest {
         }
 
         /**
-         * Tests that having both INT and DOUBLE overloads causes ambiguity when called with INT.
-         * This follows the plan's recommendation: when multiple widening paths exist, fail at compile time.
+         * Tests that with both INT and DOUBLE overloads, an INT argument selects the
+         * exact-match INT overload rather than throwing an ambiguity error.
+         *
+         * <p>Prior to issue #43 this threw {@link FunctionAmbiguityException} because
+         * INT is compatible with both {@code process(int)} (exact) and
+         * {@code process(double)} (widening). The exact-match resolver now prefers the
+         * exact overload, giving C {@code <tgmath.h>}-style dispatch.
          * <pre>
          * fn process(x: Int) -> Int { return x * 2 }
          * fn process(x: Double) -> Double { return x * 3.0 }
-         * result = process(5)  // throws FunctionAmbiguityException (both match)
+         * result = process(5)  // selects process(int) -> 10
          * </pre>
          */
         @Test
-        void testOverloadResolution_IntDoubleAmbiguity() {
+        void testOverloadResolution_IntPrefersExactOverWidening() {
             // INT version: process(int) -> int { return x * 2 }
             Function intFunc = new AbstractFunction(
                 IdentifierExpression.of("process"),
@@ -494,7 +499,7 @@ class FunCallEvaluatorTest {
             );
             context.addFunction(doubleFunc);
 
-            // Call with INT - both functions match (exact + widening), causes ambiguity
+            // Call with INT - exact match is process(int) -> 5 * 2 = 10
             Block program = new BlockImpl();
             program.addStatement(new VariableDeclarationImpl(
                 "result",
@@ -505,9 +510,56 @@ class FunCallEvaluatorTest {
                 )
             ));
 
-            assertThrows(FunctionAmbiguityException.class, () ->
-                new EvalVisitor(context).visit(program)
+            new EvalVisitor(context).visit(program);
+            assertEquals(10, context.getVariable("result").get());
+        }
+
+        /**
+         * Tests that a DOUBLE argument selects the exact-match DOUBLE overload when
+         * both INT and DOUBLE overloads exist.
+         * <pre>
+         * fn process(x: Int) -> Int { return x * 2 }
+         * fn process(x: Double) -> Double { return x * 3.0 }
+         * result = process(5.0)  // selects process(double) -> 15.0
+         * </pre>
+         */
+        @Test
+        void testOverloadResolution_DoublePrefersExact() {
+            Function intFunc = new AbstractFunction(
+                IdentifierExpression.of("process"),
+                new ParameterDef[]{ParameterDef.of("x", SystemDataType.INT)},
+                SystemDataType.INT,
+                new ReturnStatement(new Multi(
+                    new VariableExpression(IdentifierExpression.of("x")),
+                    LiteralExpression.of(2)
+                ))
             );
+            context.addFunction(intFunc);
+
+            Function doubleFunc = new AbstractFunction(
+                IdentifierExpression.of("process"),
+                new ParameterDef[]{ParameterDef.of("x", SystemDataType.DOUBLE)},
+                SystemDataType.DOUBLE,
+                new ReturnStatement(new Multi(
+                    new VariableExpression(IdentifierExpression.of("x")),
+                    LiteralExpression.of(3.0)
+                ))
+            );
+            context.addFunction(doubleFunc);
+
+            // Call with DOUBLE - exact match is process(double) -> 5.0 * 3.0 = 15.0
+            Block program = new BlockImpl();
+            program.addStatement(new VariableDeclarationImpl(
+                "result",
+                SystemDataType.DOUBLE,
+                new FunctionCallExpression(
+                    IdentifierExpression.of("process"),
+                    LiteralExpression.of(5.0)  // DOUBLE
+                )
+            ));
+
+            new EvalVisitor(context).visit(program);
+            assertEquals(15.0, (Double) context.getVariable("result").get(), 0.001);
         }
 
         /**

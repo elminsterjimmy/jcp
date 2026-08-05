@@ -249,6 +249,39 @@ class ExternalClassTypeTest {
                 classType.getStaticMethod("process", new DataType[]{SystemDataType.INT})
             );
         }
+
+        /**
+         * Two overloads {@code abs(int)} and {@code abs(double)} both match an INT
+         * argument (INT widens to DOUBLE), but the exact-match resolver must prefer
+         * the {@code abs(int)} overload rather than throwing an ambiguity error.
+         */
+        @Test
+        void testExactMatchPreferredOverWidening() throws Exception {
+            Method valueOf = String.class.getMethod("valueOf", int.class);
+
+            ExternalMethodDef absInt = new ExternalMethodDef(
+                valueOf, "abs",
+                new DataType[]{SystemDataType.INT},
+                SystemDataType.INT, "(I)I", true);
+            ExternalMethodDef absDouble = new ExternalMethodDef(
+                valueOf, "abs",
+                new DataType[]{SystemDataType.DOUBLE},
+                SystemDataType.DOUBLE, "(D)D", true);
+            classType.addStaticMethod(absInt);
+            classType.addStaticMethod(absDouble);
+
+            // INT arg → exact match is abs(int)
+            ExternalMethodDef foundInt =
+                classType.getStaticMethod("abs", new DataType[]{SystemDataType.INT});
+            assertNotNull(foundInt);
+            assertEquals(SystemDataType.INT, foundInt.getReturnType());
+
+            // DOUBLE arg → exact match is abs(double)
+            ExternalMethodDef foundDouble =
+                classType.getStaticMethod("abs", new DataType[]{SystemDataType.DOUBLE});
+            assertNotNull(foundDouble);
+            assertEquals(SystemDataType.DOUBLE, foundDouble.getReturnType());
+        }
     }
 
     @Nested

@@ -57,7 +57,7 @@ class TypeDeclarationEvaluatorTest {
     /**
      * Tests type declaration with static method (no parameters).
      * <pre>
-     * type Math {
+     * type Calc {
      *   static fun zero() -> Int { }
      * }
      * </pre>
@@ -70,7 +70,7 @@ class TypeDeclarationEvaluatorTest {
         MethodDef zeroMethod = MethodDef.staticMethod("zero", SystemDataType.INT, methodBody);
 
         StructDeclarationImpl typeDecl = new StructDeclarationImpl(
-            "Math",
+            "Calc",
             Collections.emptyList(),  // no fields
             null,  // no constructor
             Collections.emptyList(),  // no instance methods
@@ -80,9 +80,9 @@ class TypeDeclarationEvaluatorTest {
         new EvalVisitor(context).visit(new BlockImpl(typeDecl));
 
         // Type should be registered
-        StructType type = (StructType) context.getDataType("Math");
+        StructType type = (StructType) context.getDataType("Calc");
         assertNotNull(type);
-        assertEquals("Math", type.getName());
+        assertEquals("Calc", type.getName());
     }
 
     /**
@@ -121,7 +121,7 @@ class TypeDeclarationEvaluatorTest {
     /**
      * Tests type declaration with static method with parameters.
      * <pre>
-     * type Math {
+     * type Calc {
      *   static fun add(a: Int, b: Int) -> Int { }
      * }
      * </pre>
@@ -136,7 +136,7 @@ class TypeDeclarationEvaluatorTest {
             ParameterDef.of("b", SystemDataType.INT));
 
         StructDeclarationImpl typeDecl = new StructDeclarationImpl(
-            "Math",
+            "Calc",
             Collections.emptyList(),  // no fields
             null,  // no constructor
             Collections.emptyList(),  // no instance methods
@@ -146,9 +146,9 @@ class TypeDeclarationEvaluatorTest {
         new EvalVisitor(context).visit(new BlockImpl(typeDecl));
 
         // Type should be registered
-        StructType type = (StructType) context.getDataType("Math");
+        StructType type = (StructType) context.getDataType("Calc");
         assertNotNull(type);
-        assertEquals("Math", type.getName());
+        assertEquals("Calc", type.getName());
     }
 
     /**
@@ -190,7 +190,7 @@ class TypeDeclarationEvaluatorTest {
         MethodDef zeroMethod = MethodDef.staticMethod("zero", SystemDataType.INT, methodBody, (ParameterDef[]) null);
 
         StructDeclarationImpl typeDecl = new StructDeclarationImpl(
-            "Math",
+            "Calc",
             Collections.emptyList(),
             null,
             Collections.emptyList(),
@@ -199,7 +199,7 @@ class TypeDeclarationEvaluatorTest {
 
         new EvalVisitor(context).visit(new BlockImpl(typeDecl));
 
-        StructType type = (StructType) context.getDataType("Math");
+        StructType type = (StructType) context.getDataType("Calc");
         assertNotNull(type);
     }
 }

@@ -89,10 +89,10 @@ class TypeMethodEvaluatorTest {
 
   @Test
   void testStaticMethod() {
-    // type Math {
+    // type Calc {
     //   static func add(int a, int b) -> int { return a + b; }
     // }
-    // int result = Math.add(2, 3);
+    // int result = Calc.add(2, 3);
 
     Block program = new BlockImpl();
 
@@ -115,7 +115,7 @@ class TypeMethodEvaluatorTest {
 
     // Type declaration with static method only (no fields)
     StructDeclarationImpl typeDecl = new StructDeclarationImpl(
-        "Math",
+        "Calc",
         Collections.emptyList(),  // no fields
         null,                     // no constructor
         Collections.emptyList(),  // no instance methods
@@ -123,9 +123,9 @@ class TypeMethodEvaluatorTest {
     );
     program.addStatement(typeDecl);
 
-    // int result = Math.add(2, 3);
+    // int result = Calc.add(2, 3);
     StaticMethodCallExpression methodCall = new StaticMethodCallExpression(
-        "Math",
+        "Calc",
         "add",
         LiteralExpression.of(IntLiteral.of(2)),
         LiteralExpression.of(IntLiteral.of(3))
