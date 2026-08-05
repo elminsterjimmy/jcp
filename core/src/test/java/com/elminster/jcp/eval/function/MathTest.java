@@ -1,9 +1,11 @@
 package com.elminster.jcp.eval.function;
 
 import com.elminster.jcp.ast.Identifier;
+import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.expression.LiteralExpression;
 import com.elminster.jcp.ast.expression.base.FunctionCallExpression;
 import com.elminster.jcp.ast.expression.literal.Literal;
+import com.elminster.jcp.ast.expression.operation.Plus;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
@@ -36,6 +38,18 @@ public class MathTest {
             "result", returnType,
             new FunctionCallExpression(Identifier.fromName("Math." + method), args)
         ));
+        new EvalVisitor(context).visit(program);
+        return context.getVariable("result").get();
+    }
+
+    private FunctionCallExpression call(String method, Expression... args) {
+        return new FunctionCallExpression(Identifier.fromName("Math." + method), args);
+    }
+
+    private Object evalExpr(SystemDataType returnType, Expression expr) {
+        EvalContext context = newContext();
+        Block program = new BlockImpl();
+        program.addStatement(new VariableDeclarationImpl("result", returnType, expr));
         new EvalVisitor(context).visit(program);
         return context.getVariable("result").get();
     }
@@ -124,5 +138,29 @@ public class MathTest {
     void testCeil() {
         assertEquals(3.0, eval("ceil", SystemDataType.DOUBLE, dbl(2.1)));
         assertEquals(-2.0, eval("ceil", SystemDataType.DOUBLE, dbl(-2.7)));
+    }
+
+    // --- implicit cast: combining an INT-returning and a DOUBLE-returning
+    //     Math call in an arithmetic expression widens the result to DOUBLE ---
+
+    @Test
+    void testAbsIntPlusAbsDoubleWidensToDouble() {
+        // Math.abs(-5) [INT 5] + Math.abs(-5.0) [DOUBLE 5.0] => 10.0 (DOUBLE)
+        assertEquals(10.0, evalExpr(SystemDataType.DOUBLE,
+            new Plus(call("abs", int_(-5)), call("abs", dbl(-5.0)))));
+    }
+
+    @Test
+    void testMaxIntPlusSqrtDoubleWidensToDouble() {
+        // Math.max(2, 3) [INT 3] + Math.sqrt(9.0) [DOUBLE 3.0] => 6.0 (DOUBLE)
+        assertEquals(6.0, evalExpr(SystemDataType.DOUBLE,
+            new Plus(call("max", int_(2), int_(3)), call("sqrt", dbl(9.0)))));
+    }
+
+    @Test
+    void testFloorDoublePlusMinIntWidensToDouble() {
+        // Math.floor(2.7) [DOUBLE 2.0] + Math.min(1, 4) [INT 1] => 3.0 (DOUBLE)
+        assertEquals(3.0, evalExpr(SystemDataType.DOUBLE,
+            new Plus(call("floor", dbl(2.7)), call("min", int_(1), int_(4)))));
     }
 }
