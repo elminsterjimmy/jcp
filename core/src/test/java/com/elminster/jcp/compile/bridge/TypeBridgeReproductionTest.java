@@ -77,47 +77,56 @@ class TypeBridgeReproductionTest {
     @Nested
     class CharacterizationTests {
 
-        /**
-         * CHARACTERIZATION: current buggy ANY-collapse for types not in the mapping table.
-         * mapJavaTypeToDataType returns ANY for char, CharSequence, long, float, byte, short.
-         * PR 2 updates this.
-         *
-         * <p>These tests pin the current (broken) behavior so PR 2's changes are
-         * explicitly visible as a diff. They are NOT asserting desired behavior.
-         */
         @Test
-        void mapJavaTypeToDataType_char_collapsesToANY() {
-            // CHARACTERIZATION: PR 2 updates this — char should map to a primitive, not ANY
-            assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(char.class));
+        void mapJavaTypeToDataType_char_mapsToINT() {
+            // Fixed in PR 2: char and int share the same JVM slot (I)
+            assertEquals(SystemDataType.INT, CompileModeClassConverter.mapJavaTypeToDataType(char.class));
         }
 
         @Test
-        void mapJavaTypeToDataType_CharSequence_collapsesToANY() {
-            // CHARACTERIZATION: PR 2 updates this
+        void mapJavaTypeToDataType_Character_mapsToINT() {
+            assertEquals(SystemDataType.INT, CompileModeClassConverter.mapJavaTypeToDataType(Character.class));
+        }
+
+        @Test
+        void mapJavaTypeToDataType_CharSequence_contextFree_returnsANY() {
+            // Context-free overload returns ANY for unknown types by design.
+            // Use registerClass (context-aware) to get a proper ExternalClassType at runtime.
             assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class));
         }
 
         @Test
+        void mapJavaTypeToDataType_CharSequence_contextAware_registersExternalClassType() {
+            // With context, CharSequence is registered transitively as an ExternalClassType
+            com.elminster.jcp.compile.context.CompileContext ctx =
+                    new com.elminster.jcp.compile.context.CompileContext();
+            CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class, ctx, "test");
+            com.elminster.jcp.eval.data.DataType registered = ctx.getDataType("CharSequence");
+            assertNotNull(registered, "CharSequence must be registered in context");
+            assertInstanceOf(com.elminster.jcp.eval.data.ExternalClassType.class, registered);
+        }
+
+        @Test
         void mapJavaTypeToDataType_long_collapsesToANY() {
-            // CHARACTERIZATION: PR 2 updates this — long should have its own type or map to NUMERIC
+            // CHARACTERIZATION: PR 3 scope — long stays ANY for now
             assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(long.class));
         }
 
         @Test
         void mapJavaTypeToDataType_float_collapsesToANY() {
-            // CHARACTERIZATION: PR 2 updates this
+            // CHARACTERIZATION: PR 3 scope
             assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(float.class));
         }
 
         @Test
         void mapJavaTypeToDataType_byte_collapsesToANY() {
-            // CHARACTERIZATION: PR 2 updates this
+            // CHARACTERIZATION: PR 3 scope
             assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(byte.class));
         }
 
         @Test
         void mapJavaTypeToDataType_short_collapsesToANY() {
-            // CHARACTERIZATION: PR 2 updates this
+            // CHARACTERIZATION: PR 3 scope
             assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(short.class));
         }
     }
@@ -153,76 +162,46 @@ class TypeBridgeReproductionTest {
         }
 
         /**
-         * D4' probe — repeat(char, int) → String.
+         * Fixed in PR 2 — repeat(char, int) → String now works.
          *
-         * <p>Descriptor: (CI)Ljava/lang/String;  (C = char primitive)
-         * mapJavaTypeToDataType collapses char → ANY (D5).
-         * StaticMethodCallCompiler:142 sees paramType==ANY → calls boxPrimitive(INT arg)
-         * → pushes Integer onto stack. But the descriptor demands primitive char (C).
-         * Expected: VerifyError or LinkageError at class-load time.
-         *
-         * <p>Defect path: StaticMethodCallCompiler.compileExternalClassCall (line ~142),
-         * driven by D5 (char→ANY collapse in CompileModeClassConverter.mapJavaTypeToDataType).
+         * <p>char maps to INT; the compiler treats the char param as INT-typed.
+         * The INVOKESTATIC descriptor is exact (C from the real method), and INT
+         * is directly pushed — no boxing needed. Result: "***" for char='*' (42), count=3.
          */
         @Test
-        void d4Prime_repeat_charInt_boxingVsExactDescriptor() {
-            // CHARACTERIZATION: char collapses to ANY, causing boxing-vs-descriptor mismatch (D4').
-            // The JCP arg type for the char param will be ANY (because that's what
-            // mapJavaTypeToDataType(char.class) returns), and the compiler will try to box
-            // an INT arg using boxPrimitive — but the INVOKESTATIC descriptor expects 'C'.
-            // We pass an INT literal for the char position (JCP has no char literal today).
-            assertThrows(
-                    Throwable.class, // VerifyError or LinkageError
-                    () -> {
-                        MultiClassLoader loader = new MultiClassLoader();
-                        Class<?> clazz = compileAndLoad(
-                                StringUtils.class, "StringUtils", "repeat",
-                                SystemDataType.STRING,
-                                new com.elminster.jcp.ast.Expression[]{
-                                        LiteralExpression.of(IntLiteral.of(42)), // char arg as INT
-                                        LiteralExpression.of(IntLiteral.of(3))
-                                },
-                                loader);
-                        // If load succeeds, invoke to force verification
-                        clazz.getMethod("evaluate").invoke(null);
+        void repeat_charInt_compilesAndReturnsCorrectValue() throws Exception {
+            MultiClassLoader loader = new MultiClassLoader();
+            Class<?> clazz = compileAndLoad(
+                    StringUtils.class, "StringUtils", "repeat",
+                    SystemDataType.STRING,
+                    new com.elminster.jcp.ast.Expression[]{
+                            LiteralExpression.of(IntLiteral.of(42)), // '*' = ASCII 42
+                            LiteralExpression.of(IntLiteral.of(3))
                     },
-                    "D4' (repeat char+int): expected VerifyError/LinkageError from boxing-vs-char-descriptor"
-            );
+                    loader);
+            Object result = clazz.getMethod("evaluate").invoke(null);
+            assertEquals("***", result);
         }
 
         /**
-         * D4' probe — countMatches(CharSequence, char) → int.
+         * Fixed in PR 2 — countMatches(CharSequence, char) → int now works.
          *
-         * <p>Descriptor: (Ljava/lang/CharSequence;C)I
-         * Both params map to ANY (CharSequence→ANY, char→ANY via D5).
-         * The compiler will attempt to box both args. The exact descriptor conflicts.
-         * Additionally, overload resolution runs on lossy arg types, risking wrong-overload
-         * selection even before bytecode is emitted.
-         *
-         * <p>Defect path: StaticMethodCallCompiler.compileExternalClassCall (line ~124 overload
-         * resolution, line ~142 boxing), driven by D5.
+         * <p>char→INT and CharSequence registered as ExternalClassType; STRING is
+         * Java-assignable to CharSequence so overload resolution selects the right overload.
          */
         @Test
-        void d4Prime_countMatches_charSequenceChar_boxingVsExactDescriptor() {
-            // CHARACTERIZATION: CharSequence and char both collapse to ANY (D5).
-            // Overload resolution may select the wrong countMatches overload, and boxing
-            // of a STRING arg as ANY will conflict with the CharSequence descriptor.
-            assertThrows(
-                    Throwable.class,
-                    () -> {
-                        MultiClassLoader loader = new MultiClassLoader();
-                        Class<?> clazz = compileAndLoad(
-                                StringUtils.class, "StringUtils", "countMatches",
-                                SystemDataType.INT,
-                                new com.elminster.jcp.ast.Expression[]{
-                                        LiteralExpression.of("hello world"),
-                                        LiteralExpression.of(IntLiteral.of(108)) // 'l' as INT
-                                },
-                                loader);
-                        clazz.getMethod("evaluate").invoke(null);
+        void countMatches_charSequenceChar_compilesAndReturnsCorrectValue() throws Exception {
+            MultiClassLoader loader = new MultiClassLoader();
+            Class<?> clazz = compileAndLoad(
+                    StringUtils.class, "StringUtils", "countMatches",
+                    SystemDataType.INT,
+                    new com.elminster.jcp.ast.Expression[]{
+                            LiteralExpression.of("hello world"),
+                            LiteralExpression.of(IntLiteral.of(108)) // 'l' = ASCII 108
                     },
-                    "D4' (countMatches CharSequence+char): expected failure from ANY-collapse"
-            );
+                    loader);
+            Object result = clazz.getMethod("evaluate").invoke(null);
+            assertEquals(3, result);
         }
 
         /**
@@ -407,38 +386,42 @@ class TypeBridgeReproductionTest {
     class EvalModeTests {
 
         /**
-         * Eval-mode round-trip for EvalFixture.upperCase(String) — STRING→STRING, no coercion.
-         *
-         * <p>We use EvalFixture (defined below) rather than StringUtils directly because
-         * StringUtils has hundreds of overloads including CharSequence/char params, and
-         * ClassConverter.getDataType(CharSequence.class) returns null during registration
-         * (D6-adjacent: ClassConverter hits NPE registering unknown Java types). This is
-         * itself a D6-adjacent finding documented by the characterization test below.
-         *
-         * <p>EvalFixture has only String and int params — all known JCP types — so
-         * registration succeeds and the round-trip can be measured cleanly.
+         * Fixed in PR 2 — ClassConverter can now register StringUtils without NPE.
+         * char/CharSequence params are handled via fast-path mappings; unknown types
+         * are registered transitively.
          */
         @Test
-        void evalMode_upperCase_stringRoundTrip() {
+        void classConverter_registerClass_stringUtils_noNPE() {
             com.elminster.jcp.eval.context.RootEvalContext ctx =
                     new com.elminster.jcp.eval.context.RootEvalContext();
-            com.elminster.jcp.util.ClassConverter.registerClass(EvalFixture.class, ctx, "user");
+            assertDoesNotThrow(
+                    () -> com.elminster.jcp.util.ClassConverter.registerClass(
+                            StringUtils.class, ctx, "user"),
+                    "ClassConverter.registerClass must not throw for StringUtils");
+        }
+
+        /**
+         * Eval-mode round-trip for StringUtils.capitalize(String) — STRING→STRING.
+         */
+        @Test
+        void evalMode_capitalize_stringRoundTrip() {
+            com.elminster.jcp.eval.context.RootEvalContext ctx =
+                    new com.elminster.jcp.eval.context.RootEvalContext();
+            com.elminster.jcp.util.ClassConverter.registerClass(StringUtils.class, ctx, "user");
 
             Block program = new BlockImpl();
             StaticMethodCallExpression call = new StaticMethodCallExpression(
-                    "EvalFixture", "upperCase",
+                    "StringUtils", "capitalize",
                     LiteralExpression.of("hello"));
             program.addStatement(new com.elminster.jcp.ast.statement.ExpressionStatement(call));
 
             assertDoesNotThrow(() -> new com.elminster.jcp.eval.EvalVisitor(ctx).visit(program),
-                    "Eval mode STRING→STRING round-trip must not throw");
+                    "Eval mode capitalize STRING→STRING round-trip must not throw");
         }
 
         /**
          * Eval-mode round-trip for EvalFixture.repeat(int, int) — INT×INT→STRING.
-         *
-         * <p>Uses two INT args — no char/CharSequence involvement — to verify that
-         * the basic int→Object unwrap path in eval mode works correctly.
+         * Verifies the basic int→Object unwrap path.
          */
         @Test
         void evalMode_repeat_intInt_roundTrip() {
@@ -455,30 +438,6 @@ class TypeBridgeReproductionTest {
 
             assertDoesNotThrow(() -> new com.elminster.jcp.eval.EvalVisitor(ctx).visit(program),
                     "Eval mode INT×INT→STRING round-trip must not throw");
-        }
-
-        /**
-         * D6-adjacent characterization: ClassConverter.registerClass fails with NPE when
-         * the class has methods whose parameter types are not in the JCP type system
-         * (e.g. CharSequence, char, long).
-         *
-         * <p>This pins the current broken behavior so PR 2's fix is visible as a diff.
-         * ClassConverter.getDataType() calls DataTypeUtils.getDataType(simpleName, ctx)
-         * which returns null for unknown types, then passes null to ParameterDef —
-         * causing FunctionUtils.generateFunctionFullName to NPE.
-         */
-        @Test
-        void d6Adjacent_classConverter_registerClass_npeForUnknownParamType() {
-            com.elminster.jcp.eval.context.RootEvalContext ctx =
-                    new com.elminster.jcp.eval.context.RootEvalContext();
-            // CHARACTERIZATION: PR 2 updates this — registration must not NPE for any public class.
-            // StringUtils has CharSequence/char params; ClassConverter cannot handle them today.
-            assertThrows(
-                    NullPointerException.class,
-                    () -> com.elminster.jcp.util.ClassConverter.registerClass(
-                            StringUtils.class, ctx, "user"),
-                    "D6-adjacent: ClassConverter should NPE on char/CharSequence params (current broken behavior)"
-            );
         }
     }
 

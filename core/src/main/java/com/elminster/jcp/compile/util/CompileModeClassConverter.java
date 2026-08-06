@@ -15,6 +15,12 @@ import java.lang.reflect.Modifier;
  * Utility class for registering external Java classes in compile mode.
  * Analyzes Java classes via reflection and creates ExternalClassType instances
  * that can be used for method call compilation.
+ *
+ * <p>When a class is registered, parameter and return types that are themselves
+ * non-primitive classes (e.g. {@code CharSequence}) are registered as opaque stubs —
+ * an {@link ExternalClassType} with no methods — so that Java-level assignability
+ * checks (e.g. STRING satisfies a CharSequence parameter) work correctly without
+ * cascading into the full JVM standard library hierarchy.
  */
 public final class CompileModeClassConverter {
 
@@ -24,6 +30,8 @@ public final class CompileModeClassConverter {
     /**
      * Register a Java class for use in compiled JCP code.
      * Analyzes the class via reflection and registers all public methods.
+     * Unknown parameter/return types are registered as opaque stubs (no methods),
+     * preventing cascade into deep JVM stdlib hierarchies.
      *
      * @param clazz  the Java class to register
      * @param ctx    the compile context
@@ -32,14 +40,20 @@ public final class CompileModeClassConverter {
     public static void registerClass(Class<?> clazz, CompileContext ctx, String module) {
         String name = clazz.getSimpleName();
 
-        // Create ExternalClassType
+        // Avoid re-registering a type already in the context
+        if (ctx.getDataType(name) != null) {
+            return;
+        }
+
+        // Create ExternalClassType and register it immediately to break potential recursion
         ExternalClassType type = new ExternalClassType(name, clazz);
+        ctx.addDataType(type);
 
         // Analyze and register all public methods
         Method[] methods = clazz.getDeclaredMethods();
         for (Method method : methods) {
             if (Modifier.isPublic(method.getModifiers())) {
-                ExternalMethodDef methodDef = createMethodDef(method);
+                ExternalMethodDef methodDef = createMethodDef(method, ctx, module);
                 if (Modifier.isStatic(method.getModifiers())) {
                     type.addStaticMethod(methodDef);
                 } else {
@@ -52,33 +66,27 @@ public final class CompileModeClassConverter {
         Constructor<?>[] constructors = clazz.getConstructors();
         for (Constructor<?> constructor : constructors) {
             if (Modifier.isPublic(constructor.getModifiers())) {
-                ExternalMethodDef ctorDef = createConstructorDef(constructor, type);
+                ExternalMethodDef ctorDef = createConstructorDef(constructor, type, ctx, module);
                 type.addConstructor(ctorDef);
             }
         }
-
-        // Register the type in compile context
-        ctx.addDataType(type);
     }
 
     /**
      * Create an ExternalMethodDef from a Java Method.
+     * Unknown parameter/return types are registered as opaque stubs into the context.
      */
-    private static ExternalMethodDef createMethodDef(Method method) {
+    private static ExternalMethodDef createMethodDef(Method method, CompileContext ctx, String module) {
         String name = method.getName();
         boolean isStatic = Modifier.isStatic(method.getModifiers());
 
-        // Convert Java parameter types to JCP DataTypes
         Class<?>[] javaParams = method.getParameterTypes();
         DataType[] paramTypes = new DataType[javaParams.length];
         for (int i = 0; i < javaParams.length; i++) {
-            paramTypes[i] = mapJavaTypeToDataType(javaParams[i]);
+            paramTypes[i] = mapJavaTypeToDataType(javaParams[i], ctx, module);
         }
 
-        // Convert Java return type to JCP DataType
-        DataType returnType = mapJavaTypeToDataType(method.getReturnType());
-
-        // Build JVM method descriptor
+        DataType returnType = mapJavaTypeToDataType(method.getReturnType(), ctx, module);
         String descriptor = Type.getMethodDescriptor(method);
 
         return new ExternalMethodDef(method, name, paramTypes, returnType, descriptor, isStatic);
@@ -86,32 +94,79 @@ public final class CompileModeClassConverter {
 
     /**
      * Create an ExternalMethodDef from a Java Constructor.
+     * Unknown parameter types are registered as opaque stubs into the context.
      */
-    private static ExternalMethodDef createConstructorDef(Constructor<?> constructor, ExternalClassType type) {
-        // Convert Java parameter types to JCP DataTypes
+    private static ExternalMethodDef createConstructorDef(Constructor<?> constructor,
+                                                           ExternalClassType type,
+                                                           CompileContext ctx, String module) {
         Class<?>[] javaParams = constructor.getParameterTypes();
         DataType[] paramTypes = new DataType[javaParams.length];
         for (int i = 0; i < javaParams.length; i++) {
-            paramTypes[i] = mapJavaTypeToDataType(javaParams[i]);
+            paramTypes[i] = mapJavaTypeToDataType(javaParams[i], ctx, module);
         }
 
-        // Constructor returns the class type itself
-        DataType returnType = type;
-
-        // Build JVM constructor descriptor
         String descriptor = Type.getConstructorDescriptor(constructor);
-
-        // Note: Constructor doesn't have a Java Method, so we pass null
-        // The descriptor is enough for bytecode generation
-        return new ExternalMethodDef(null, "<init>", paramTypes, returnType, descriptor, false);
+        return new ExternalMethodDef(null, "<init>", paramTypes, type, descriptor, false);
     }
 
     /**
-     * Map a Java type to a JCP DataType.
+     * Map a Java type to a JCP DataType, registering unknown class types as opaque stubs.
+     *
+     * <p>Unknown non-primitive, non-array types (e.g. {@code CharSequence},
+     * {@code IntStream}) are registered as an opaque {@link ExternalClassType} stub
+     * with no methods. This is enough for Java-level assignability checks (e.g.
+     * STRING satisfies a CharSequence parameter) without triggering a full cascade
+     * into the JVM standard library hierarchy.
+     *
+     * <p>To expose a type's own methods to JCP, call {@link #registerClass} explicitly.
+     */
+    public static DataType mapJavaTypeToDataType(Class<?> javaType, CompileContext ctx, String module) {
+        DataType known = mapJavaTypeToDataType(javaType);
+        if (known != SystemDataType.ANY) {
+            return known;
+        }
+        // Object.class maps to ANY — the universal base, no stub needed
+        if (javaType == Object.class) {
+            return SystemDataType.ANY;
+        }
+        if (javaType.isPrimitive() || javaType.isArray()) {
+            return SystemDataType.ANY;
+        }
+        // Register an opaque stub — no methods — so assignability checks resolve correctly
+        // without cascading into the full Java stdlib hierarchy.
+        String simpleName = javaType.getSimpleName();
+        DataType existing = ctx.getDataType(simpleName);
+        if (existing != null) {
+            return existing;
+        }
+        ExternalClassType stub = new ExternalClassType(simpleName, javaType);
+        ctx.addDataType(stub);
+        return stub;
+    }
+
+    /**
+     * Map a Java type to a JCP DataType (context-free).
+     * Unknown/unsupported types return {@code ANY}.
+     *
+     * <p>Mapped types:
+     * <ul>
+     *   <li>{@code int}, {@code Integer}, {@code char}, {@code Character} → {@code INT}
+     *       (char and int share the same JVM slot)</li>
+     *   <li>{@code double}, {@code Double} → {@code DOUBLE}</li>
+     *   <li>{@code boolean}, {@code Boolean} → {@code BOOLEAN}</li>
+     *   <li>{@code void}, {@code Void} → {@code VOID}</li>
+     *   <li>{@code String} → {@code STRING}</li>
+     *   <li>Array variants → corresponding array types</li>
+     *   <li>All other types → {@code ANY} (use the context-aware overload to register them)</li>
+     * </ul>
      */
     public static DataType mapJavaTypeToDataType(Class<?> javaType) {
         // Primitive types
         if (javaType == int.class || javaType == Integer.class) {
+            return SystemDataType.INT;
+        }
+        // char and int share the same JVM slot (I); map char to INT
+        if (javaType == char.class || javaType == Character.class) {
             return SystemDataType.INT;
         }
         if (javaType == double.class || javaType == Double.class) {
@@ -125,6 +180,10 @@ public final class CompileModeClassConverter {
         }
         if (javaType == String.class) {
             return SystemDataType.STRING;
+        }
+        // Object maps to ANY — it is the universal base in both Java and JCP
+        if (javaType == Object.class) {
+            return SystemDataType.ANY;
         }
 
         // Array types
@@ -153,8 +212,7 @@ public final class CompileModeClassConverter {
             return SystemDataType.ANY_ARRAY;
         }
 
-        // Object and other types map to ANY
-        // This allows parameters like Object to accept any JCP value
+        // Unknown class type — caller should use the context-aware overload to register it
         return SystemDataType.ANY;
     }
 }

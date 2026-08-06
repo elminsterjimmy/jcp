@@ -9,6 +9,7 @@ import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.data.AnyData;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.excpetion.InitializeException;
 import com.elminster.jcp.module.AbstractModuleFunction;
 import com.google.common.reflect.ClassPath;
@@ -25,6 +26,10 @@ public class ClassConverter {
 
     public static void registerClass(Class<?> clazz, EvalContext context, String module) {
         String name = clazz.getSimpleName();
+        // Avoid re-registration when the type is already in the context
+        if (DataTypeUtils.getDataType(name, context) != null) {
+            return;
+        }
         DataType dt = DataTypeUtils.getDataTypeAndCreateOnMissing(name, context);
         context.addDataType(dt);
         Method[] methods = clazz.getDeclaredMethods();
@@ -93,7 +98,7 @@ public class ClassConverter {
                 return new AnyData(result, returnDataType);
             }
         };
-        context.addFunction(function);
+        addFunctionIfAbsent(function, context);
     }
 
     private static void throwInvokeException(ReflectiveOperationException e) {
@@ -192,7 +197,7 @@ public class ClassConverter {
                 return new AnyData(result, returnDt);
             }
         };
-        context.addFunction(function);
+        addFunctionIfAbsent(function, context);
     }
 
     private static void registerConstructors(Class<?> clazz, EvalContext context, String module, DataType dt) {
@@ -232,7 +237,7 @@ public class ClassConverter {
 
                     @Override
                     protected Data doFunction(Data[] parameters, EvalContext evalContext) {
-                        Object[] argValues = getArgumentValues(arguments);
+                        Object[] argValues = getArgumentValues(parameters);
                         try {
                             return new AnyData(constructor.newInstance(argValues), dt);
                         } catch (Exception e) {
@@ -240,15 +245,55 @@ public class ClassConverter {
                         }
                     }
                 };
-                context.addFunction(constructorFunc);
+                addFunctionIfAbsent(constructorFunc, context);
             }
         }
     }
 
+    /**
+     * Add a function to the context only if its full name is not already registered.
+     * Prevents AlreadyDeclaredException when the same type is encountered via multiple paths
+     * during opaque-stub registration of unknown parameter/return types.
+     */
+    private static void addFunctionIfAbsent(Function function, EvalContext context) {
+        if (context.getFunction(function.getFullName()) == null) {
+            context.addFunction(function);
+        }
+    }
+
+    /**
+     * Map a Java class to a JCP DataType, registering unknown types as opaque stubs.
+     *
+     * <p>Primitives and well-known types are mapped directly to {@link SystemDataType}.
+     * Unknown class types (e.g. {@code CharSequence}, {@code IntStream}) are registered
+     * as opaque stubs — a {@link DataTypeImpl}-backed entry with no functions — so that
+     * Java-level assignability checks resolve without cascading into the full JVM stdlib.
+     * To expose a type's own methods, call {@link #registerClass} explicitly.
+     */
     private static DataType getDataType(Class<?> dataType, EvalContext context, String module) {
-        DataType rdt = DataTypeUtils.getDataType(dataType.getSimpleName(), context);
+        // Fast-path: primitives and well-known types — mirrors CompileModeClassConverter
+        if (dataType == int.class     || dataType == Integer.class)   return SystemDataType.INT;
+        if (dataType == char.class    || dataType == Character.class)  return SystemDataType.INT;
+        if (dataType == double.class  || dataType == Double.class)     return SystemDataType.DOUBLE;
+        if (dataType == boolean.class || dataType == Boolean.class)    return SystemDataType.BOOLEAN;
+        if (dataType == void.class    || dataType == Void.class)       return SystemDataType.VOID;
+        if (dataType == String.class)                                   return SystemDataType.STRING;
+        if (dataType == Object.class)                                   return SystemDataType.ANY;
+
+        // Array fast-paths
+        if (dataType == int[].class || dataType == char[].class)        return SystemDataType.INT_ARRAY;
+        if (dataType == double[].class)                                  return SystemDataType.DOUBLE_ARRAY;
+        if (dataType == boolean[].class)                                 return SystemDataType.BOOLEAN_ARRAY;
+        if (dataType == String[].class)                                  return SystemDataType.STRING_ARRAY;
+        if (dataType.isArray())                                          return SystemDataType.ANY_ARRAY;
+
+        // Unknown type — register an opaque stub (no functions) so the type name is in the
+        // context and assignability checks resolve, without cascading into the JVM stdlib.
+        String simpleName = dataType.getSimpleName();
+        DataType rdt = DataTypeUtils.getDataType(simpleName, context);
         if (null == rdt) {
-            registerClass(dataType, context, module);
+            rdt = DataTypeUtils.getDataTypeAndCreateOnMissing(simpleName, context);
+            context.addDataType(rdt);
         }
         return rdt;
     }
