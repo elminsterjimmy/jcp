@@ -21,6 +21,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Arrays;
+import org.objectweb.asm.Type;
 
 /**
  * Compiler for function call expressions.
@@ -271,10 +272,12 @@ public class FunCallCompiler extends AbstractAstCompiler {
             argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
         }
 
-        // Discover the actual return type via reflection
+        // Discover the actual method via reflection — gives us the exact descriptor
+        java.lang.reflect.Method resolvedMethod;
         DataType returnType;
         try {
-            returnType = discoverReturnType(clazz, methodName, argTypes);
+            resolvedMethod = discoverMethod(clazz, methodName, argTypes);
+            returnType = CompileModeClassConverter.mapJavaTypeToDataType(resolvedMethod.getReturnType());
         } catch (NoSuchMethodException e) {
             throw new CompileException("Module function not found: " + methodName +
                 " with argument types " + Arrays.toString(argTypes) +
@@ -287,13 +290,8 @@ public class FunCallCompiler extends AbstractAstCompiler {
             argCompiler.compile(mv, ctx);
         }
 
-        // Build method descriptor with discovered return type
-        StringBuilder descriptor = new StringBuilder("(");
-        for (DataType argType : argTypes) {
-            descriptor.append(TypeMapper.toDescriptor(argType));
-        }
-        descriptor.append(")");
-        descriptor.append(TypeMapper.toDescriptor(returnType));
+        // Use exact JVM descriptor from reflection — never the lossy JCP-type-derived one
+        String descriptor = Type.getMethodDescriptor(resolvedMethod);
 
         // Emit INVOKESTATIC
         String internalName = className.replace('.', '/');
@@ -301,7 +299,7 @@ public class FunCallCompiler extends AbstractAstCompiler {
             Opcodes.INVOKESTATIC,
             internalName,
             methodName,
-            descriptor.toString(),
+            descriptor,
             false
         );
     }
@@ -354,22 +352,21 @@ public class FunCallCompiler extends AbstractAstCompiler {
     }
 
     /**
-     * Discover the return type of a module function via reflection.
+     * Discover the Java Method for a module function via reflection.
      * Matches method by name and compatible parameter types.
      *
      * @param clazz      the module class
      * @param methodName the method name
      * @param argTypes   the argument types
-     * @return the discovered return type
-     * @throws CompileException if method is not found or ambiguous
-     * @throws NoSuchMethodException if method is not found after exhaustive search
+     * @return the matched Java Method
+     * @throws NoSuchMethodException if no matching method found
+     * @throws CompileException if multiple methods match (ambiguous)
      */
-    private DataType discoverReturnType(Class<?> clazz, String methodName, DataType[] argTypes)
+    private java.lang.reflect.Method discoverMethod(Class<?> clazz, String methodName, DataType[] argTypes)
             throws NoSuchMethodException {
         java.lang.reflect.Method[] methods = clazz.getDeclaredMethods();
         java.lang.reflect.Method matchedMethod = null;
 
-        // Find matching static method by name and compatible parameter types
         for (java.lang.reflect.Method method : methods) {
             if (!method.getName().equals(methodName)) {
                 continue;
@@ -383,7 +380,6 @@ public class FunCallCompiler extends AbstractAstCompiler {
                 continue;
             }
 
-            // Check if parameter types are compatible
             boolean compatible = true;
             for (int i = 0; i < paramTypes.length; i++) {
                 if (!isCompatibleType(argTypes[i], paramTypes[i])) {
@@ -407,8 +403,7 @@ public class FunCallCompiler extends AbstractAstCompiler {
                 " in class " + clazz.getName());
         }
 
-        // Map Java return type to DataType using existing utility
-        return CompileModeClassConverter.mapJavaTypeToDataType(matchedMethod.getReturnType());
+        return matchedMethod;
     }
 
     /**
