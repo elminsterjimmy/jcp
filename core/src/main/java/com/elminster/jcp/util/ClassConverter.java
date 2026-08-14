@@ -17,6 +17,8 @@ import com.elminster.jcp.module.AbstractModuleFunction;
 import com.google.common.reflect.ClassPath;
 
 import java.lang.reflect.*;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * The helper class to convert a class to a registered datatype and functions.
@@ -27,34 +29,58 @@ import java.lang.reflect.*;
 public class ClassConverter {
 
     public static void registerClass(Class<?> clazz, EvalContext context, String module) {
+        registerClass(clazz, context, module, new HashSet<>());
+    }
+
+    /**
+     * Internal registration with an in-progress set to detect circular references.
+     * Any FQN in {@code inProgress} is currently being registered higher up the call
+     * stack; re-entering it would loop, so we leave the stub in place.
+     */
+    private static void registerClass(Class<?> clazz, EvalContext context, String module,
+                                       Set<String> inProgress) {
+        String fqn = clazz.getName();
         String name = clazz.getSimpleName();
 
-        // FQN lookup first — if this exact class is already registered, reuse it.
-        DataType byFqn = context.getDataTypeByFqn(clazz.getName());
+        // Circular reference guard.
+        if (inProgress.contains(fqn)) {
+            return;
+        }
+
+        // FQN lookup — if fully registered, nothing to do.
+        DataType byFqn = context.getDataTypeByFqn(fqn);
         if (byFqn instanceof ExternalClassType) {
             ExternalClassType existingExt = (ExternalClassType) byFqn;
-            // Already fully registered — skip method/constructor registration.
             if (!existingExt.getInstanceMethods().isEmpty() || !existingExt.getStaticMethods().isEmpty()) {
                 return;
             }
-            // Opaque stub for the same class — promote in-place without re-registering.
+            // Stub exists — mark in-progress and fully register it now.
+            inProgress.add(fqn);
+            registerMethods(clazz, context, module, existingExt, inProgress);
+            inProgress.remove(fqn);
+            return;
         }
 
-        // Simple-name lookup to check for system/struct types and detect cross-FQN stubs.
-        DataType existing = byFqn != null ? byFqn : DataTypeUtils.getDataType(name, context);
+        // Simple-name lookup to check for system/struct types.
+        // If the name is already ambiguous (two external classes share it), fall through to
+        // register this one under its own FQN — reachable by FQN even if not by simple name.
+        DataType existing;
+        try {
+            existing = byFqn != null ? byFqn : DataTypeUtils.getDataType(name, context);
+        } catch (com.elminster.jcp.eval.excpetion.EvaluationException ignored) {
+            existing = null; // ambiguous simple name — proceed to FQN-keyed registration
+        }
         if (existing instanceof ExternalClassType) {
             ExternalClassType existingExt = (ExternalClassType) existing;
-            // Already fully registered for this exact class — skip
             if (existingExt.getJavaClass() == clazz
                     && (!existingExt.getInstanceMethods().isEmpty()
                         || !existingExt.getStaticMethods().isEmpty())) {
                 return;
             }
         } else if (existing != null && !(existing instanceof DataTypeImpl)) {
-            // Already a fully-registered system or struct type — skip entirely
             return;
         }
-        // Use an existing ExternalClassType stub for this exact class, or create a fresh one.
+
         DataType dt;
         if (existing instanceof ExternalClassType && ((ExternalClassType) existing).getJavaClass() == clazz) {
             dt = existing;
@@ -62,30 +88,33 @@ public class ClassConverter {
             dt = new ExternalClassType(name, clazz);
             context.addDataType(dt);
         }
-        Method[] methods = clazz.getMethods();
-        // auto register all public methods
-        for (Method method : methods) {
+        inProgress.add(fqn);
+        registerMethods(clazz, context, module, dt, inProgress);
+        inProgress.remove(fqn);
+    }
+
+    private static void registerMethods(Class<?> clazz, EvalContext context, String module,
+                                         DataType dt, Set<String> inProgress) {
+        for (Method method : clazz.getMethods()) {
             if (Modifier.isPublic(method.getModifiers())) {
-                // register static public methods
                 if (Modifier.isStatic(method.getModifiers())) {
-                    registerStaticMethod(method, context, module, dt);
+                    registerStaticMethod(method, context, module, dt, inProgress);
                 } else {
-                    // register none static public methods
-                    registerNonStaticMethod(method, context, module, dt);
+                    registerNonStaticMethod(method, context, module, dt, inProgress);
                 }
             }
         }
-        // register constructor
-        registerConstructors(clazz, context, module, dt);
+        registerConstructors(clazz, context, module, dt, inProgress);
     }
 
-    private static void registerStaticMethod(Method method, EvalContext context, String module, DataType dt) {
+    private static void registerStaticMethod(Method method, EvalContext context, String module,
+                                              DataType dt, Set<String> inProgress) {
         String methodName = method.getName();
         Parameter[] parameters = method.getParameters();
-        ParameterDef[] parameterDefs = getParameterDefs(parameters, context, module);
+        ParameterDef[] parameterDefs = getParameterDefs(parameters, context, module, inProgress);
 
         Class<?> returnType = method.getReturnType();
-        DataType returnDataType = getDataType(returnType, context, module);
+        DataType returnDataType = getDataType(returnType, context, module, inProgress);
 
         Function function = new AbstractModuleFunction() {
             @Override
@@ -149,18 +178,20 @@ public class ClassConverter {
         return argValues;
     }
 
-    private static ParameterDef[] getParameterDefs(Parameter[] parameters, EvalContext context, String module) {
+    private static ParameterDef[] getParameterDefs(Parameter[] parameters, EvalContext context,
+                                                     String module, Set<String> inProgress) {
         ParameterDef[] parameterDefs = new ParameterDef[parameters.length];
         int i = 0;
         for (Parameter parameter : parameters) {
-            DataType dataType = getDataType(parameter.getType(), context, module);
+            DataType dataType = getDataType(parameter.getType(), context, module, inProgress);
             String parameterName = parameter.getName();
             parameterDefs[i++] = new ParameterDef(parameterName, dataType);
         }
         return parameterDefs;
     }
 
-    private static void registerNonStaticMethod(Method method, EvalContext context, String module, DataType dt) {
+    private static void registerNonStaticMethod(Method method, EvalContext context, String module,
+                                                  DataType dt, Set<String> inProgress) {
         String methodName = method.getName();
         Parameter[] parameters = method.getParameters();
         DataType[] paramDts = new DataType[parameters.length + 1];
@@ -170,12 +201,12 @@ public class ClassConverter {
         paramDts[0] = dt;
         int i = 1;
         for (Parameter parameter : parameters) {
-            paramDts[i] = getDataType(parameter.getType(), context, module);
+            paramDts[i] = getDataType(parameter.getType(), context, module, inProgress);
             paramNames[i] = parameter.getName();
             i++;
         }
         Class<?> returnType = method.getReturnType();
-        returnDt = getDataType(returnType, context, module);
+        returnDt = getDataType(returnType, context, module, inProgress);
 
         Function function = new AbstractModuleFunction() {
             @Override
@@ -235,13 +266,14 @@ public class ClassConverter {
         addFunctionIfAbsent(function, context);
     }
 
-    private static void registerConstructors(Class<?> clazz, EvalContext context, String module, DataType dt) {
+    private static void registerConstructors(Class<?> clazz, EvalContext context, String module,
+                                              DataType dt, Set<String> inProgress) {
         Constructor<?>[] constructors = clazz.getConstructors();
         for (Constructor<?> constructor : constructors) {
             int modifiers = constructor.getModifiers();
             if (Modifier.isPublic(modifiers)) {
                 Parameter[] parameters = constructor.getParameters();
-                ParameterDef[] parameterDefs = getParameterDefs(parameters, context, module);
+                ParameterDef[] parameterDefs = getParameterDefs(parameters, context, module, inProgress);
 
                 Function constructorFunc = new AbstractModuleFunction() {
 
@@ -297,15 +329,14 @@ public class ClassConverter {
     }
 
     /**
-     * Map a Java class to a JCP DataType, registering unknown types as opaque stubs.
+     * Map a Java class to a JCP DataType, registering unknown types via dependency-first ordering.
      *
-     * <p>Primitives and well-known types are mapped directly to {@link SystemDataType}.
-     * Unknown class types (e.g. {@code CharSequence}, {@code IntStream}) are registered
-     * as opaque stubs — a {@link DataTypeImpl}-backed entry with no functions — so that
-     * Java-level assignability checks resolve without cascading into the full JVM stdlib.
-     * To expose a type's own methods, call {@link #registerClass} explicitly.
+     * <p>Unknown class types are registered via {@link #registerClass(Class, EvalContext, String, Set)}
+     * so their methods are available, unless a circular dependency is detected via {@code inProgress},
+     * in which case a stub is left in place to break the cycle.
      */
-    private static DataType getDataType(Class<?> dataType, EvalContext context, String module) {
+    private static DataType getDataType(Class<?> dataType, EvalContext context, String module,
+                                         Set<String> inProgress) {
         // Fast-path: primitives and well-known types — mirrors CompileModeClassConverter
         if (dataType == int.class     || dataType == Integer.class)   return SystemDataType.INT;
         if (dataType == char.class    || dataType == Character.class)  return SystemDataType.INT;
@@ -328,32 +359,31 @@ public class ClassConverter {
         if (dataType == String[].class)                                    return SystemDataType.STRING_ARRAY;
         if (dataType.isArray())                                            return SystemDataType.ANY_ARRAY;
 
-        // Unknown type — register an opaque ExternalClassType stub (no functions) so the type
-        // name is in the context and assignability checks resolve, without cascading into the
-        // JVM stdlib. NamespacedTypeTable keys by FQN so same-simple-name/different-package
-        // classes coexist correctly.
         String simpleName = dataType.getSimpleName();
         if (simpleName.isEmpty()) {
             return SystemDataType.ANY;
         }
-        // Look up by FQN first — avoids triggering ambiguity when a same-simple-name class
-        // was already registered, and is idempotent for the exact-same class.
-        DataType byFqn = context.getDataTypeByFqn(dataType.getName());
+        String fqn = dataType.getName();
+        // Return immediately if already registered (fully or as in-progress stub).
+        DataType byFqn = context.getDataTypeByFqn(fqn);
         if (byFqn != null) {
             return byFqn;
         }
-        // Check if a non-ExternalClassType (struct/system) is registered under this simple name.
-        // If so, return it — JCP-source types take precedence and no stub is needed.
+        // JCP-source types take precedence.
         try {
             DataType rdt = DataTypeUtils.getDataType(simpleName, context);
             if (rdt != null && !(rdt instanceof ExternalClassType)) {
                 return rdt;
             }
         } catch (com.elminster.jcp.eval.excpetion.EvaluationException ignored) {
-            // Simple name already ambiguous — fall through to register this class under its own FQN.
+            // Simple name already ambiguous — fall through.
         }
-        ExternalClassType stub = new ExternalClassType(simpleName, dataType);
-        context.addDataType(stub);
-        return stub;
+        // Register dependency-first; circular references are caught by inProgress.
+        registerClass(dataType, context, module, inProgress);
+        DataType registered = context.getDataTypeByFqn(fqn);
+        if (registered != null) {
+            return registered;
+        }
+        return SystemDataType.ANY;
     }
 }

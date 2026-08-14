@@ -10,6 +10,8 @@ import org.objectweb.asm.Type;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Utility class for registering external Java classes in compile mode.
@@ -21,6 +23,12 @@ import java.lang.reflect.Modifier;
  * an {@link ExternalClassType} with no methods — so that Java-level assignability
  * checks (e.g. STRING satisfies a CharSequence parameter) work correctly without
  * cascading into the full JVM standard library hierarchy.
+ *
+ * <p>Circular dependency between classes (A's method returns B; B's method takes A)
+ * is handled via an in-progress set passed through recursive calls, following the
+ * same sentinel pattern used by Spring's bean factory: a class is added to the set
+ * before its methods are populated, so any re-entrant call for the same FQN finds
+ * the class already in-progress and leaves the stub as-is.
  */
 public final class CompileModeClassConverter {
 
@@ -30,49 +38,75 @@ public final class CompileModeClassConverter {
     /**
      * Register a Java class for use in compiled JCP code.
      * Analyzes the class via reflection and registers all public methods.
-     * Unknown parameter/return types are registered as opaque stubs (no methods),
-     * preventing cascade into deep JVM stdlib hierarchies.
+     * Unknown parameter/return types that are not yet registered are registered
+     * first (dependency-first ordering), with circular references left as stubs.
      *
      * @param clazz  the Java class to register
      * @param ctx    the compile context
      * @param module the module name (for namespacing)
      */
     public static void registerClass(Class<?> clazz, CompileContext ctx, String module) {
+        registerClass(clazz, ctx, module, new HashSet<>());
+    }
+
+    /**
+     * Internal registration with an in-progress set to detect circular references.
+     * Any FQN in {@code inProgress} is currently being registered higher up the
+     * call stack; re-entering it would loop, so we leave the stub in place.
+     */
+    private static void registerClass(Class<?> clazz, CompileContext ctx, String module,
+                                       Set<String> inProgress) {
+        String fqn = clazz.getName();
         String name = clazz.getSimpleName();
 
-        // Step 1: FQN lookup — canonical check for this exact class.
-        DataType byFqn = ctx.getDataTypeByFqn(clazz.getName());
+        // Circular reference guard — this class is already being registered above us.
+        if (inProgress.contains(fqn)) {
+            return;
+        }
+
+        // FQN lookup — canonical check for this exact class.
+        DataType byFqn = ctx.getDataTypeByFqn(fqn);
         if (byFqn instanceof ExternalClassType) {
             ExternalClassType existingExt = (ExternalClassType) byFqn;
             if (!existingExt.getInstanceMethods().isEmpty() || !existingExt.getStaticMethods().isEmpty()) {
                 // Already fully registered — nothing to do.
                 return;
             }
-            // An opaque stub was created by mapJavaTypeToDataType when this class appeared as a
-            // parameter/return type of another class registered earlier. Promote it in-place by
-            // adding methods — no re-registration needed, the stub is already in the context.
-            addMethodsAndConstructors(existingExt, clazz, ctx, module);
+            // A stub was created by mapJavaTypeToDataType when this class appeared as a
+            // parameter/return type of another class. Mark in-progress and fully register now.
+            inProgress.add(fqn);
+            addMethodsAndConstructors(existingExt, clazz, ctx, module, inProgress);
+            inProgress.remove(fqn);
             return;
         }
 
-        // Step 2: No FQN entry yet. Check simple name for a system/struct type that would block.
-        DataType bySimpleName = ctx.getDataType(name);
-        if (bySimpleName != null && !(bySimpleName instanceof ExternalClassType)) {
-            // A user-declared JCP type occupies this simple name — skip silently.
-            return;
+        // No FQN entry yet. Check simple name for a system/struct type that would block.
+        // If the simple name is already ambiguous (two external classes share it), fall through
+        // to register this one under its own FQN — it's reachable by FQN even if not by simple name.
+        try {
+            DataType bySimpleName = ctx.getDataType(name);
+            if (bySimpleName != null && !(bySimpleName instanceof ExternalClassType)) {
+                // A user-declared JCP type occupies this simple name — skip silently.
+                return;
+            }
+        } catch (com.elminster.jcp.compile.exception.CompileException ignored) {
+            // Simple name already ambiguous — proceed to register under FQN.
         }
 
-        // Step 3: Not yet registered. Create, register, then add methods.
+        // Not yet registered. Create, register, then add methods.
         ExternalClassType type = new ExternalClassType(name, clazz);
         ctx.addDataType(type);
-        addMethodsAndConstructors(type, clazz, ctx, module);
+        inProgress.add(fqn);
+        addMethodsAndConstructors(type, clazz, ctx, module, inProgress);
+        inProgress.remove(fqn);
     }
 
     private static void addMethodsAndConstructors(ExternalClassType type, Class<?> clazz,
-                                                   CompileContext ctx, String module) {
+                                                   CompileContext ctx, String module,
+                                                   Set<String> inProgress) {
         for (Method method : clazz.getMethods()) {
             if (Modifier.isPublic(method.getModifiers())) {
-                ExternalMethodDef methodDef = createMethodDef(method, ctx, module);
+                ExternalMethodDef methodDef = createMethodDef(method, ctx, module, inProgress);
                 if (Modifier.isStatic(method.getModifiers())) {
                     type.addStaticMethod(methodDef);
                 } else {
@@ -82,7 +116,7 @@ public final class CompileModeClassConverter {
         }
         for (Constructor<?> constructor : clazz.getConstructors()) {
             if (Modifier.isPublic(constructor.getModifiers())) {
-                type.addConstructor(createConstructorDef(constructor, type, ctx, module));
+                type.addConstructor(createConstructorDef(constructor, type, ctx, module, inProgress));
             }
         }
     }
@@ -91,17 +125,18 @@ public final class CompileModeClassConverter {
      * Create an ExternalMethodDef from a Java Method.
      * Unknown parameter/return types are registered as opaque stubs into the context.
      */
-    private static ExternalMethodDef createMethodDef(Method method, CompileContext ctx, String module) {
+    private static ExternalMethodDef createMethodDef(Method method, CompileContext ctx, String module,
+                                                      Set<String> inProgress) {
         String name = method.getName();
         boolean isStatic = Modifier.isStatic(method.getModifiers());
 
         Class<?>[] javaParams = method.getParameterTypes();
         DataType[] paramTypes = new DataType[javaParams.length];
         for (int i = 0; i < javaParams.length; i++) {
-            paramTypes[i] = mapJavaTypeToDataType(javaParams[i], ctx, module);
+            paramTypes[i] = mapJavaTypeToDataType(javaParams[i], ctx, module, inProgress);
         }
 
-        DataType returnType = mapJavaTypeToDataType(method.getReturnType(), ctx, module);
+        DataType returnType = mapJavaTypeToDataType(method.getReturnType(), ctx, module, inProgress);
         String descriptor = Type.getMethodDescriptor(method);
 
         return new ExternalMethodDef(method, name, paramTypes, returnType, descriptor, isStatic);
@@ -113,11 +148,12 @@ public final class CompileModeClassConverter {
      */
     private static ExternalMethodDef createConstructorDef(Constructor<?> constructor,
                                                            ExternalClassType type,
-                                                           CompileContext ctx, String module) {
+                                                           CompileContext ctx, String module,
+                                                           Set<String> inProgress) {
         Class<?>[] javaParams = constructor.getParameterTypes();
         DataType[] paramTypes = new DataType[javaParams.length];
         for (int i = 0; i < javaParams.length; i++) {
-            paramTypes[i] = mapJavaTypeToDataType(javaParams[i], ctx, module);
+            paramTypes[i] = mapJavaTypeToDataType(javaParams[i], ctx, module, inProgress);
         }
 
         String descriptor = Type.getConstructorDescriptor(constructor);
@@ -125,17 +161,24 @@ public final class CompileModeClassConverter {
     }
 
     /**
-     * Map a Java type to a JCP DataType, registering unknown class types as opaque stubs.
-     *
-     * <p>Unknown non-primitive, non-array types (e.g. {@code CharSequence},
-     * {@code IntStream}) are registered as an opaque {@link ExternalClassType} stub
-     * with no methods. This is enough for Java-level assignability checks (e.g.
-     * STRING satisfies a CharSequence parameter) without triggering a full cascade
-     * into the JVM standard library hierarchy.
-     *
-     * <p>To expose a type's own methods to JCP, call {@link #registerClass} explicitly.
+     * Map a Java type to a JCP DataType, registering unknown class types if not already present.
+     * Entry point for external callers (e.g. TypeMapper). Uses a fresh in-progress set.
      */
     public static DataType mapJavaTypeToDataType(Class<?> javaType, CompileContext ctx, String module) {
+        return mapJavaTypeToDataType(javaType, ctx, module, new HashSet<>());
+    }
+
+    /**
+     * Map a Java type to a JCP DataType.
+     *
+     * <p>Known primitive/standard types are returned directly. Unknown class types are
+     * registered via {@link #registerClass(Class, CompileContext, String, Set)} using
+     * dependency-first ordering — the type's own methods are populated before returning,
+     * unless a circular dependency is detected (type already in {@code inProgress}), in
+     * which case a stub (no methods) is registered and returned to break the cycle.
+     */
+    private static DataType mapJavaTypeToDataType(Class<?> javaType, CompileContext ctx, String module,
+                                                   Set<String> inProgress) {
         DataType known = mapJavaTypeToDataType(javaType);
         if (known != SystemDataType.ANY) {
             return known;
@@ -152,9 +195,8 @@ public final class CompileModeClassConverter {
         if (simpleName.isEmpty()) {
             return SystemDataType.ANY;
         }
-        // Look up by FQN first — avoids triggering ambiguity when a same-simple-name class
-        // was already registered, and is idempotent for the exact-same class.
         String fqn = javaType.getName();
+        // FQN lookup — return immediately if already registered (fully or as in-progress stub).
         DataType byFqn = ctx.getDataTypeByFqn(fqn);
         if (byFqn != null) {
             return byFqn;
@@ -167,12 +209,20 @@ public final class CompileModeClassConverter {
                 return existing;
             }
         } catch (com.elminster.jcp.compile.exception.CompileException ignored) {
-            // Simple name already ambiguous between external classes — fall through to register
-            // this one as a new stub under its own FQN.
+            // Simple name already ambiguous between external classes — fall through.
         }
-        ExternalClassType stub = new ExternalClassType(simpleName, javaType);
-        ctx.addDataType(stub);
-        return stub;
+        // Register the type (dependency-first, circular guard via inProgress).
+        // registerClass will create the ExternalClassType, add it to the context, and populate
+        // its methods — unless inProgress detects a cycle, in which case it creates a stub and
+        // returns without methods (same as the old opaque-stub behaviour for that cycle edge).
+        registerClass(javaType, ctx, module, inProgress);
+        // After registerClass the type is in the context (fully or as a cycle-stub); return it.
+        DataType registered = ctx.getDataTypeByFqn(fqn);
+        if (registered != null) {
+            return registered;
+        }
+        // Fallback: should not reach here, but guard defensively.
+        return SystemDataType.ANY;
     }
 
     /**
