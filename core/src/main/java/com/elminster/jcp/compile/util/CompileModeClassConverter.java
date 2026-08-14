@@ -40,46 +40,35 @@ public final class CompileModeClassConverter {
     public static void registerClass(Class<?> clazz, CompileContext ctx, String module) {
         String name = clazz.getSimpleName();
 
-        // FQN lookup first — if this exact class is already registered, reuse it.
+        // Step 1: FQN lookup — canonical check for this exact class.
         DataType byFqn = ctx.getDataTypeByFqn(clazz.getName());
         if (byFqn instanceof ExternalClassType) {
             ExternalClassType existingExt = (ExternalClassType) byFqn;
-            // Already fully registered — skip method/constructor registration.
             if (!existingExt.getInstanceMethods().isEmpty() || !existingExt.getStaticMethods().isEmpty()) {
+                // Already fully registered — nothing to do.
                 return;
             }
-            // Opaque stub for the same class — promote in-place without re-registering.
-        }
-
-        // Simple-name lookup for cross-FQN stubs and system/struct types.
-        DataType existing = byFqn != null ? byFqn : ctx.getDataType(name);
-
-        ExternalClassType type;
-        if (existing instanceof ExternalClassType) {
-            ExternalClassType existingExt = (ExternalClassType) existing;
-            // Already fully registered for this exact class — skip.
-            if (existingExt.getJavaClass() == clazz
-                    && (!existingExt.getInstanceMethods().isEmpty()
-                        || !existingExt.getStaticMethods().isEmpty())) {
-                return;
-            }
-            // Opaque stub for the exact same class — promote it to a full type in-place.
-            type = existingExt.getJavaClass() == clazz ? existingExt : new ExternalClassType(name, clazz);
-            if (existingExt.getJavaClass() != clazz) {
-                ctx.addDataType(type);
-            }
-        } else if (existing != null) {
-            // System or struct type already registered — skip
+            // Opaque stub for this exact class — promote in-place by adding methods.
+            addMethodsAndConstructors(existingExt, clazz, ctx, module);
             return;
-        } else {
-            // Create ExternalClassType and register it immediately to break potential recursion
-            type = new ExternalClassType(name, clazz);
-            ctx.addDataType(type);
         }
 
-        // Analyze and register all public methods
-        Method[] methods = clazz.getMethods();
-        for (Method method : methods) {
+        // Step 2: No FQN entry yet. Check simple name for a system/struct type that would block.
+        DataType bySimpleName = ctx.getDataType(name);
+        if (bySimpleName != null && !(bySimpleName instanceof ExternalClassType)) {
+            // A user-declared JCP type occupies this simple name — skip silently.
+            return;
+        }
+
+        // Step 3: Not yet registered. Create, register, then add methods.
+        ExternalClassType type = new ExternalClassType(name, clazz);
+        ctx.addDataType(type);
+        addMethodsAndConstructors(type, clazz, ctx, module);
+    }
+
+    private static void addMethodsAndConstructors(ExternalClassType type, Class<?> clazz,
+                                                   CompileContext ctx, String module) {
+        for (Method method : clazz.getMethods()) {
             if (Modifier.isPublic(method.getModifiers())) {
                 ExternalMethodDef methodDef = createMethodDef(method, ctx, module);
                 if (Modifier.isStatic(method.getModifiers())) {
@@ -89,13 +78,9 @@ public final class CompileModeClassConverter {
                 }
             }
         }
-
-        // Analyze and register all public constructors
-        Constructor<?>[] constructors = clazz.getConstructors();
-        for (Constructor<?> constructor : constructors) {
+        for (Constructor<?> constructor : clazz.getConstructors()) {
             if (Modifier.isPublic(constructor.getModifiers())) {
-                ExternalMethodDef ctorDef = createConstructorDef(constructor, type, ctx, module);
-                type.addConstructor(ctorDef);
+                type.addConstructor(createConstructorDef(constructor, type, ctx, module));
             }
         }
     }
