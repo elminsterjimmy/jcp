@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * DataType implementation for external Java classes.
@@ -86,8 +87,8 @@ public class ExternalClassType implements DataType {
             for (int i = 0; i < params.length; i++) {
                 DataType argType = argTypes[i];
                 DataType paramType = params[i];
-                // Check type compatibility (hierarchy + widening)
-                if (!argType.isCompatibleWith(paramType)) {
+            // Check type compatibility (hierarchy + widening + Java assignability)
+                if (!argType.isCompatibleWith(paramType) && !isJavaAssignableCompat(argType, paramType)) {
                     compatible = false;
                     break;
                 }
@@ -132,7 +133,7 @@ public class ExternalClassType implements DataType {
      * Find a method using overload resolution similar to StructType.
      * 1. Collect all candidates with matching name
      * 2. Filter by parameter count
-     * 3. Filter by parameter compatibility (isCastableTo)
+     * 3. Filter by parameter compatibility (isCastableTo or Java assignability)
      * 4. Return single match, or throw ambiguity error, or return null if no match
      */
     private ExternalMethodDef findMethodWithOverloadResolution(
@@ -152,13 +153,12 @@ public class ExternalClassType implements DataType {
                 continue;
             }
 
-            // Filter by parameter compatibility (type hierarchy + widening conversions)
+            // Filter by parameter compatibility (type hierarchy, widening, or Java assignability)
             boolean compatible = true;
             for (int i = 0; i < params.length; i++) {
                 DataType argType = argTypes[i];
                 DataType paramType = params[i];
-                // Check type compatibility (hierarchy + widening)
-                if (!argType.isCompatibleWith(paramType)) {
+                if (!argType.isCompatibleWith(paramType) && !isJavaAssignableCompat(argType, paramType)) {
                     compatible = false;
                     break;
                 }
@@ -194,6 +194,32 @@ public class ExternalClassType implements DataType {
     }
 
     /**
+     * Check Java-level assignability between a JCP type and an ExternalClassType parameter.
+     * Allows e.g. STRING to satisfy a CharSequence parameter, or any registered external
+     * type to satisfy a parameter typed as one of its Java superclasses/interfaces.
+     */
+    private static boolean isJavaAssignableCompat(DataType argType, DataType paramType) {
+        if (!(paramType instanceof ExternalClassType)) {
+            return false;
+        }
+        Class<?> argJava = toJavaClass(argType);
+        return argJava != null &&
+               ((ExternalClassType) paramType).getJavaClass().isAssignableFrom(argJava);
+    }
+
+    /**
+     * Map a JCP DataType back to its backing Java class, for assignability checks.
+     */
+    private static Class<?> toJavaClass(DataType type) {
+        if (type == SystemDataType.STRING)  return String.class;
+        if (type == SystemDataType.INT)     return int.class;
+        if (type == SystemDataType.DOUBLE)  return double.class;
+        if (type == SystemDataType.BOOLEAN) return boolean.class;
+        if (type instanceof ExternalClassType) return ((ExternalClassType) type).getJavaClass();
+        return null;
+    }
+
+    /**
      * Get all static methods (for debugging/inspection).
      */
     public Map<String, List<ExternalMethodDef>> getStaticMethods() {
@@ -212,12 +238,12 @@ public class ExternalClassType implements DataType {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         ExternalClassType that = (ExternalClassType) obj;
-        return name.equals(that.name);
+        return name.equals(that.name) && javaClass == that.javaClass;
     }
 
     @Override
     public int hashCode() {
-        return name.hashCode();
+        return Objects.hash(name, javaClass);
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclaration;
 import com.elminster.jcp.compile.Compilable;
+import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.TypeMapper;
@@ -79,11 +80,22 @@ public class VariableDeclarationCompiler extends DeclarationCompiler {
         // Get the data type
         DataType dataType = resolveDataType(varDecl.getDataType().getName(), ctx);
 
+        // If declared as ANY and there's an initializer, infer the actual type from the
+        // initializer so that subsequent method calls on the variable can resolve correctly.
+        Expression initExpr = varDecl.getInit();
+        if (dataType == SystemDataType.ANY && initExpr != null) {
+            Compilable initCompiler = AstCompilerFactory.getCompiler(initExpr);
+            if (initCompiler instanceof AbstractAstCompiler) {
+                DataType inferredType = ((AbstractAstCompiler) initCompiler).resolveType(ctx);
+                if (inferredType != null && inferredType != SystemDataType.ANY) {
+                    dataType = inferredType;
+                }
+            }
+        }
+
         // Allocate a local variable slot
         int localIndex = ctx.allocateLocal(varName, dataType);
 
-        // If there's an initializer, compile it
-        Expression initExpr = varDecl.getInit();
         if (initExpr != null) {
             // Compile the initializer expression (pushes value onto stack)
             Compilable compilable = AstCompilerFactory.getCompiler(initExpr);

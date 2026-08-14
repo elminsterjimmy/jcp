@@ -294,7 +294,7 @@ class ExternalClassTypeTest {
 
         @Test
         void testEquals_SameName() {
-            ExternalClassType other = new ExternalClassType("TestClass", Integer.class);
+            ExternalClassType other = new ExternalClassType("TestClass", String.class);
             assertEquals(classType, other);
         }
 
@@ -316,7 +316,7 @@ class ExternalClassTypeTest {
 
         @Test
         void testHashCode_SameName() {
-            ExternalClassType other = new ExternalClassType("TestClass", Integer.class);
+            ExternalClassType other = new ExternalClassType("TestClass", String.class);
             assertEquals(classType.hashCode(), other.hashCode());
         }
 

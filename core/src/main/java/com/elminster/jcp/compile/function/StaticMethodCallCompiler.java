@@ -145,13 +145,14 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
             }
         }
 
-        // Emit INVOKESTATIC with actual Java class internal name
+        // Emit INVOKESTATIC — isInterface=true for static interface methods (e.g. HttpRequest.newBuilder)
+        boolean isInterface = extType.getJavaClass().isInterface();
         mv.visitMethodInsn(
             Opcodes.INVOKESTATIC,
             extType.getInternalName(),
             methodName,
             method.getDescriptor(),
-            false
+            isInterface
         );
     }
 

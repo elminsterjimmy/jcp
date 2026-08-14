@@ -53,6 +53,9 @@ public interface DataType {
       return true;
     }
     DataType parent = this.getParent();
+    if (parent == null) {
+      return false;
+    }
     do {
       if (dataType == parent) {
         return true;

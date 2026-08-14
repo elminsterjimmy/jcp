@@ -166,6 +166,12 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
       for (int i = 0; i < parameterDefs.length; i++) {
         DataType argType = arguments[i].getDataType();
         DataType paramType = parameterDefs[i].getDataType();
+        // Opaque stubs (DataTypeImpl, not SystemDataType or StructType) represent external
+        // Java types whose full interface/class hierarchy is not modeled in JCP. Accept any
+        // reference (non-primitive) argument — the JVM will enforce real type safety at call time.
+        if (isOpaqueStub(paramType) && isReferenceType(argType)) {
+          continue;
+        }
         // Check type compatibility (hierarchy + widening)
         if (!argType.isCompatibleWith(paramType)) {
           return false;
@@ -174,6 +180,22 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
       return true;
     }
     return false;
+  }
+
+  private boolean isOpaqueStub(DataType type) {
+    // ExternalClassType stubs (compile + eval mode) and legacy DataTypeImpl stubs both represent
+    // external Java types whose full hierarchy is not modeled in JCP — accept any reference arg
+    return !(type instanceof DataType.SystemDataType)
+        && !(type instanceof com.elminster.jcp.eval.data.StructType)
+        && (type instanceof com.elminster.jcp.eval.data.DataTypeImpl
+            || type instanceof com.elminster.jcp.eval.data.ExternalClassType);
+  }
+
+  private boolean isReferenceType(DataType type) {
+    return type != DataType.SystemDataType.INT
+        && type != DataType.SystemDataType.DOUBLE
+        && type != DataType.SystemDataType.BOOLEAN
+        && type != DataType.SystemDataType.VOID;
   }
 
   private boolean hasSameModule(String moduleName2Test, Function function) {

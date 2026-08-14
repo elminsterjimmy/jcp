@@ -21,6 +21,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Arrays;
+import org.objectweb.asm.Type;
 
 /**
  * Compiler for function call expressions.
@@ -259,11 +260,9 @@ public class FunCallCompiler extends AbstractAstCompiler {
             methodName = typeAndMethod;
         }
 
-        // Construct full class name
-        String className = resolveModuleClassName(moduleName, typeName);
-
-        // Load the class to discover method signature
-        Class<?> clazz = Class.forName(className);
+        // Resolve to a Java Class — base module, then context-registered external class
+        Class<?> clazz = resolveModuleClass(moduleName, typeName, ctx);
+        String className = clazz.getName();
 
         // Determine argument types for descriptor
         DataType[] argTypes = new DataType[args.length];
@@ -271,29 +270,34 @@ public class FunCallCompiler extends AbstractAstCompiler {
             argTypes[i] = TypeMapper.getExpressionType(args[i], ctx);
         }
 
-        // Discover the actual return type via reflection
-        DataType returnType;
+        // Discover the actual method via reflection — gives us the exact descriptor
+        java.lang.reflect.Method resolvedMethod;
         try {
-            returnType = discoverReturnType(clazz, methodName, argTypes);
+            resolvedMethod = discoverMethod(clazz, methodName, argTypes, ctx);
         } catch (NoSuchMethodException e) {
             throw new CompileException("Module function not found: " + methodName +
                 " with argument types " + Arrays.toString(argTypes) +
                 " in class " + className, getSourceLocation());
         }
 
-        // Compile arguments (push values onto stack)
+        // Compile arguments and emit boxing when the Java param type is Object/ANY
+        Class<?>[] paramTypes = resolvedMethod.getParameterTypes();
         for (int i = 0; i < args.length; i++) {
             Compilable argCompiler = AstCompilerFactory.getCompiler(args[i]);
             argCompiler.compile(mv, ctx);
+
+            DataType argType = argTypes[i];
+            DataType paramDataType = CompileModeClassConverter.mapJavaTypeToDataType(paramTypes[i]);
+            int promotionOpcode = TypePromotion.getPromotionOpcode(argType, paramDataType);
+            if (promotionOpcode != TypePromotion.NO_PROMOTION_OPCODE) {
+                mv.visitInsn(promotionOpcode);
+            } else if (paramDataType == SystemDataType.ANY) {
+                boxPrimitive(mv, argType);
+            }
         }
 
-        // Build method descriptor with discovered return type
-        StringBuilder descriptor = new StringBuilder("(");
-        for (DataType argType : argTypes) {
-            descriptor.append(TypeMapper.toDescriptor(argType));
-        }
-        descriptor.append(")");
-        descriptor.append(TypeMapper.toDescriptor(returnType));
+        // Use exact JVM descriptor from reflection — never the lossy JCP-type-derived one
+        String descriptor = Type.getMethodDescriptor(resolvedMethod);
 
         // Emit INVOKESTATIC
         String internalName = className.replace('.', '/');
@@ -301,75 +305,75 @@ public class FunCallCompiler extends AbstractAstCompiler {
             Opcodes.INVOKESTATIC,
             internalName,
             methodName,
-            descriptor.toString(),
+            descriptor,
             false
         );
     }
 
     /**
-     * Resolve module and type name to full Java class name.
+     * Resolve module and type name to a Java Class.
      *
-     * <p>Resolution strategy:
+     * <p>Resolution order:
      * <ol>
-     *   <li>If module is explicitly specified, use it directly</li>
-     *   <li>If module is null (shorthand syntax), default to base module</li>
+     *   <li>Base module package ({@code com.elminster.jcp.module.base.<type>.<Type>})</li>
+     *   <li>Context-registered ExternalClassType (user-provided JARs)</li>
      * </ol>
      *
-     * @param moduleName the module name (e.g., "base") or null for base module shorthand
-     * @param typeName the type name (e.g., "Assertions")
-     * @return the fully qualified class name
-     * @throws ClassNotFoundException if the module class cannot be found
+     * @param moduleName null for shorthand (defaults to base), or explicit module name
+     * @param typeName   the type name (e.g., "Assertions", "StringUtils")
+     * @param ctx        the current compile context
+     * @return the resolved Class
+     * @throws ClassNotFoundException if the class cannot be found anywhere
      */
-    private String resolveModuleClassName(String moduleName, String typeName)
+    private Class<?> resolveModuleClass(String moduleName, String typeName, CompileContext ctx)
             throws ClassNotFoundException {
-        if (moduleName != null) {
-            // Explicit module specified: try it first
-            if ("base".equals(moduleName)) {
-                // Base module: com.elminster.jcp.module.base.<lowercase-type>.<Type>
-                String packageName = typeName.toLowerCase();
-                String explicitClass = BASE_MODULE_PACKAGE + "." + packageName + "." + typeName;
-                try {
-                    Class.forName(explicitClass);
-                    return explicitClass;
-                } catch (ClassNotFoundException e) {
-                    throw new ClassNotFoundException("Module '" + moduleName + "::" + typeName +
-                        "' not found: " + explicitClass);
-                }
-            } else {
-                // Future: support other modules
-                throw new ClassNotFoundException("Non-base modules not yet supported: " + moduleName);
+        if (moduleName != null && !"base".equals(moduleName)) {
+            // Explicit non-base module — look only in context; no base-package fallback
+            DataType dt = ctx.getDataType(typeName);
+            if (dt instanceof ExternalClassType) {
+                return ((ExternalClassType) dt).getJavaClass();
             }
-        } else {
-            // No module specified (shorthand): default to base module
-            String packageName = typeName.toLowerCase();
-            String baseModuleClass = BASE_MODULE_PACKAGE + "." + packageName + "." + typeName;
-            try {
-                Class.forName(baseModuleClass);
-                return baseModuleClass;
-            } catch (ClassNotFoundException e) {
-                throw new ClassNotFoundException("Type '" + typeName +
-                    "' not found in base module: " + baseModuleClass);
-            }
+            throw new ClassNotFoundException("Non-base module '" + moduleName + "::" + typeName +
+                "' not found in compile context");
         }
+
+        // Base module (explicit "base::" or shorthand): try base package first
+        String packageName = typeName.toLowerCase();
+        String baseModuleClass = BASE_MODULE_PACKAGE + "." + packageName + "." + typeName;
+        try {
+            return Class.forName(baseModuleClass);
+        } catch (ClassNotFoundException ignored) {
+            // fall through to context lookup
+        }
+
+        // Not in base module — check context-registered external class
+        DataType dt = ctx.getDataType(typeName);
+        if (dt instanceof ExternalClassType) {
+            return ((ExternalClassType) dt).getJavaClass();
+        }
+
+        throw new ClassNotFoundException("Type '" + typeName +
+            "' not found in base module or compile context: " + baseModuleClass);
     }
 
     /**
-     * Discover the return type of a module function via reflection.
+     * Discover the Java Method for a module function via reflection.
      * Matches method by name and compatible parameter types.
      *
      * @param clazz      the module class
      * @param methodName the method name
      * @param argTypes   the argument types
-     * @return the discovered return type
-     * @throws CompileException if method is not found or ambiguous
-     * @throws NoSuchMethodException if method is not found after exhaustive search
+     * @param ctx        compile context used for context-aware type compatibility checks
+     * @return the matched Java Method
+     * @throws NoSuchMethodException if no matching method found
+     * @throws CompileException if multiple methods match (ambiguous)
      */
-    private DataType discoverReturnType(Class<?> clazz, String methodName, DataType[] argTypes)
+    private java.lang.reflect.Method discoverMethod(Class<?> clazz, String methodName,
+            DataType[] argTypes, CompileContext ctx)
             throws NoSuchMethodException {
         java.lang.reflect.Method[] methods = clazz.getDeclaredMethods();
         java.lang.reflect.Method matchedMethod = null;
 
-        // Find matching static method by name and compatible parameter types
         for (java.lang.reflect.Method method : methods) {
             if (!method.getName().equals(methodName)) {
                 continue;
@@ -383,10 +387,9 @@ public class FunCallCompiler extends AbstractAstCompiler {
                 continue;
             }
 
-            // Check if parameter types are compatible
             boolean compatible = true;
             for (int i = 0; i < paramTypes.length; i++) {
-                if (!isCompatibleType(argTypes[i], paramTypes[i])) {
+                if (!isCompatibleType(argTypes[i], paramTypes[i], ctx)) {
                     compatible = false;
                     break;
                 }
@@ -407,28 +410,25 @@ public class FunCallCompiler extends AbstractAstCompiler {
                 " in class " + clazz.getName());
         }
 
-        // Map Java return type to DataType using existing utility
-        return CompileModeClassConverter.mapJavaTypeToDataType(matchedMethod.getReturnType());
+        return matchedMethod;
     }
 
     /**
      * Check if a JCP DataType is compatible with a Java parameter type.
+     * Uses the context-aware type mapping so unknown Java types (e.g. CharSequence)
+     * are registered as opaque stubs and checked via Java-level assignability rather
+     * than collapsing to ANY.
      *
-     * <p>Uses existing utilities:
-     * <ul>
-     *   <li>{@link CompileModeClassConverter#mapJavaTypeToDataType} - Convert Java Class to DataType</li>
-     *   <li>{@link DataType#isCompatibleWith} - Check DataType compatibility</li>
-     * </ul>
-     *
-     * @param jcpType the JCP data type (argument type)
+     * @param jcpType  the JCP data type (argument type)
      * @param javaType the Java parameter type
+     * @param ctx      the compile context for stub registration
      * @return true if compatible for method invocation
      */
-    private boolean isCompatibleType(DataType jcpType, Class<?> javaType) {
+    private boolean isCompatibleType(DataType jcpType, Class<?> javaType, CompileContext ctx) {
         if (jcpType == null) {
-            return false;  // Cannot determine compatibility if type is unknown
+            return false;
         }
-        DataType paramDataType = CompileModeClassConverter.mapJavaTypeToDataType(javaType);
+        DataType paramDataType = CompileModeClassConverter.mapJavaTypeToDataType(javaType, ctx, "external");
         return jcpType.isCompatibleWith(paramDataType);
     }
 
@@ -503,13 +503,23 @@ public class FunCallCompiler extends AbstractAstCompiler {
 
     @Override
     public DataType resolveType(CompileContext ctx) {
-        // Note: only resolves user-defined functions registered in the context.
-        // Module function calls (e.g. Assertions.assertTrue) and external class
-        // constructors (e.g. StringBuilder.new) are handled by compileModuleFunctionCall()
-        // and compileExternalClassConstructor() in compile(), respectively.
         FunctionCallExpression call = (FunctionCallExpression) astNode;
         String funcName = call.getId().getId();
         Expression[] args = call.getArguments();
+
+        // Handle external class constructor: TypeName.new → return the ExternalClassType
+        if (funcName.endsWith(".new")) {
+            String typeName = funcName.substring(0, funcName.lastIndexOf('.'));
+            // Strip module prefix if present (e.g. "user::DefaultCategoryDataset" → "DefaultCategoryDataset")
+            int colonIdx = typeName.lastIndexOf(':');
+            if (colonIdx >= 0) {
+                typeName = typeName.substring(colonIdx + 1);
+            }
+            DataType dt = ctx.getDataType(typeName);
+            if (dt != null) {
+                return dt;
+            }
+        }
 
         DataType[] argTypes = new DataType[args.length];
         for (int i = 0; i < args.length; i++) {
