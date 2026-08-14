@@ -72,7 +72,7 @@ public final class CompileModeClassConverter {
         }
 
         // Analyze and register all public methods
-        Method[] methods = clazz.getDeclaredMethods();
+        Method[] methods = clazz.getMethods();
         for (Method method : methods) {
             if (Modifier.isPublic(method.getModifiers())) {
                 ExternalMethodDef methodDef = createMethodDef(method, ctx, module);
@@ -211,6 +211,10 @@ public final class CompileModeClassConverter {
         if (javaType == double.class || javaType == Double.class) {
             return SystemDataType.DOUBLE;
         }
+        // float maps to DOUBLE (widening; JCP has no separate float type)
+        if (javaType == float.class || javaType == Float.class) {
+            return SystemDataType.DOUBLE;
+        }
         if (javaType == boolean.class || javaType == Boolean.class) {
             return SystemDataType.BOOLEAN;
         }
@@ -222,6 +226,15 @@ public final class CompileModeClassConverter {
         }
         // Object maps to ANY — it is the universal base in both Java and JCP
         if (javaType == Object.class) {
+            return SystemDataType.ANY;
+        }
+        // byte and short share the JVM int slot; map to INT
+        if (javaType == byte.class || javaType == Byte.class
+                || javaType == short.class || javaType == Short.class) {
+            return SystemDataType.INT;
+        }
+        // long — no JCP LONG type yet; callers should not emit LRETURN for these
+        if (javaType == long.class || javaType == Long.class) {
             return SystemDataType.ANY;
         }
 

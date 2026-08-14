@@ -108,26 +108,26 @@ class TypeBridgeReproductionTest {
 
         @Test
         void mapJavaTypeToDataType_long_collapsesToANY() {
-            // CHARACTERIZATION: PR 3 scope — long stays ANY for now
+            // long stays ANY — no JCP LONG type yet
             assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(long.class));
         }
 
         @Test
-        void mapJavaTypeToDataType_float_collapsesToANY() {
-            // CHARACTERIZATION: PR 3 scope
-            assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(float.class));
+        void mapJavaTypeToDataType_float_mapsToDouble() {
+            // float widens to DOUBLE (JCP has no separate float type)
+            assertEquals(SystemDataType.DOUBLE, CompileModeClassConverter.mapJavaTypeToDataType(float.class));
         }
 
         @Test
-        void mapJavaTypeToDataType_byte_collapsesToANY() {
-            // CHARACTERIZATION: PR 3 scope
-            assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(byte.class));
+        void mapJavaTypeToDataType_byte_mapsToInt() {
+            // byte shares the JVM int slot
+            assertEquals(SystemDataType.INT, CompileModeClassConverter.mapJavaTypeToDataType(byte.class));
         }
 
         @Test
-        void mapJavaTypeToDataType_short_collapsesToANY() {
-            // CHARACTERIZATION: PR 3 scope
-            assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(short.class));
+        void mapJavaTypeToDataType_short_mapsToInt() {
+            // short shares the JVM int slot
+            assertEquals(SystemDataType.INT, CompileModeClassConverter.mapJavaTypeToDataType(short.class));
         }
     }
 

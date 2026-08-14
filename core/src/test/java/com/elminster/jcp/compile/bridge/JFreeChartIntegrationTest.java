@@ -20,7 +20,6 @@ import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +36,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * <p>Exercises the full JCP↔Java type bridge:
  * <ul>
  *   <li>Eval mode: ClassConverter registers JFreeChart classes; JCP AST constructs a dataset,
- *       calls addValue / setValue on it, then creates a chart via ChartFactory static methods.</li>
+ *       calls addValue / setValue, creates a chart via ChartFactory, then drills into the plot
+ *       to verify row/column counts — a multi-hop chain across several registered types.</li>
  *   <li>Compile mode (bar chart): BytecodeGenerator + registerExternalClass;
  *       JFreeChart JAR loaded via an isolated URLClassLoader wired into MultiClassLoader via
  *       registerClassLoader — exactly the D2 scenario that was fixed.</li>
@@ -58,41 +58,44 @@ class JFreeChartIntegrationTest {
     @Nested
     class EvalMode {
 
-        private RootEvalContext ctx;
-
-        @BeforeEach
-        void setUp() {
-            ctx = new RootEvalContext();
+        private RootEvalContext buildCtx() throws Exception {
+            RootEvalContext ctx = new RootEvalContext();
             ClassConverter.registerClass(DefaultCategoryDataset.class, ctx, "user");
             ClassConverter.registerClass(DefaultPieDataset.class,      ctx, "user");
             ClassConverter.registerClass(ChartFactory.class,           ctx, "user");
             ClassConverter.registerClass(JFreeChart.class,             ctx, "user");
+            ClassConverter.registerClass(
+                    Class.forName("org.jfree.chart.title.TextTitle"),      ctx, "user");
+            ClassConverter.registerClass(
+                    Class.forName("org.jfree.chart.plot.CategoryPlot"),    ctx, "user");
+            ClassConverter.registerClass(
+                    Class.forName("org.jfree.chart.plot.PiePlot"),         ctx, "user");
+            return ctx;
         }
 
         /**
-         * Eval mode — bar chart.
+         * Eval mode — bar chart, deep chain through plot.
          *
          * <pre>
-         * dataset = DefaultCategoryDataset.new()
+         * dataset  = DefaultCategoryDataset.new()
          * dataset.addValue(42.0, "Series1", "Category1")
          * dataset.addValue(17.0, "Series1", "Category2")
-         * chart   = ChartFactory.createBarChart("Sales", "Category", "Value", dataset)
-         * title   = chart.getTitle()
-         * result  = title.getText()   // → "Sales"
+         * chart    = ChartFactory.createBarChart("Sales", "Category", "Value", dataset)
+         * title    = chart.getTitle()
+         * titleTx  = title.getText()              // → "Sales"
+         * plot     = chart.getCategoryPlot()
+         * dsCnt    = plot.getDatasetCount()       // → 1 (one dataset registered)
+         * axisCnt  = plot.getDomainAxisCount()    // → 1
          * </pre>
          */
         @Test
-        void barChart_evalMode_titleMatchesInput() throws Exception {
-            ClassConverter.registerClass(
-                    Class.forName("org.jfree.chart.title.TextTitle"), ctx, "user");
-
+        void barChart_evalMode_titleAndPlotDataMatch() throws Exception {
+            RootEvalContext ctx = buildCtx();
             Block program = new BlockImpl();
 
-            // dataset = DefaultCategoryDataset.new()
             program.addStatement(new VariableDeclarationImpl("dataset", SystemDataType.ANY,
                     new FunctionCallExpression(Identifier.fromName("user::DefaultCategoryDataset.new"))));
 
-            // dataset.addValue(42.0, "Series1", "Category1")
             program.addStatement(new ExpressionStatement(
                     new FunctionCallExpression(Identifier.fromName("user::DefaultCategoryDataset.addValue"),
                             new VariableExpression(Identifier.fromName("dataset")),
@@ -100,7 +103,6 @@ class JFreeChartIntegrationTest {
                             LiteralExpression.of("Series1"),
                             LiteralExpression.of("Category1"))));
 
-            // dataset.addValue(17.0, "Series1", "Category2")
             program.addStatement(new ExpressionStatement(
                     new FunctionCallExpression(Identifier.fromName("user::DefaultCategoryDataset.addValue"),
                             new VariableExpression(Identifier.fromName("dataset")),
@@ -108,7 +110,6 @@ class JFreeChartIntegrationTest {
                             LiteralExpression.of("Series1"),
                             LiteralExpression.of("Category2"))));
 
-            // chart = ChartFactory.createBarChart("Sales", "Category", "Value", dataset)
             program.addStatement(new VariableDeclarationImpl("chart", SystemDataType.ANY,
                     new FunctionCallExpression(Identifier.fromName("user::ChartFactory.createBarChart"),
                             LiteralExpression.of("Sales"),
@@ -116,24 +117,37 @@ class JFreeChartIntegrationTest {
                             LiteralExpression.of("Value"),
                             new VariableExpression(Identifier.fromName("dataset")))));
 
-            // title = chart.getTitle()
+            // title chain: chart.getTitle().getText()
             program.addStatement(new VariableDeclarationImpl("title", SystemDataType.ANY,
                     new FunctionCallExpression(Identifier.fromName("user::JFreeChart.getTitle"),
                             new VariableExpression(Identifier.fromName("chart")))));
 
-            // result = title.getText()
-            program.addStatement(new VariableDeclarationImpl("result", SystemDataType.STRING,
+            program.addStatement(new VariableDeclarationImpl("titleTx", SystemDataType.STRING,
                     new FunctionCallExpression(Identifier.fromName("user::TextTitle.getText"),
                             new VariableExpression(Identifier.fromName("title")))));
 
+            // plot chain: chart.getCategoryPlot().getDatasetCount() / getDomainAxisCount()
+            program.addStatement(new VariableDeclarationImpl("plot", SystemDataType.ANY,
+                    new FunctionCallExpression(Identifier.fromName("user::JFreeChart.getCategoryPlot"),
+                            new VariableExpression(Identifier.fromName("chart")))));
+
+            program.addStatement(new VariableDeclarationImpl("dsCnt", SystemDataType.INT,
+                    new FunctionCallExpression(Identifier.fromName("user::CategoryPlot.getDatasetCount"),
+                            new VariableExpression(Identifier.fromName("plot")))));
+
+            program.addStatement(new VariableDeclarationImpl("axisCnt", SystemDataType.INT,
+                    new FunctionCallExpression(Identifier.fromName("user::CategoryPlot.getDomainAxisCount"),
+                            new VariableExpression(Identifier.fromName("plot")))));
+
             new EvalVisitor(ctx).visit(program);
 
-            Object result = ctx.getVariable("result").get();
-            assertEquals("Sales", result, "Bar chart title must match");
+            assertEquals("Sales", ctx.getVariable("titleTx").get(), "Title must match");
+            assertEquals(1, ctx.getVariable("dsCnt").get(),  "One dataset registered in plot");
+            assertEquals(1, ctx.getVariable("axisCnt").get(), "One domain axis in plot");
         }
 
         /**
-         * Eval mode — pie chart.
+         * Eval mode — pie chart, deep chain through plot.
          *
          * <pre>
          * dataset = DefaultPieDataset.new()
@@ -141,54 +155,58 @@ class JFreeChartIntegrationTest {
          * dataset.setValue("Slice B", 40.0)
          * chart   = ChartFactory.createPieChart("Market Share", dataset)
          * title   = chart.getTitle()
-         * result  = title.getText()   // → "Market Share"
+         * titleTx = title.getText()      // → "Market Share"
+         * plot    = chart.getPlot()      // PiePlot (returned as Plot supertype)
+         * pieIdx  = plot.getPieIndex()   // → 0 (default for a single pie)
          * </pre>
          */
         @Test
-        void pieChart_evalMode_titleMatchesInput() throws Exception {
-            ClassConverter.registerClass(
-                    Class.forName("org.jfree.chart.title.TextTitle"), ctx, "user");
+        void pieChart_evalMode_titleAndPlotDataMatch() throws Exception {
+            RootEvalContext ctx = buildCtx();
 
             Block program = new BlockImpl();
 
-            // dataset = DefaultPieDataset.new()
             program.addStatement(new VariableDeclarationImpl("dataset", SystemDataType.ANY,
                     new FunctionCallExpression(Identifier.fromName("user::DefaultPieDataset.new"))));
 
-            // dataset.setValue("Slice A", 60.0)
             program.addStatement(new ExpressionStatement(
                     new FunctionCallExpression(Identifier.fromName("user::DefaultPieDataset.setValue"),
                             new VariableExpression(Identifier.fromName("dataset")),
                             LiteralExpression.of("Slice A"),
                             LiteralExpression.of(60.0))));
 
-            // dataset.setValue("Slice B", 40.0)
             program.addStatement(new ExpressionStatement(
                     new FunctionCallExpression(Identifier.fromName("user::DefaultPieDataset.setValue"),
                             new VariableExpression(Identifier.fromName("dataset")),
                             LiteralExpression.of("Slice B"),
                             LiteralExpression.of(40.0))));
 
-            // chart = ChartFactory.createPieChart("Market Share", dataset)
             program.addStatement(new VariableDeclarationImpl("chart", SystemDataType.ANY,
                     new FunctionCallExpression(Identifier.fromName("user::ChartFactory.createPieChart"),
                             LiteralExpression.of("Market Share"),
                             new VariableExpression(Identifier.fromName("dataset")))));
 
-            // title = chart.getTitle()
             program.addStatement(new VariableDeclarationImpl("title", SystemDataType.ANY,
                     new FunctionCallExpression(Identifier.fromName("user::JFreeChart.getTitle"),
                             new VariableExpression(Identifier.fromName("chart")))));
 
-            // result = title.getText()
-            program.addStatement(new VariableDeclarationImpl("result", SystemDataType.STRING,
+            program.addStatement(new VariableDeclarationImpl("titleTx", SystemDataType.STRING,
                     new FunctionCallExpression(Identifier.fromName("user::TextTitle.getText"),
                             new VariableExpression(Identifier.fromName("title")))));
 
+            // plot chain: chart.getPlot() returns a PiePlot; getPieIndex() confirms we reached it
+            program.addStatement(new VariableDeclarationImpl("plot", SystemDataType.ANY,
+                    new FunctionCallExpression(Identifier.fromName("user::JFreeChart.getPlot"),
+                            new VariableExpression(Identifier.fromName("chart")))));
+
+            program.addStatement(new VariableDeclarationImpl("pieIdx", SystemDataType.INT,
+                    new FunctionCallExpression(Identifier.fromName("user::PiePlot.getPieIndex"),
+                            new VariableExpression(Identifier.fromName("plot")))));
+
             new EvalVisitor(ctx).visit(program);
 
-            Object result = ctx.getVariable("result").get();
-            assertEquals("Market Share", result, "Pie chart title must match");
+            assertEquals("Market Share", ctx.getVariable("titleTx").get(), "Pie title must match");
+            assertEquals(0, ctx.getVariable("pieIdx").get(), "Default pie index must be 0");
         }
     }
 
@@ -217,19 +235,17 @@ class JFreeChartIntegrationTest {
          */
         @Test
         void barChart_compileMode_isolatedLoader_titleMatchesInput() throws Exception {
-            // Locate JFreeChart jar in local Maven repo
             String m2 = System.getProperty("user.home") + "/.m2/repository";
             URL jfreecharUrl = Paths.get(m2,
                     "org/jfree/jfreechart/1.5.5/jfreechart-1.5.5.jar").toUri().toURL();
 
-            // Isolated loader — platform parent only, not on app classpath
             URLClassLoader isolatedLoader = new URLClassLoader(
                     new URL[]{jfreecharUrl},
                     ClassLoader.getPlatformClassLoader());
 
-            Class<?> datasetClass  = isolatedLoader.loadClass("org.jfree.data.category.DefaultCategoryDataset");
-            Class<?> factoryClass  = isolatedLoader.loadClass("org.jfree.chart.ChartFactory");
-            Class<?> chartClass    = isolatedLoader.loadClass("org.jfree.chart.JFreeChart");
+            Class<?> datasetClass   = isolatedLoader.loadClass("org.jfree.data.category.DefaultCategoryDataset");
+            Class<?> factoryClass   = isolatedLoader.loadClass("org.jfree.chart.ChartFactory");
+            Class<?> chartClass     = isolatedLoader.loadClass("org.jfree.chart.JFreeChart");
             Class<?> textTitleClass = isolatedLoader.loadClass("org.jfree.chart.title.TextTitle");
 
             String className = genName("JFreeBarChart");
@@ -239,26 +255,11 @@ class JFreeChartIntegrationTest {
             generator.registerExternalClass(chartClass);
             generator.registerExternalClass(textTitleClass);
 
-            // Build AST:
-            // dataset = DefaultCategoryDataset.new()
-            // dataset.addValue(42.0, "Series1", "Cat1")
-            // return ChartFactory.createBarChart("Revenue","Month","USD",dataset)
-            //            .getTitle().getText()
-            //
-            // Since compile mode only supports compileWithReturn (single expression),
-            // we put dataset construction + addValue in the preamble Block and return
-            // the title string from a chained StaticMethodCallExpression.
-            //
-            // The chained call is represented with intermediate variable declarations
-            // followed by a final StaticMethodCallExpression returning STRING.
-
             Block program = new BlockImpl();
 
-            // dataset = DefaultCategoryDataset.new()
             program.addStatement(new VariableDeclarationImpl("dataset", SystemDataType.ANY,
                     new FunctionCallExpression(Identifier.fromName("DefaultCategoryDataset.new"))));
 
-            // dataset.addValue(42.0, "Series1", "Cat1")  — instance method call
             program.addStatement(new ExpressionStatement(
                     new MethodCallExpression(
                             new VariableExpression(Identifier.fromName("dataset")),
@@ -267,7 +268,6 @@ class JFreeChartIntegrationTest {
                             LiteralExpression.of("Series1"),
                             LiteralExpression.of("Cat1"))));
 
-            // chart = ChartFactory.createBarChart("Revenue", "Month", "USD", dataset)
             program.addStatement(new VariableDeclarationImpl("chart", SystemDataType.ANY,
                     new StaticMethodCallExpression("ChartFactory", "createBarChart",
                             LiteralExpression.of("Revenue"),
@@ -275,28 +275,24 @@ class JFreeChartIntegrationTest {
                             LiteralExpression.of("USD"),
                             new VariableExpression(Identifier.fromName("dataset")))));
 
-            // title = chart.getTitle()  — instance method call
             program.addStatement(new VariableDeclarationImpl("title", SystemDataType.ANY,
                     new MethodCallExpression(
                             new VariableExpression(Identifier.fromName("chart")),
                             "getTitle")));
 
-            // return title.getText()  → STRING
             MethodCallExpression getTextExpr = new MethodCallExpression(
                     new VariableExpression(Identifier.fromName("title")),
                     "getText");
 
             byte[] bytecode = generator.compileWithReturn(program, getTextExpr, SystemDataType.STRING);
 
-            // Load with registerClassLoader so JFreeChart types resolve
             MultiClassLoader loader = new MultiClassLoader();
             loader.registerClassLoader(isolatedLoader);
             loader.defineClass(className, bytecode);
 
             Class<?> clazz = loader.loadClass(className);
             Object result = clazz.getMethod("evaluate").invoke(null);
-            assertEquals("Revenue", result,
-                    "Compile-mode bar chart title must match");
+            assertEquals("Revenue", result, "Compile-mode bar chart title must match");
 
             isolatedLoader.close();
         }

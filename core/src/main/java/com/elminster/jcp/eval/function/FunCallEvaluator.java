@@ -183,9 +183,12 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
   }
 
   private boolean isOpaqueStub(DataType type) {
+    // ExternalClassType stubs (compile + eval mode) and legacy DataTypeImpl stubs both represent
+    // external Java types whose full hierarchy is not modeled in JCP — accept any reference arg
     return !(type instanceof DataType.SystemDataType)
         && !(type instanceof com.elminster.jcp.eval.data.StructType)
-        && (type instanceof com.elminster.jcp.eval.data.DataTypeImpl);
+        && (type instanceof com.elminster.jcp.eval.data.DataTypeImpl
+            || type instanceof com.elminster.jcp.eval.data.ExternalClassType);
   }
 
   private boolean isReferenceType(DataType type) {

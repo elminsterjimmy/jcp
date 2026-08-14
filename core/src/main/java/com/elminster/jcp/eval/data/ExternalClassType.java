@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * DataType implementation for external Java classes.
@@ -237,12 +238,12 @@ public class ExternalClassType implements DataType {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         ExternalClassType that = (ExternalClassType) obj;
-        return name.equals(that.name);
+        return name.equals(that.name) && javaClass == that.javaClass;
     }
 
     @Override
     public int hashCode() {
-        return name.hashCode();
+        return Objects.hash(name, javaClass);
     }
 
     @Override

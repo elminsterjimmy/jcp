@@ -11,9 +11,12 @@ import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.DataTypeImpl;
+import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.eval.excpetion.InitializeException;
 import com.elminster.jcp.module.AbstractModuleFunction;
 import com.google.common.reflect.ClassPath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.*;
 
@@ -25,20 +28,36 @@ import java.lang.reflect.*;
  */
 public class ClassConverter {
 
+    private static final Logger logger = LoggerFactory.getLogger(ClassConverter.class);
+
     public static void registerClass(Class<?> clazz, EvalContext context, String module) {
         String name = clazz.getSimpleName();
         DataType existing = DataTypeUtils.getDataType(name, context);
-        if (existing != null && !(existing instanceof DataTypeImpl)) {
+        if (existing instanceof ExternalClassType) {
+            ExternalClassType existingExt = (ExternalClassType) existing;
+            // Already fully registered for this exact class — skip
+            if (existingExt.getJavaClass() == clazz
+                    && (!existingExt.getInstanceMethods().isEmpty()
+                        || !existingExt.getStaticMethods().isEmpty())) {
+                return;
+            }
+            // Wrong class under same simple name — skip to avoid polluting the context
+            if (existingExt.getJavaClass() != clazz) {
+                return;
+            }
+        } else if (existing != null && !(existing instanceof DataTypeImpl)) {
             // Already a fully-registered system or struct type — skip entirely
             return;
         }
-        // Use the existing stub or create a fresh one
-        DataType dt = (existing != null) ? existing
-                : DataTypeUtils.getDataTypeAndCreateOnMissing(name, context);
-        if (existing == null) {
+        // Use an existing ExternalClassType stub (from getDataType) or create a fresh one
+        DataType dt;
+        if (existing instanceof ExternalClassType) {
+            dt = existing;
+        } else {
+            dt = new ExternalClassType(name, clazz);
             context.addDataType(dt);
         }
-        Method[] methods = clazz.getDeclaredMethods();
+        Method[] methods = clazz.getMethods();
         // auto register all public methods
         for (Method method : methods) {
             if (Modifier.isPublic(method.getModifiers())) {
@@ -285,33 +304,51 @@ public class ClassConverter {
         // Fast-path: primitives and well-known types — mirrors CompileModeClassConverter
         if (dataType == int.class     || dataType == Integer.class)   return SystemDataType.INT;
         if (dataType == char.class    || dataType == Character.class)  return SystemDataType.INT;
+        if (dataType == byte.class    || dataType == Byte.class)       return SystemDataType.INT;
+        if (dataType == short.class   || dataType == Short.class)      return SystemDataType.INT;
         if (dataType == double.class  || dataType == Double.class)     return SystemDataType.DOUBLE;
+        if (dataType == float.class   || dataType == Float.class)      return SystemDataType.DOUBLE;
         if (dataType == boolean.class || dataType == Boolean.class)    return SystemDataType.BOOLEAN;
         if (dataType == void.class    || dataType == Void.class)       return SystemDataType.VOID;
         if (dataType == String.class)                                   return SystemDataType.STRING;
         if (dataType == Object.class)                                   return SystemDataType.ANY;
+        if (dataType == long.class    || dataType == Long.class)       return SystemDataType.ANY;
 
         // Array fast-paths
-        if (dataType == int[].class || dataType == char[].class)        return SystemDataType.INT_ARRAY;
-        if (dataType == double[].class)                                  return SystemDataType.DOUBLE_ARRAY;
-        if (dataType == boolean[].class)                                 return SystemDataType.BOOLEAN_ARRAY;
-        if (dataType == String[].class)                                  return SystemDataType.STRING_ARRAY;
-        if (dataType.isArray())                                          return SystemDataType.ANY_ARRAY;
+        if (dataType == int[].class || dataType == char[].class
+                || dataType == byte[].class || dataType == short[].class) return SystemDataType.INT_ARRAY;
+        if (dataType == long[].class)                                      return SystemDataType.ANY_ARRAY;
+        if (dataType == double[].class || dataType == float[].class)       return SystemDataType.DOUBLE_ARRAY;
+        if (dataType == boolean[].class)                                   return SystemDataType.BOOLEAN_ARRAY;
+        if (dataType == String[].class)                                    return SystemDataType.STRING_ARRAY;
+        if (dataType.isArray())                                            return SystemDataType.ANY_ARRAY;
 
-        // Unknown type — register an opaque stub (no functions) so the type name is in the
-        // context and assignability checks resolve, without cascading into the JVM stdlib.
-        // Key by simple name (JCP-visible) but detect same-simple-name/different-package
-        // collisions: if the stored type is for a different class, return ANY rather than
-        // returning the wrong stub.
+        // Unknown type — register an opaque ExternalClassType stub (no functions) so the type
+        // name is in the context and assignability checks resolve, without cascading into the
+        // JVM stdlib. Key by simple name (JCP-visible) but detect same-simple-name/different-
+        // package collisions by comparing the stored Java class; fall back to ANY on collision
+        // (mirrors CompileModeClassConverter.mapJavaTypeToDataType behaviour).
         String simpleName = dataType.getSimpleName();
         if (simpleName.isEmpty()) {
             return SystemDataType.ANY;
         }
         DataType rdt = DataTypeUtils.getDataType(simpleName, context);
-        if (null == rdt) {
-            rdt = DataTypeUtils.getDataTypeAndCreateOnMissing(simpleName, context);
-            context.addDataType(rdt);
+        if (rdt instanceof ExternalClassType) {
+            if (((ExternalClassType) rdt).getJavaClass() != dataType) {
+                logger.warn("Simple-name collision for '{}': registered={}, requested={} — returning ANY",
+                    simpleName,
+                    ((ExternalClassType) rdt).getJavaClass().getName(),
+                    dataType.getName());
+                return SystemDataType.ANY;
+            }
+            return rdt;
         }
-        return rdt;
+        if (rdt != null) {
+            // System or struct type already registered under this name — return as-is
+            return rdt;
+        }
+        ExternalClassType stub = new ExternalClassType(simpleName, dataType);
+        context.addDataType(stub);
+        return stub;
     }
 }

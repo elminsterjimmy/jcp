@@ -5,6 +5,7 @@ import com.elminster.jcp.ast.Identifier;
 import com.elminster.jcp.ast.Node;
 import com.elminster.jcp.ast.statement.declaration.VariableDeclaration;
 import com.elminster.jcp.compile.Compilable;
+import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.TypeMapper;
@@ -84,8 +85,8 @@ public class VariableDeclarationCompiler extends DeclarationCompiler {
         Expression initExpr = varDecl.getInit();
         if (dataType == SystemDataType.ANY && initExpr != null) {
             Compilable initCompiler = AstCompilerFactory.getCompiler(initExpr);
-            if (initCompiler instanceof com.elminster.jcp.compile.base.AbstractAstCompiler) {
-                DataType inferredType = ((com.elminster.jcp.compile.base.AbstractAstCompiler) initCompiler).resolveType(ctx);
+            if (initCompiler instanceof AbstractAstCompiler) {
+                DataType inferredType = ((AbstractAstCompiler) initCompiler).resolveType(ctx);
                 if (inferredType != null && inferredType != SystemDataType.ANY) {
                     dataType = inferredType;
                 }
