@@ -193,7 +193,12 @@ public class ClassConverter {
                 }
                 Object result = null;
                 try {
-                    result = ReflectUtil.invoke(target, methodName, args);
+                    // Invoke via the captured Method (from the registered class/interface),
+                    // not via target.getClass() — this avoids InaccessibleObjectException
+                    // when the runtime type is an internal JDK implementation class.
+                    result = method.invoke(target, args);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    throwInvokeException(e);
                 } catch (Exception e) {
                     if (e instanceof RuntimeException) {
                         throw (RuntimeException) e;

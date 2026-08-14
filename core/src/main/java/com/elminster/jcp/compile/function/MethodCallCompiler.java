@@ -147,13 +147,14 @@ public class MethodCallCompiler extends AbstractAstCompiler {
             }
         }
 
-        // Emit INVOKEVIRTUAL with actual Java class internal name
+        // Emit INVOKEINTERFACE for interfaces, INVOKEVIRTUAL for classes
+        boolean isInterface = extType.getJavaClass().isInterface();
         mv.visitMethodInsn(
-            Opcodes.INVOKEVIRTUAL,
+            isInterface ? Opcodes.INVOKEINTERFACE : Opcodes.INVOKEVIRTUAL,
             extType.getInternalName(),
             methodName,
             method.getDescriptor(),
-            false
+            isInterface
         );
     }
 

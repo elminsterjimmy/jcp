@@ -68,5 +68,18 @@
       <version>1.5.5</version>
       <scope>test</scope>
     </dependency>
+    <!-- Jetty 11 embedded server (Java 11 compatible) for integration tests -->
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-server</artifactId>
+      <version>11.0.25</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-slf4j-impl</artifactId>
+      <version>11.0.25</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>
