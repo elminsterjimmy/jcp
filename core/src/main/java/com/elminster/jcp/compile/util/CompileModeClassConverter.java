@@ -6,8 +6,6 @@ import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.eval.data.ExternalMethodDef;
 import org.objectweb.asm.Type;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -25,8 +23,6 @@ import java.lang.reflect.Modifier;
  * cascading into the full JVM standard library hierarchy.
  */
 public final class CompileModeClassConverter {
-
-    private static final Logger logger = LoggerFactory.getLogger(CompileModeClassConverter.class);
 
     private CompileModeClassConverter() {
     }
@@ -50,14 +46,12 @@ public final class CompileModeClassConverter {
         if (existing instanceof ExternalClassType) {
             ExternalClassType existingExt = (ExternalClassType) existing;
             // Already fully registered for this exact class — skip.
-            // Check both instance and static methods: static-only classes (e.g. BodyHandlers)
-            // have no instance methods, so checking only instanceMethods would always re-register them.
             if (existingExt.getJavaClass() == clazz
                     && (!existingExt.getInstanceMethods().isEmpty()
                         || !existingExt.getStaticMethods().isEmpty())) {
                 return;
             }
-            // Opaque stub (no methods yet) or same-name different-class — promote to full type
+            // Opaque stub for the exact same class — promote it to a full type in-place.
             type = existingExt.getJavaClass() == clazz ? existingExt : new ExternalClassType(name, clazz);
             if (existingExt.getJavaClass() != clazz) {
                 ctx.addDataType(type);
@@ -154,29 +148,28 @@ public final class CompileModeClassConverter {
         if (javaType.isPrimitive() || javaType.isArray()) {
             return SystemDataType.ANY;
         }
-        // Register an opaque stub — no methods — so assignability checks resolve correctly
-        // without cascading into the full Java stdlib hierarchy.
-        // Key by simple name (JCP-visible) but detect same-simple-name/different-package
-        // collisions by comparing the stored Java class; fall back to ANY on collision.
+        // Anonymous/synthetic classes have no usable simple name — fall back to ANY
         String simpleName = javaType.getSimpleName();
         if (simpleName.isEmpty()) {
             return SystemDataType.ANY;
         }
-        DataType existing = ctx.getDataType(simpleName);
-        if (existing instanceof ExternalClassType) {
-            // If the stored class differs (same simple name, different package) fall back to ANY
-            // rather than silently returning the wrong stub.
-            if (((ExternalClassType) existing).getJavaClass() != javaType) {
-                logger.warn("Simple-name collision for '{}': registered={}, requested={} — returning ANY",
-                    simpleName,
-                    ((ExternalClassType) existing).getJavaClass().getName(),
-                    javaType.getName());
-                return SystemDataType.ANY;
-            }
-            return existing;
+        // Look up by FQN first — avoids triggering ambiguity when a same-simple-name class
+        // was already registered, and is idempotent for the exact-same class.
+        String fqn = javaType.getName();
+        DataType byFqn = ctx.getDataTypeByFqn(fqn);
+        if (byFqn != null) {
+            return byFqn;
         }
-        if (existing != null) {
-            return existing;
+        // Check if a non-ExternalClassType (struct/system) is registered under this simple name.
+        // If so, return it — JCP-source types take precedence and no stub is needed.
+        try {
+            DataType existing = ctx.getDataType(simpleName);
+            if (existing != null && !(existing instanceof ExternalClassType)) {
+                return existing;
+            }
+        } catch (com.elminster.jcp.compile.exception.CompileException ignored) {
+            // Simple name already ambiguous between external classes — fall through to register
+            // this one as a new stub under its own FQN.
         }
         ExternalClassType stub = new ExternalClassType(simpleName, javaType);
         ctx.addDataType(stub);

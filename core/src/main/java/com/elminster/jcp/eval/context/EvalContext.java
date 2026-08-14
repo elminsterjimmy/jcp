@@ -27,6 +27,12 @@ public interface EvalContext {
 
   DataType getDataType(String name);
 
+  /**
+   * Look up a registered type by its fully-qualified name (e.g. "java.util.Date").
+   * Used during stub registration to avoid ambiguity from simple-name lookup.
+   */
+  DataType getDataTypeByFqn(String fqn);
+
   LoopContext getLoopContext();
 
   void setLoopContext(LoopContext loopContext);

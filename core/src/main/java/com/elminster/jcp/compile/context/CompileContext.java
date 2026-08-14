@@ -1,8 +1,10 @@
 package com.elminster.jcp.compile.context;
 
 import com.elminster.jcp.ast.statement.function.ParameterDef;
+import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.NamespacedTypeTable;
 import org.objectweb.asm.Label;
 
 import java.util.ArrayDeque;
@@ -383,11 +385,10 @@ public class CompileContext {
     private final Deque<LoopLabels> loopStack = new ArrayDeque<>();
 
     /**
-     * Type registry for user-defined types (structs, types).
-     * Used by compilers to look up field types, method signatures,
-     * and generate proper descriptors.
+     * Type registry supporting FQN-keyed storage with simple-name alias resolution.
+     * Allows classes that share a simple name across packages to coexist.
      */
-    private final Map<String, DataType> typeTable = new HashMap<>();
+    private final NamespacedTypeTable typeTable = new NamespacedTypeTable();
 
     /**
      * JVM internal class name being compiled (e.g., "MyProgram").
@@ -610,19 +611,34 @@ public class CompileContext {
      * @param type the DataType to register (StructType or ExternalClassType)
      */
     public void addDataType(DataType type) {
-        typeTable.put(type.getName(), type);
+        typeTable.register(type);
     }
 
     /**
-     * Get a data type by name.
+     * Get a data type by simple name, searching this scope then parent scopes.
      *
-     * @param name the type name
-     * @return the data type, or null if not found
+     * @throws CompileException if the simple name is ambiguous in this scope
      */
     public DataType getDataType(String name) {
-        DataType type = typeTable.get(name);
+        try {
+            DataType type = typeTable.getBySimpleName(name);
+            if (type == null && parent != null) {
+                return parent.getDataType(name);
+            }
+            return type;
+        } catch (NamespacedTypeTable.AmbiguousTypeException e) {
+            throw new CompileException(e.getMessage());
+        }
+    }
+
+    /**
+     * Get a data type by its fully-qualified name (e.g. "java.util.Date").
+     * Used internally during stub registration to avoid ambiguity from simple-name lookup.
+     */
+    public DataType getDataTypeByFqn(String fqn) {
+        DataType type = typeTable.getByFqn(fqn);
         if (type == null && parent != null) {
-            return parent.getDataType(name);
+            return parent.getDataTypeByFqn(fqn);
         }
         return type;
     }

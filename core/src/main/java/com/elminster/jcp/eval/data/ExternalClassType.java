@@ -50,6 +50,14 @@ public class ExternalClassType implements DataType {
     }
 
     /**
+     * Get the fully-qualified dotted name of the backing Java class (e.g., "java.util.Date").
+     * Used as the FQN registry key in NamespacedTypeTable to distinguish same-simple-name classes.
+     */
+    public String getFullName() {
+        return javaClass.getName();
+    }
+
+    /**
      * Add a static method to this type.
      */
     public void addStaticMethod(ExternalMethodDef method) {

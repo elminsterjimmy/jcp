@@ -15,8 +15,6 @@ import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.eval.excpetion.InitializeException;
 import com.elminster.jcp.module.AbstractModuleFunction;
 import com.google.common.reflect.ClassPath;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.*;
 
@@ -27,8 +25,6 @@ import java.lang.reflect.*;
  * @version 1.0
  */
 public class ClassConverter {
-
-    private static final Logger logger = LoggerFactory.getLogger(ClassConverter.class);
 
     public static void registerClass(Class<?> clazz, EvalContext context, String module) {
         String name = clazz.getSimpleName();
@@ -41,10 +37,8 @@ public class ClassConverter {
                         || !existingExt.getStaticMethods().isEmpty())) {
                 return;
             }
-            // Wrong class under same simple name — skip to avoid polluting the context
-            if (existingExt.getJavaClass() != clazz) {
-                return;
-            }
+            // If a different class is stored under this simple name, the NamespacedTypeTable will
+            // still let this registration proceed under its own FQN — no skip needed.
         } else if (existing != null && !(existing instanceof DataTypeImpl)) {
             // Already a fully-registered system or struct type — skip entirely
             return;
@@ -325,27 +319,27 @@ public class ClassConverter {
 
         // Unknown type — register an opaque ExternalClassType stub (no functions) so the type
         // name is in the context and assignability checks resolve, without cascading into the
-        // JVM stdlib. Key by simple name (JCP-visible) but detect same-simple-name/different-
-        // package collisions by comparing the stored Java class; fall back to ANY on collision
-        // (mirrors CompileModeClassConverter.mapJavaTypeToDataType behaviour).
+        // JVM stdlib. NamespacedTypeTable keys by FQN so same-simple-name/different-package
+        // classes coexist correctly.
         String simpleName = dataType.getSimpleName();
         if (simpleName.isEmpty()) {
             return SystemDataType.ANY;
         }
-        DataType rdt = DataTypeUtils.getDataType(simpleName, context);
-        if (rdt instanceof ExternalClassType) {
-            if (((ExternalClassType) rdt).getJavaClass() != dataType) {
-                logger.warn("Simple-name collision for '{}': registered={}, requested={} — returning ANY",
-                    simpleName,
-                    ((ExternalClassType) rdt).getJavaClass().getName(),
-                    dataType.getName());
-                return SystemDataType.ANY;
-            }
-            return rdt;
+        // Look up by FQN first — avoids triggering ambiguity when a same-simple-name class
+        // was already registered, and is idempotent for the exact-same class.
+        DataType byFqn = context.getDataTypeByFqn(dataType.getName());
+        if (byFqn != null) {
+            return byFqn;
         }
-        if (rdt != null) {
-            // System or struct type already registered under this name — return as-is
-            return rdt;
+        // Check if a non-ExternalClassType (struct/system) is registered under this simple name.
+        // If so, return it — JCP-source types take precedence and no stub is needed.
+        try {
+            DataType rdt = DataTypeUtils.getDataType(simpleName, context);
+            if (rdt != null && !(rdt instanceof ExternalClassType)) {
+                return rdt;
+            }
+        } catch (com.elminster.jcp.eval.excpetion.EvaluationException ignored) {
+            // Simple name already ambiguous — fall through to register this class under its own FQN.
         }
         ExternalClassType stub = new ExternalClassType(simpleName, dataType);
         context.addDataType(stub);
