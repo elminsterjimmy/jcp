@@ -6,6 +6,8 @@ import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.eval.data.ExternalMethodDef;
 import org.objectweb.asm.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -23,6 +25,8 @@ import java.lang.reflect.Modifier;
  * cascading into the full JVM standard library hierarchy.
  */
 public final class CompileModeClassConverter {
+
+    private static final Logger logger = LoggerFactory.getLogger(CompileModeClassConverter.class);
 
     private CompileModeClassConverter() {
     }
@@ -45,8 +49,12 @@ public final class CompileModeClassConverter {
         ExternalClassType type;
         if (existing instanceof ExternalClassType) {
             ExternalClassType existingExt = (ExternalClassType) existing;
-            // Already fully registered for this exact class — skip
-            if (existingExt.getJavaClass() == clazz && !existingExt.getInstanceMethods().isEmpty()) {
+            // Already fully registered for this exact class — skip.
+            // Check both instance and static methods: static-only classes (e.g. BodyHandlers)
+            // have no instance methods, so checking only instanceMethods would always re-register them.
+            if (existingExt.getJavaClass() == clazz
+                    && (!existingExt.getInstanceMethods().isEmpty()
+                        || !existingExt.getStaticMethods().isEmpty())) {
                 return;
             }
             // Opaque stub (no methods yet) or same-name different-class — promote to full type
@@ -158,8 +166,14 @@ public final class CompileModeClassConverter {
         if (existing instanceof ExternalClassType) {
             // If the stored class differs (same simple name, different package) fall back to ANY
             // rather than silently returning the wrong stub.
-            return ((ExternalClassType) existing).getJavaClass() == javaType
-                    ? existing : SystemDataType.ANY;
+            if (((ExternalClassType) existing).getJavaClass() != javaType) {
+                logger.warn("Simple-name collision for '{}': registered={}, requested={} — returning ANY",
+                    simpleName,
+                    ((ExternalClassType) existing).getJavaClass().getName(),
+                    javaType.getName());
+                return SystemDataType.ANY;
+            }
+            return existing;
         }
         if (existing != null) {
             return existing;
