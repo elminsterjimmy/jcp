@@ -7,6 +7,8 @@ import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.NamespacedTypeTable;
 import com.elminster.jcp.eval.excpetion.AlreadyDeclaredException;
+import com.elminster.jcp.eval.excpetion.AmbiguousTypeException;
+import com.elminster.jcp.eval.excpetion.EvaluationException;
 import com.elminster.jcp.exception.CallStack;
 import com.elminster.jcp.exception.StackFrame;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -99,8 +101,10 @@ public class DefaultEvalContext implements EvalContext {
         String convertedName = convertSystemDataTypeName(name);
         try {
             return dataTypes.getBySimpleName(convertedName);
-        } catch (NamespacedTypeTable.AmbiguousTypeException e) {
-            throw new com.elminster.jcp.eval.excpetion.EvaluationException(e.getMessage());
+        } catch (AmbiguousTypeException e) {
+            throw new EvaluationException(
+                "Type '" + name + "' is ambiguous: " + e.getCandidates()
+                + ". Qualify the type with its fully-qualified class name.");
         }
     }
 

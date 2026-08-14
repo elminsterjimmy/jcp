@@ -2,7 +2,7 @@ package com.elminster.jcp.eval.data;
 
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.DataTypeImpl;
-import com.elminster.jcp.eval.data.NamespacedTypeTable.AmbiguousTypeException;
+import com.elminster.jcp.eval.excpetion.AmbiguousTypeException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

@@ -5,6 +5,7 @@ import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.NamespacedTypeTable;
+import com.elminster.jcp.eval.excpetion.AmbiguousTypeException;
 import org.objectweb.asm.Label;
 
 import java.util.ArrayDeque;
@@ -626,8 +627,10 @@ public class CompileContext {
                 return parent.getDataType(name);
             }
             return type;
-        } catch (NamespacedTypeTable.AmbiguousTypeException e) {
-            throw new CompileException(e.getMessage());
+        } catch (AmbiguousTypeException e) {
+            throw new CompileException(
+                "Type '" + name + "' is ambiguous: " + e.getCandidates()
+                + ". Qualify the type with its fully-qualified class name.");
         }
     }
 

@@ -1,5 +1,7 @@
 package com.elminster.jcp.eval.data;
 
+import com.elminster.jcp.eval.excpetion.AmbiguousTypeException;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,18 +40,22 @@ public final class NamespacedTypeTable {
      * Register a type. Idempotent for same-FQN re-registration.
      * For {@link ExternalClassType}, the FQN is the Java class's dotted name.
      * For all other types, the FQN equals the simple name.
+     *
+     * @return {@code true} if the type was newly registered; {@code false} if it was already
+     *         present under the same FQN (no-op / duplicate).
      */
-    public void register(DataType type) {
+    public boolean register(DataType type) {
         String fqn = fqnOf(type);
         String simpleName = type.getName();
 
         // Idempotent: same FQN already present → no-op
         if (byFqn.containsKey(fqn)) {
-            return;
+            return false;
         }
 
         byFqn.put(fqn, type);
         aliasBySimpleName.computeIfAbsent(simpleName, k -> new HashSet<>()).add(fqn);
+        return true;
     }
 
     /**
@@ -116,28 +122,5 @@ public final class NamespacedTypeTable {
             return ((ExternalClassType) type).getFullName();
         }
         return type.getName();
-    }
-
-    /**
-     * Thrown when a simple-name lookup matches multiple registered FQNs.
-     */
-    public static class AmbiguousTypeException extends RuntimeException {
-        private final String simpleName;
-        private final String candidates;
-
-        public AmbiguousTypeException(String simpleName, String candidates) {
-            super("Ambiguous type name '" + simpleName + "': multiple classes match: " + candidates
-                    + ". Use the fully-qualified class name to disambiguate.");
-            this.simpleName = simpleName;
-            this.candidates = candidates;
-        }
-
-        public String getSimpleName() {
-            return simpleName;
-        }
-
-        public String getCandidates() {
-            return candidates;
-        }
     }
 }

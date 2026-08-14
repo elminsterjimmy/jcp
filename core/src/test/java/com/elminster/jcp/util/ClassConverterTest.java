@@ -6,7 +6,6 @@ import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataTypeImpl;
 import com.elminster.jcp.eval.data.ExternalClassType;
-import com.elminster.jcp.eval.data.NamespacedTypeTable;
 import com.elminster.jcp.eval.excpetion.EvaluationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
