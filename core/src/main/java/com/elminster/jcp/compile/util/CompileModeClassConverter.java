@@ -48,7 +48,9 @@ public final class CompileModeClassConverter {
                 // Already fully registered — nothing to do.
                 return;
             }
-            // Opaque stub for this exact class — promote in-place by adding methods.
+            // An opaque stub was created by mapJavaTypeToDataType when this class appeared as a
+            // parameter/return type of another class registered earlier. Promote it in-place by
+            // adding methods — no re-registration needed, the stub is already in the context.
             addMethodsAndConstructors(existingExt, clazz, ctx, module);
             return;
         }
