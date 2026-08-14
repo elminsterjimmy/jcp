@@ -134,8 +134,19 @@ public final class CompileModeClassConverter {
         }
         // Register an opaque stub — no methods — so assignability checks resolve correctly
         // without cascading into the full Java stdlib hierarchy.
+        // Key by simple name (JCP-visible) but detect same-simple-name/different-package
+        // collisions by comparing the stored Java class; fall back to ANY on collision.
         String simpleName = javaType.getSimpleName();
+        if (simpleName.isEmpty()) {
+            return SystemDataType.ANY;
+        }
         DataType existing = ctx.getDataType(simpleName);
+        if (existing instanceof ExternalClassType) {
+            // If the stored class differs (same simple name, different package) fall back to ANY
+            // rather than silently returning the wrong stub.
+            return ((ExternalClassType) existing).getJavaClass() == javaType
+                    ? existing : SystemDataType.ANY;
+        }
         if (existing != null) {
             return existing;
         }
@@ -186,11 +197,15 @@ public final class CompileModeClassConverter {
             return SystemDataType.ANY;
         }
 
-        // Array types
-        if (javaType == int[].class) {
+        // Array types — primitive arrays
+        if (javaType == int[].class || javaType == char[].class
+                || javaType == byte[].class || javaType == short[].class) {
             return SystemDataType.INT_ARRAY;
         }
-        if (javaType == double[].class) {
+        if (javaType == long[].class) {
+            return SystemDataType.ANY_ARRAY;
+        }
+        if (javaType == double[].class || javaType == float[].class) {
             return SystemDataType.DOUBLE_ARRAY;
         }
         if (javaType == boolean[].class) {

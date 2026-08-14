@@ -289,7 +289,13 @@ public class ClassConverter {
 
         // Unknown type — register an opaque stub (no functions) so the type name is in the
         // context and assignability checks resolve, without cascading into the JVM stdlib.
+        // Key by simple name (JCP-visible) but detect same-simple-name/different-package
+        // collisions: if the stored type is for a different class, return ANY rather than
+        // returning the wrong stub.
         String simpleName = dataType.getSimpleName();
+        if (simpleName.isEmpty()) {
+            return SystemDataType.ANY;
+        }
         DataType rdt = DataTypeUtils.getDataType(simpleName, context);
         if (null == rdt) {
             rdt = DataTypeUtils.getDataTypeAndCreateOnMissing(simpleName, context);

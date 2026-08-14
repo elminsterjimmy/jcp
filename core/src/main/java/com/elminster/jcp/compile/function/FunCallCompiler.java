@@ -272,10 +272,8 @@ public class FunCallCompiler extends AbstractAstCompiler {
 
         // Discover the actual method via reflection — gives us the exact descriptor
         java.lang.reflect.Method resolvedMethod;
-        DataType returnType;
         try {
-            resolvedMethod = discoverMethod(clazz, methodName, argTypes);
-            returnType = CompileModeClassConverter.mapJavaTypeToDataType(resolvedMethod.getReturnType());
+            resolvedMethod = discoverMethod(clazz, methodName, argTypes, ctx);
         } catch (NoSuchMethodException e) {
             throw new CompileException("Module function not found: " + methodName +
                 " with argument types " + Arrays.toString(argTypes) +
@@ -365,11 +363,13 @@ public class FunCallCompiler extends AbstractAstCompiler {
      * @param clazz      the module class
      * @param methodName the method name
      * @param argTypes   the argument types
+     * @param ctx        compile context used for context-aware type compatibility checks
      * @return the matched Java Method
      * @throws NoSuchMethodException if no matching method found
      * @throws CompileException if multiple methods match (ambiguous)
      */
-    private java.lang.reflect.Method discoverMethod(Class<?> clazz, String methodName, DataType[] argTypes)
+    private java.lang.reflect.Method discoverMethod(Class<?> clazz, String methodName,
+            DataType[] argTypes, CompileContext ctx)
             throws NoSuchMethodException {
         java.lang.reflect.Method[] methods = clazz.getDeclaredMethods();
         java.lang.reflect.Method matchedMethod = null;
@@ -389,7 +389,7 @@ public class FunCallCompiler extends AbstractAstCompiler {
 
             boolean compatible = true;
             for (int i = 0; i < paramTypes.length; i++) {
-                if (!isCompatibleType(argTypes[i], paramTypes[i])) {
+                if (!isCompatibleType(argTypes[i], paramTypes[i], ctx)) {
                     compatible = false;
                     break;
                 }
@@ -415,22 +415,20 @@ public class FunCallCompiler extends AbstractAstCompiler {
 
     /**
      * Check if a JCP DataType is compatible with a Java parameter type.
+     * Uses the context-aware type mapping so unknown Java types (e.g. CharSequence)
+     * are registered as opaque stubs and checked via Java-level assignability rather
+     * than collapsing to ANY.
      *
-     * <p>Uses existing utilities:
-     * <ul>
-     *   <li>{@link CompileModeClassConverter#mapJavaTypeToDataType} - Convert Java Class to DataType</li>
-     *   <li>{@link DataType#isCompatibleWith} - Check DataType compatibility</li>
-     * </ul>
-     *
-     * @param jcpType the JCP data type (argument type)
+     * @param jcpType  the JCP data type (argument type)
      * @param javaType the Java parameter type
+     * @param ctx      the compile context for stub registration
      * @return true if compatible for method invocation
      */
-    private boolean isCompatibleType(DataType jcpType, Class<?> javaType) {
+    private boolean isCompatibleType(DataType jcpType, Class<?> javaType, CompileContext ctx) {
         if (jcpType == null) {
-            return false;  // Cannot determine compatibility if type is unknown
+            return false;
         }
-        DataType paramDataType = CompileModeClassConverter.mapJavaTypeToDataType(javaType);
+        DataType paramDataType = CompileModeClassConverter.mapJavaTypeToDataType(javaType, ctx, "external");
         return jcpType.isCompatibleWith(paramDataType);
     }
 
