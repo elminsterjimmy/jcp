@@ -40,7 +40,19 @@ public final class CompileModeClassConverter {
     public static void registerClass(Class<?> clazz, CompileContext ctx, String module) {
         String name = clazz.getSimpleName();
 
-        DataType existing = ctx.getDataType(name);
+        // FQN lookup first — if this exact class is already registered, reuse it.
+        DataType byFqn = ctx.getDataTypeByFqn(clazz.getName());
+        if (byFqn instanceof ExternalClassType) {
+            ExternalClassType existingExt = (ExternalClassType) byFqn;
+            // Already fully registered — skip method/constructor registration.
+            if (!existingExt.getInstanceMethods().isEmpty() || !existingExt.getStaticMethods().isEmpty()) {
+                return;
+            }
+            // Opaque stub for the same class — promote in-place without re-registering.
+        }
+
+        // Simple-name lookup for cross-FQN stubs and system/struct types.
+        DataType existing = byFqn != null ? byFqn : ctx.getDataType(name);
 
         ExternalClassType type;
         if (existing instanceof ExternalClassType) {

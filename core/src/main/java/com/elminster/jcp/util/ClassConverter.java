@@ -28,7 +28,20 @@ public class ClassConverter {
 
     public static void registerClass(Class<?> clazz, EvalContext context, String module) {
         String name = clazz.getSimpleName();
-        DataType existing = DataTypeUtils.getDataType(name, context);
+
+        // FQN lookup first — if this exact class is already registered, reuse it.
+        DataType byFqn = context.getDataTypeByFqn(clazz.getName());
+        if (byFqn instanceof ExternalClassType) {
+            ExternalClassType existingExt = (ExternalClassType) byFqn;
+            // Already fully registered — skip method/constructor registration.
+            if (!existingExt.getInstanceMethods().isEmpty() || !existingExt.getStaticMethods().isEmpty()) {
+                return;
+            }
+            // Opaque stub for the same class — promote in-place without re-registering.
+        }
+
+        // Simple-name lookup to check for system/struct types and detect cross-FQN stubs.
+        DataType existing = byFqn != null ? byFqn : DataTypeUtils.getDataType(name, context);
         if (existing instanceof ExternalClassType) {
             ExternalClassType existingExt = (ExternalClassType) existing;
             // Already fully registered for this exact class — skip
@@ -37,15 +50,13 @@ public class ClassConverter {
                         || !existingExt.getStaticMethods().isEmpty())) {
                 return;
             }
-            // If a different class is stored under this simple name, the NamespacedTypeTable will
-            // still let this registration proceed under its own FQN — no skip needed.
         } else if (existing != null && !(existing instanceof DataTypeImpl)) {
             // Already a fully-registered system or struct type — skip entirely
             return;
         }
-        // Use an existing ExternalClassType stub (from getDataType) or create a fresh one
+        // Use an existing ExternalClassType stub for this exact class, or create a fresh one.
         DataType dt;
-        if (existing instanceof ExternalClassType) {
+        if (existing instanceof ExternalClassType && ((ExternalClassType) existing).getJavaClass() == clazz) {
             dt = existing;
         } else {
             dt = new ExternalClassType(name, clazz);
