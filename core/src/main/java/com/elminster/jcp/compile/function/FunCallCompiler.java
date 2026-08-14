@@ -260,11 +260,9 @@ public class FunCallCompiler extends AbstractAstCompiler {
             methodName = typeAndMethod;
         }
 
-        // Construct full class name
-        String className = resolveModuleClassName(moduleName, typeName);
-
-        // Load the class to discover method signature
-        Class<?> clazz = Class.forName(className);
+        // Resolve to a Java Class — base module, then context-registered external class
+        Class<?> clazz = resolveModuleClass(moduleName, typeName, ctx);
+        String className = clazz.getName();
 
         // Determine argument types for descriptor
         DataType[] argTypes = new DataType[args.length];
@@ -284,10 +282,20 @@ public class FunCallCompiler extends AbstractAstCompiler {
                 " in class " + className, getSourceLocation());
         }
 
-        // Compile arguments (push values onto stack)
+        // Compile arguments and emit boxing when the Java param type is Object/ANY
+        Class<?>[] paramTypes = resolvedMethod.getParameterTypes();
         for (int i = 0; i < args.length; i++) {
             Compilable argCompiler = AstCompilerFactory.getCompiler(args[i]);
             argCompiler.compile(mv, ctx);
+
+            DataType argType = argTypes[i];
+            DataType paramDataType = CompileModeClassConverter.mapJavaTypeToDataType(paramTypes[i]);
+            int promotionOpcode = TypePromotion.getPromotionOpcode(argType, paramDataType);
+            if (promotionOpcode != TypePromotion.NO_PROMOTION_OPCODE) {
+                mv.visitInsn(promotionOpcode);
+            } else if (paramDataType == SystemDataType.ANY) {
+                boxPrimitive(mv, argType);
+            }
         }
 
         // Use exact JVM descriptor from reflection — never the lossy JCP-type-derived one
@@ -305,50 +313,49 @@ public class FunCallCompiler extends AbstractAstCompiler {
     }
 
     /**
-     * Resolve module and type name to full Java class name.
+     * Resolve module and type name to a Java Class.
      *
-     * <p>Resolution strategy:
+     * <p>Resolution order:
      * <ol>
-     *   <li>If module is explicitly specified, use it directly</li>
-     *   <li>If module is null (shorthand syntax), default to base module</li>
+     *   <li>Base module package ({@code com.elminster.jcp.module.base.<type>.<Type>})</li>
+     *   <li>Context-registered ExternalClassType (user-provided JARs)</li>
      * </ol>
      *
-     * @param moduleName the module name (e.g., "base") or null for base module shorthand
-     * @param typeName the type name (e.g., "Assertions")
-     * @return the fully qualified class name
-     * @throws ClassNotFoundException if the module class cannot be found
+     * @param moduleName null for shorthand (defaults to base), or explicit module name
+     * @param typeName   the type name (e.g., "Assertions", "StringUtils")
+     * @param ctx        the current compile context
+     * @return the resolved Class
+     * @throws ClassNotFoundException if the class cannot be found anywhere
      */
-    private String resolveModuleClassName(String moduleName, String typeName)
+    private Class<?> resolveModuleClass(String moduleName, String typeName, CompileContext ctx)
             throws ClassNotFoundException {
-        if (moduleName != null) {
-            // Explicit module specified: try it first
-            if ("base".equals(moduleName)) {
-                // Base module: com.elminster.jcp.module.base.<lowercase-type>.<Type>
-                String packageName = typeName.toLowerCase();
-                String explicitClass = BASE_MODULE_PACKAGE + "." + packageName + "." + typeName;
-                try {
-                    Class.forName(explicitClass);
-                    return explicitClass;
-                } catch (ClassNotFoundException e) {
-                    throw new ClassNotFoundException("Module '" + moduleName + "::" + typeName +
-                        "' not found: " + explicitClass);
-                }
-            } else {
-                // Future: support other modules
-                throw new ClassNotFoundException("Non-base modules not yet supported: " + moduleName);
+        if (moduleName != null && !"base".equals(moduleName)) {
+            // Explicit non-base module — look only in context; no base-package fallback
+            DataType dt = ctx.getDataType(typeName);
+            if (dt instanceof ExternalClassType) {
+                return ((ExternalClassType) dt).getJavaClass();
             }
-        } else {
-            // No module specified (shorthand): default to base module
-            String packageName = typeName.toLowerCase();
-            String baseModuleClass = BASE_MODULE_PACKAGE + "." + packageName + "." + typeName;
-            try {
-                Class.forName(baseModuleClass);
-                return baseModuleClass;
-            } catch (ClassNotFoundException e) {
-                throw new ClassNotFoundException("Type '" + typeName +
-                    "' not found in base module: " + baseModuleClass);
-            }
+            throw new ClassNotFoundException("Non-base module '" + moduleName + "::" + typeName +
+                "' not found in compile context");
         }
+
+        // Base module (explicit "base::" or shorthand): try base package first
+        String packageName = typeName.toLowerCase();
+        String baseModuleClass = BASE_MODULE_PACKAGE + "." + packageName + "." + typeName;
+        try {
+            return Class.forName(baseModuleClass);
+        } catch (ClassNotFoundException ignored) {
+            // fall through to context lookup
+        }
+
+        // Not in base module — check context-registered external class
+        DataType dt = ctx.getDataType(typeName);
+        if (dt instanceof ExternalClassType) {
+            return ((ExternalClassType) dt).getJavaClass();
+        }
+
+        throw new ClassNotFoundException("Type '" + typeName +
+            "' not found in base module or compile context: " + baseModuleClass);
     }
 
     /**
