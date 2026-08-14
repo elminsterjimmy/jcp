@@ -260,13 +260,10 @@ class TypeBridgeReproductionTest {
          */
         @Test
         void d2_isolatedUrlClassLoader_noClassDefFoundErrorAtInvoke() throws Exception {
-            // Build a minimal foreign class "bridge/ForeignHelper" with one static method
-            // hello() → String, using ASM directly so we need no source file.
             byte[] foreignBytecode = buildForeignHelperBytecode();
             String foreignInternalName = "bridge/ForeignHelper";
             String foreignClassName   = "bridge.ForeignHelper";
 
-            // Write it into a temp JAR
             java.nio.file.Path jarPath = java.nio.file.Files.createTempFile("foreign-", ".jar");
             try (java.util.jar.JarOutputStream jos = new java.util.jar.JarOutputStream(
                     java.nio.file.Files.newOutputStream(jarPath))) {
@@ -275,21 +272,16 @@ class TypeBridgeReproductionTest {
                 jos.closeEntry();
             }
 
-            // Load the foreign class via a URLClassLoader with platform-only parent
-            // (no app classloader → the class is invisible to MultiClassLoader's parent)
             URLClassLoader isolatedLoader = new URLClassLoader(
                     new URL[]{jarPath.toUri().toURL()},
                     ClassLoader.getPlatformClassLoader()
             );
             Class<?> foreignClass = isolatedLoader.loadClass(foreignClassName);
 
-            // Sanity assertion: the boundary is real — the class must NOT resolve from
-            // the thread context classloader (app classloader).
             assertThrows(ClassNotFoundException.class,
                     () -> Thread.currentThread().getContextClassLoader().loadClass(foreignClassName),
                     "Sanity failure: foreign class is visible from app classloader — boundary not real");
 
-            // Compile a JCP call to ForeignHelper.hello() using the isolated class
             String genClassName = "IsolatedBridgeTest_" + System.nanoTime();
             BytecodeGenerator generator = new BytecodeGenerator(genClassName);
             generator.registerExternalClass(foreignClass);
@@ -299,20 +291,64 @@ class TypeBridgeReproductionTest {
                     "ForeignHelper", "hello");
             byte[] bytecode = generator.compileWithReturn(empty, call, SystemDataType.STRING);
 
-            // Load via standard MultiClassLoader — parent does NOT include isolatedLoader
+            // Without registerClassLoader: MultiClassLoader's parent cannot resolve the foreign class
             MultiClassLoader multiLoader = new MultiClassLoader();
             multiLoader.defineClass(genClassName, bytecode);
-
-            // D2: NoClassDefFoundError (or similar LinkageError) at runtime because
-            // MultiClassLoader's parent chain cannot resolve "bridge/ForeignHelper"
             assertThrows(
                     Throwable.class,
                     () -> {
                         Class<?> loaded = multiLoader.loadClass(genClassName);
                         loaded.getMethod("evaluate").invoke(null);
                     },
-                    "D2: expected NoClassDefFoundError — foreign class not visible from MultiClassLoader parent"
+                    "D2: expected failure without registerClassLoader"
             );
+
+            isolatedLoader.close();
+            java.nio.file.Files.deleteIfExists(jarPath);
+        }
+
+        /**
+         * D2 fix — with {@code registerClassLoader(isolatedLoader)} the generated class
+         * can resolve the foreign type and the call succeeds.
+         */
+        @Test
+        void d2_registerClassLoader_resolvesIsolatedClass() throws Exception {
+            byte[] foreignBytecode = buildForeignHelperBytecode();
+            String foreignInternalName = "bridge/ForeignHelper";
+            String foreignClassName   = "bridge.ForeignHelper";
+
+            java.nio.file.Path jarPath = java.nio.file.Files.createTempFile("foreign-fix-", ".jar");
+            try (java.util.jar.JarOutputStream jos = new java.util.jar.JarOutputStream(
+                    java.nio.file.Files.newOutputStream(jarPath))) {
+                jos.putNextEntry(new java.util.jar.JarEntry(foreignInternalName + ".class"));
+                jos.write(foreignBytecode);
+                jos.closeEntry();
+            }
+
+            URLClassLoader isolatedLoader = new URLClassLoader(
+                    new URL[]{jarPath.toUri().toURL()},
+                    ClassLoader.getPlatformClassLoader()
+            );
+            Class<?> foreignClass = isolatedLoader.loadClass(foreignClassName);
+
+            String genClassName = "IsolatedBridgeFixTest_" + System.nanoTime();
+            BytecodeGenerator generator = new BytecodeGenerator(genClassName);
+            generator.registerExternalClass(foreignClass);
+
+            Block empty = new BlockImpl();
+            StaticMethodCallExpression call = new StaticMethodCallExpression(
+                    "ForeignHelper", "hello");
+            byte[] bytecode = generator.compileWithReturn(empty, call, SystemDataType.STRING);
+
+            // With registerClassLoader: isolatedLoader is in the delegate chain → resolves
+            MultiClassLoader multiLoader = new MultiClassLoader();
+            multiLoader.registerClassLoader(isolatedLoader);
+            multiLoader.defineClass(genClassName, bytecode);
+
+            Class<?> loaded = multiLoader.loadClass(genClassName);
+            Object result = loaded.getMethod("evaluate").invoke(null);
+            assertEquals("hello", result,
+                    "D2 fix: registerClassLoader must allow foreign class to be resolved");
 
             isolatedLoader.close();
             java.nio.file.Files.deleteIfExists(jarPath);
