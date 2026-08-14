@@ -6,6 +6,7 @@ import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataTypeImpl;
 import com.elminster.jcp.eval.data.ExternalClassType;
+import com.elminster.jcp.eval.excpetion.AlreadyDeclaredException;
 import com.elminster.jcp.eval.excpetion.EvaluationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -71,17 +72,14 @@ class ClassConverterTest {
         }
 
         /**
-         * Registering the same class twice is idempotent — no exception thrown.
+         * Registering the same class (same FQN) twice via addDataType throws AlreadyDeclaredException.
+         * Callers like ClassConverter guard against this with a prior FQN lookup.
          */
         @Test
-        void testSameClassRegisteredTwiceIsIdempotent() {
+        void testSameClassRegisteredTwiceThrows() {
             context.addDataType(new ExternalClassType("Date", java.util.Date.class));
-            assertDoesNotThrow(() ->
+            assertThrows(AlreadyDeclaredException.DataTypeAlreadyDeclaredException.class, () ->
                 context.addDataType(new ExternalClassType("Date", java.util.Date.class)));
-
-            DataType dt = context.getDataType("Date");
-            assertInstanceOf(ExternalClassType.class, dt);
-            assertEquals("java.util.Date", ((ExternalClassType) dt).getFullName());
         }
 
         /**

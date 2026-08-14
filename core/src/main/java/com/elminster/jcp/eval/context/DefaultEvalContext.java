@@ -6,7 +6,6 @@ import com.elminster.jcp.ast.statement.function.Function;
 import com.elminster.jcp.collection.FastStack;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.eval.data.NamespacedTypeTable;
 import com.elminster.jcp.eval.excpetion.AlreadyDeclaredException;
 import com.elminster.jcp.eval.excpetion.AmbiguousTypeException;
@@ -96,9 +95,7 @@ public class DefaultEvalContext implements EvalContext {
     @Override
     public void addDataType(DataType dataType) {
         boolean added = dataTypes.register(dataType);
-        // ExternalClassType stubs are registered idempotently — silent no-op on duplicate.
-        // User-declared types (struct/system) must not be declared twice.
-        if (!added && !(dataType instanceof ExternalClassType)) {
+        if (!added) {
             AlreadyDeclaredException.throwDataTypeAlreadyDeclaredException(
                 new IdentifierExpression(dataType.getName()));
         }
