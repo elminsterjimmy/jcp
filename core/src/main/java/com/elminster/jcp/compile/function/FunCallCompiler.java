@@ -503,13 +503,23 @@ public class FunCallCompiler extends AbstractAstCompiler {
 
     @Override
     public DataType resolveType(CompileContext ctx) {
-        // Note: only resolves user-defined functions registered in the context.
-        // Module function calls (e.g. Assertions.assertTrue) and external class
-        // constructors (e.g. StringBuilder.new) are handled by compileModuleFunctionCall()
-        // and compileExternalClassConstructor() in compile(), respectively.
         FunctionCallExpression call = (FunctionCallExpression) astNode;
         String funcName = call.getId().getId();
         Expression[] args = call.getArguments();
+
+        // Handle external class constructor: TypeName.new → return the ExternalClassType
+        if (funcName.endsWith(".new")) {
+            String typeName = funcName.substring(0, funcName.lastIndexOf('.'));
+            // Strip module prefix if present (e.g. "user::DefaultCategoryDataset" → "DefaultCategoryDataset")
+            int colonIdx = typeName.lastIndexOf(':');
+            if (colonIdx >= 0) {
+                typeName = typeName.substring(colonIdx + 1);
+            }
+            DataType dt = ctx.getDataType(typeName);
+            if (dt != null) {
+                return dt;
+            }
+        }
 
         DataType[] argTypes = new DataType[args.length];
         for (int i = 0; i < args.length; i++) {

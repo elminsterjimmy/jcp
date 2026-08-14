@@ -40,14 +40,28 @@ public final class CompileModeClassConverter {
     public static void registerClass(Class<?> clazz, CompileContext ctx, String module) {
         String name = clazz.getSimpleName();
 
-        // Avoid re-registering a type already in the context
-        if (ctx.getDataType(name) != null) {
-            return;
-        }
+        DataType existing = ctx.getDataType(name);
 
-        // Create ExternalClassType and register it immediately to break potential recursion
-        ExternalClassType type = new ExternalClassType(name, clazz);
-        ctx.addDataType(type);
+        ExternalClassType type;
+        if (existing instanceof ExternalClassType) {
+            ExternalClassType existingExt = (ExternalClassType) existing;
+            // Already fully registered for this exact class — skip
+            if (existingExt.getJavaClass() == clazz && !existingExt.getInstanceMethods().isEmpty()) {
+                return;
+            }
+            // Opaque stub (no methods yet) or same-name different-class — promote to full type
+            type = existingExt.getJavaClass() == clazz ? existingExt : new ExternalClassType(name, clazz);
+            if (existingExt.getJavaClass() != clazz) {
+                ctx.addDataType(type);
+            }
+        } else if (existing != null) {
+            // System or struct type already registered — skip
+            return;
+        } else {
+            // Create ExternalClassType and register it immediately to break potential recursion
+            type = new ExternalClassType(name, clazz);
+            ctx.addDataType(type);
+        }
 
         // Analyze and register all public methods
         Method[] methods = clazz.getDeclaredMethods();

@@ -10,6 +10,7 @@ import com.elminster.jcp.eval.data.AnyData;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
+import com.elminster.jcp.eval.data.DataTypeImpl;
 import com.elminster.jcp.eval.excpetion.InitializeException;
 import com.elminster.jcp.module.AbstractModuleFunction;
 import com.google.common.reflect.ClassPath;
@@ -26,12 +27,17 @@ public class ClassConverter {
 
     public static void registerClass(Class<?> clazz, EvalContext context, String module) {
         String name = clazz.getSimpleName();
-        // Avoid re-registration when the type is already in the context
-        if (DataTypeUtils.getDataType(name, context) != null) {
+        DataType existing = DataTypeUtils.getDataType(name, context);
+        if (existing != null && !(existing instanceof DataTypeImpl)) {
+            // Already a fully-registered system or struct type — skip entirely
             return;
         }
-        DataType dt = DataTypeUtils.getDataTypeAndCreateOnMissing(name, context);
-        context.addDataType(dt);
+        // Use the existing stub or create a fresh one
+        DataType dt = (existing != null) ? existing
+                : DataTypeUtils.getDataTypeAndCreateOnMissing(name, context);
+        if (existing == null) {
+            context.addDataType(dt);
+        }
         Method[] methods = clazz.getDeclaredMethods();
         // auto register all public methods
         for (Method method : methods) {

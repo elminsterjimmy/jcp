@@ -42,6 +42,11 @@ public class VariableDeclarationEvaluator extends AbstractAstEvaluator {
             structData.getStructType(),
             (java.util.Map<String, Data>) structData.get()
         );
+      } else if (variable.getDataType() == com.elminster.jcp.eval.data.DataType.SystemDataType.ANY
+                 && initValue.getDataType() != com.elminster.jcp.eval.data.DataType.SystemDataType.ANY) {
+        // Declared as ANY but initializer has a concrete type — promote the variable's type
+        // so subsequent function calls can resolve methods on the concrete type.
+        variable = new AnyData<>(id, initValue.getDataType(), initValue.get());
       } else {
         variable.set(initValue.get());
       }
