@@ -118,9 +118,6 @@ public final class NamespacedTypeTable {
     // -----------------------------------------------------------------------
 
     private static String fqnOf(DataType type) {
-        if (type instanceof ExternalClassType) {
-            return ((ExternalClassType) type).getFullName();
-        }
-        return type.getName();
+        return type.getFqn();
     }
 }

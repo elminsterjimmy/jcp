@@ -55,6 +55,7 @@ public class ClassConverter {
                 return;
             }
             // Stub exists — mark in-progress and fully register it now.
+            existingExt.setModule(module);
             inProgress.add(fqn);
             registerMethods(clazz, context, module, existingExt, inProgress);
             inProgress.remove(fqn);
@@ -84,8 +85,11 @@ public class ClassConverter {
         DataType dt;
         if (existing instanceof ExternalClassType && ((ExternalClassType) existing).getJavaClass() == clazz) {
             dt = existing;
+            ((ExternalClassType) dt).setModule(module);
         } else {
-            dt = new ExternalClassType(name, clazz);
+            ExternalClassType ext = new ExternalClassType(name, clazz);
+            ext.setModule(module);
+            dt = ext;
             context.addDataType(dt);
         }
         inProgress.add(fqn);
@@ -124,12 +128,18 @@ public class ClassConverter {
 
             @Override
             public String getName() {
-                return FunctionUtils.getModuleFunctionName(module, dt.getName(), methodName);
+                return dt.getName() + "." + methodName;
             }
 
             @Override
             public Identifier getId() {
                 return new IdentifierExpression(getName());
+            }
+
+            @Override
+            public String getFullName() {
+                return FunctionUtils.generateFunctionFullName(
+                        module, dt.getFqn(), methodName, getParameterDefs());
             }
 
             @Override
@@ -216,12 +226,18 @@ public class ClassConverter {
 
             @Override
             public String getName() {
-                return FunctionUtils.getModuleFunctionName(module, dt.getName(), methodName);
+                return dt.getName() + "." + methodName;
             }
 
             @Override
             public Identifier getId() {
                 return new IdentifierExpression(getName());
+            }
+
+            @Override
+            public String getFullName() {
+                return FunctionUtils.generateFunctionFullName(
+                        module, dt.getFqn(), methodName, getParameterDefs());
             }
 
             @Override
@@ -284,12 +300,18 @@ public class ClassConverter {
 
                     @Override
                     public String getName() {
-                        return FunctionUtils.getModuleFunctionName(module, dt.getName(), "new");
+                        return dt.getName() + ".new";
                     }
 
                     @Override
                     public Identifier getId() {
                         return new IdentifierExpression(getName());
+                    }
+
+                    @Override
+                    public String getFullName() {
+                        return FunctionUtils.generateFunctionFullName(
+                                module, dt.getFqn(), "new", getParameterDefs());
                     }
 
                     @Override

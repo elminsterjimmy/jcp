@@ -100,7 +100,7 @@ class RootEvalContextTest {
          * Tests that functions added to root context can be retrieved.
          * <pre>
          * fn myFunc() -> Void { }
-         * getFunction("myFunc#")  // returns myFunc
+         * getFunction("myFunc@")  // returns myFunc
          * </pre>
          */
         @Test
@@ -113,7 +113,7 @@ class RootEvalContextTest {
             rootContext.addFunction(func);
 
             // Should find function in root
-            Function found = rootContext.getFunction("myFunc#");
+            Function found = rootContext.getFunction("myFunc@");
             assertNotNull(found);
         }
 
@@ -133,7 +133,7 @@ class RootEvalContextTest {
             childContext.getFunctions().put(func.getFullName(), func);
             rootContext.getContextStack().push(childContext);
 
-            Function found = rootContext.getFunction("childFunc#");
+            Function found = rootContext.getFunction("childFunc@");
             assertNotNull(found);
         }
 

@@ -223,8 +223,8 @@ class CompileModeClassConverterTest {
 
             assertInstanceOf(ExternalClassType.class, utilDate);
             assertInstanceOf(ExternalClassType.class, sqlDate);
-            assertEquals("java.util.Date", ((ExternalClassType) utilDate).getFullName());
-            assertEquals("java.sql.Date",  ((ExternalClassType) sqlDate).getFullName());
+            assertEquals("java.util.Date", ((ExternalClassType) utilDate).getFqn());
+            assertEquals("java.sql.Date",  ((ExternalClassType) sqlDate).getFqn());
         }
 
         /**
@@ -254,7 +254,7 @@ class CompileModeClassConverterTest {
             });
             DataType dt = ctx.getDataType("Date");
             assertInstanceOf(ExternalClassType.class, dt);
-            assertEquals("java.util.Date", ((ExternalClassType) dt).getFullName());
+            assertEquals("java.util.Date", ((ExternalClassType) dt).getFqn());
         }
 
         /**

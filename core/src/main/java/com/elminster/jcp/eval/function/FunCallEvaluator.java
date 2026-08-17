@@ -54,10 +54,21 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
       argumentData[i++] = evaluable.eval(evalContext);
     }
 
-    String functionName = functionCallExpression.getId().getId();
+    String rawName = functionCallExpression.getId().getId();
     String moduleName = Modulable.DEFAULT_MODULE;
+    String functionName;
     if (functionCallExpression instanceof Modulable) {
       moduleName = ((Modulable) functionCallExpression).getModule();
+      functionName = rawName;
+    } else {
+      // Support "module::TypeName.method" embedded in the identifier string.
+      int sep = rawName.indexOf("::");
+      if (sep >= 0) {
+        moduleName = rawName.substring(0, sep);
+        functionName = rawName.substring(sep + 2);
+      } else {
+        functionName = rawName;
+      }
     }
 
     List<Function> functionCandidates = getFunctionCandidates(functionName,
@@ -166,6 +177,15 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
       for (int i = 0; i < parameterDefs.length; i++) {
         DataType argType = arguments[i].getDataType();
         DataType paramType = parameterDefs[i].getDataType();
+        // When both sides are ExternalClassType, use FQN-aware isCastableTo to
+        // distinguish same-simple-name types (e.g. HttpRequest$Builder vs HttpClient$Builder).
+        if (argType instanceof com.elminster.jcp.eval.data.ExternalClassType
+                && paramType instanceof com.elminster.jcp.eval.data.ExternalClassType) {
+          if (!argType.isCompatibleWith(paramType)) {
+            return false;
+          }
+          continue;
+        }
         // Opaque stubs (DataTypeImpl, not SystemDataType or StructType) represent external
         // Java types whose full interface/class hierarchy is not modeled in JCP. Accept any
         // reference (non-primitive) argument — the JVM will enforce real type safety at call time.
