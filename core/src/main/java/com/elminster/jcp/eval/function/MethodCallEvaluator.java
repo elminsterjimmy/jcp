@@ -57,20 +57,18 @@ public class MethodCallEvaluator extends AbstractAstEvaluator {
     // Determine module
     String moduleName;
     if (data instanceof StructData) {
-      // User-defined types use "user" module
       moduleName = USER_MODULE;
-    } else if (data.getDataType() instanceof Modulable) {
-      // Java module types use their module name
-      moduleName = ((Modulable) data.getDataType()).getModule();
+    } else if (data.getDataType() instanceof com.elminster.jcp.eval.data.ExternalClassType) {
+      moduleName = ((com.elminster.jcp.eval.data.ExternalClassType) data.getDataType()).getModule();
     } else {
-      moduleName = "";
+      moduleName = USER_MODULE;
     }
 
     // Look up function using full qualified name pattern
     String functionName = FunctionUtils.getModuleFunctionName(
-        moduleName, data.getDataType().getName(), methodName);
+        moduleName, data.getDataType().getFqn(), methodName);
     String functionFullName = FunctionUtils.generateFunctionFullName(
-        moduleName, data.getDataType().getName(), methodName, parameters);
+        moduleName, data.getDataType().getFqn(), methodName, parameters);
 
     Function function = evalContext.getFunction(functionFullName);
     if (null == function) {

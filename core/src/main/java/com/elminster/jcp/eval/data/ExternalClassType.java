@@ -1,5 +1,7 @@
 package com.elminster.jcp.eval.data;
 
+import com.elminster.jcp.util.FunctionUtils;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ public class ExternalClassType implements DataType {
 
     private final String name;
     private final Class<?> javaClass;
+    private String module;
     private final Map<String, List<ExternalMethodDef>> staticMethods;
     private final Map<String, List<ExternalMethodDef>> instanceMethods;
     private final List<ExternalMethodDef> constructors;
@@ -23,9 +26,18 @@ public class ExternalClassType implements DataType {
     public ExternalClassType(String name, Class<?> javaClass) {
         this.name = name;
         this.javaClass = javaClass;
+        this.module = FunctionUtils.BASE_MODULE;
         this.staticMethods = new HashMap<>();
         this.instanceMethods = new HashMap<>();
         this.constructors = new ArrayList<>();
+    }
+
+    public String getModule() {
+        return module;
+    }
+
+    public void setModule(String module) {
+        this.module = module;
     }
 
     @Override
@@ -47,6 +59,36 @@ public class ExternalClassType implements DataType {
      */
     public String getInternalName() {
         return javaClass.getName().replace('.', '/');
+    }
+
+    @Override
+    public String getFqn() {
+        return javaClass.getName();
+    }
+
+    @Override
+    public boolean isCastableTo(DataType dataType) {
+        if (dataType == this) {
+            return true;
+        }
+        if (dataType instanceof ExternalClassType) {
+            ExternalClassType target = (ExternalClassType) dataType;
+            // Exact FQN match
+            if (getFqn().equals(target.getFqn())) {
+                return true;
+            }
+            // arg is a subtype of param (standard widening — safe)
+            if (target.getJavaClass().isAssignableFrom(javaClass)) {
+                return true;
+            }
+            // param is a subtype of arg — allows passing a supertype-declared variable
+            // whose runtime value may be the more specific type (e.g. Plot → PiePlot)
+            if (javaClass.isAssignableFrom(target.getJavaClass())) {
+                return true;
+            }
+            return false;
+        }
+        return DataType.super.isCastableTo(dataType);
     }
 
     /**

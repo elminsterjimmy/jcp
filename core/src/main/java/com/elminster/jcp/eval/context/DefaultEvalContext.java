@@ -1,11 +1,15 @@
 package com.elminster.jcp.eval.context;
 
 import com.elminster.jcp.ast.Identifier;
+import com.elminster.jcp.ast.expression.operation.IdentifierExpression;
 import com.elminster.jcp.ast.statement.function.Function;
 import com.elminster.jcp.collection.FastStack;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.NamespacedTypeTable;
 import com.elminster.jcp.eval.excpetion.AlreadyDeclaredException;
+import com.elminster.jcp.eval.excpetion.AmbiguousTypeException;
+import com.elminster.jcp.eval.excpetion.EvaluationException;
 import com.elminster.jcp.exception.CallStack;
 import com.elminster.jcp.exception.StackFrame;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -17,7 +21,7 @@ public class DefaultEvalContext implements EvalContext {
 
     private Map<String, Data> variables = new HashMap<>();
     private Map<String, Function> functions = new HashMap<>();
-    private Map<String, DataType> dataTypes = new HashMap<>();
+    private final NamespacedTypeTable dataTypes = new NamespacedTypeTable();
     private LoopContext loopContext;
     private FastStack<EvalContext> contextStack = new FastStack<>();
     private volatile boolean isReturn = false;
@@ -90,17 +94,28 @@ public class DefaultEvalContext implements EvalContext {
      */
     @Override
     public void addDataType(DataType dataType) {
-        String name = dataType.getName();
-        if (dataTypes.containsKey(name)) {
-            AlreadyDeclaredException.throwDataTypeAlreadyDeclaredException(Identifier.fromName(name));
+        boolean added = dataTypes.register(dataType);
+        if (!added) {
+            AlreadyDeclaredException.throwDataTypeAlreadyDeclaredException(
+                new IdentifierExpression(dataType.getName()));
         }
-        dataTypes.put(name, dataType);
     }
 
     @Override
     public DataType getDataType(String name) {
         String convertedName = convertSystemDataTypeName(name);
-        return dataTypes.get(convertedName);
+        try {
+            return dataTypes.getBySimpleName(convertedName);
+        } catch (AmbiguousTypeException e) {
+            throw new EvaluationException(
+                "Type '" + name + "' is ambiguous: " + e.getCandidates()
+                + ". Qualify the type with its fully-qualified class name.");
+        }
+    }
+
+    @Override
+    public DataType getDataTypeByFqn(String fqn) {
+        return dataTypes.getByFqn(fqn);
     }
 
     protected String convertSystemDataTypeName(String name) {

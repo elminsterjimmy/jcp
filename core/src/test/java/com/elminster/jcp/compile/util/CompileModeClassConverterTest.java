@@ -3,6 +3,7 @@ package com.elminster.jcp.compile.util;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
+import com.elminster.jcp.eval.data.DataTypeImpl;
 import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.eval.data.ExternalMethodDef;
 import org.junit.jupiter.api.BeforeEach;
@@ -205,6 +206,73 @@ class CompileModeClassConverterTest {
         void testMapJavaType_CustomClass() {
             DataType type = CompileModeClassConverter.mapJavaTypeToDataType(CompileModeClassConverterTest.class);
             assertEquals(SystemDataType.ANY, type);
+        }
+    }
+
+    @Nested
+    class CollisionTests {
+
+        /**
+         * Two classes with the same simple name but different packages can coexist.
+         * Both are retrievable individually; simple-name lookup is ambiguous.
+         */
+        @Test
+        void testSameSimpleNameDifferentPackageCoexist() {
+            DataType utilDate = CompileModeClassConverter.mapJavaTypeToDataType(java.util.Date.class, ctx, "test");
+            DataType sqlDate  = CompileModeClassConverter.mapJavaTypeToDataType(java.sql.Date.class,  ctx, "test");
+
+            assertInstanceOf(ExternalClassType.class, utilDate);
+            assertInstanceOf(ExternalClassType.class, sqlDate);
+            assertEquals("java.util.Date", ((ExternalClassType) utilDate).getFqn());
+            assertEquals("java.sql.Date",  ((ExternalClassType) sqlDate).getFqn());
+        }
+
+        /**
+         * After both Date classes are registered, looking up "Date" by simple name
+         * throws CompileException naming both FQNs.
+         */
+        @Test
+        void testAmbiguousSimpleNameThrowsCompileException() {
+            CompileModeClassConverter.mapJavaTypeToDataType(java.util.Date.class, ctx, "test");
+            CompileModeClassConverter.mapJavaTypeToDataType(java.sql.Date.class,  ctx, "test");
+
+            com.elminster.jcp.compile.exception.CompileException ex =
+                assertThrows(com.elminster.jcp.compile.exception.CompileException.class,
+                    () -> ctx.getDataType("Date"));
+            assertTrue(ex.getMessage().contains("java.util.Date"), "message should name java.util.Date");
+            assertTrue(ex.getMessage().contains("java.sql.Date"),  "message should name java.sql.Date");
+        }
+
+        /**
+         * Registering the same class twice is idempotent — no exception thrown.
+         */
+        @Test
+        void testSameClassRegisteredTwiceIsIdempotent() {
+            assertDoesNotThrow(() -> {
+                CompileModeClassConverter.mapJavaTypeToDataType(java.util.Date.class, ctx, "test");
+                CompileModeClassConverter.mapJavaTypeToDataType(java.util.Date.class, ctx, "test");
+            });
+            DataType dt = ctx.getDataType("Date");
+            assertInstanceOf(ExternalClassType.class, dt);
+            assertEquals("java.util.Date", ((ExternalClassType) dt).getFqn());
+        }
+
+        /**
+         * A JCP struct type named "Math" shadows an ExternalClassType also named "Math".
+         */
+        @Test
+        void testStructTypeShadowsExternalClassType() {
+            // Register the external Java Math class first
+            CompileModeClassConverter.registerClass(
+                com.elminster.jcp.module.base.math.Math.class, ctx, "base");
+
+            // Then register a JCP struct type named "Math"
+            DataTypeImpl structMath = new DataTypeImpl("Math");
+            ctx.addDataType(structMath);
+
+            // Struct wins
+            DataType resolved = ctx.getDataType("Math");
+            assertSame(structMath, resolved);
         }
     }
 
