@@ -20,7 +20,9 @@ import java.util.Arrays;
  * Evaluator for static method calls: Type.method(args)
  * Static methods do not have 'this' - they're looked up by qualified name only.
  *
- * <p>Uses function lookup with pattern: user::TypeName.methodName#paramTypes
+ * <p>Uses function lookup with pattern: module::typeFqn#methodName@paramFqn1@...
+ * The simple type name from the AST is resolved to its FQN via the type registry
+ * before building the key, so same-simple-name types are unambiguous.
  */
 public class StaticMethodCallEvaluator extends AbstractAstEvaluator {
 
@@ -43,11 +45,22 @@ public class StaticMethodCallEvaluator extends AbstractAstEvaluator {
       args[i] = AstEvaluatorFactory.getEvaluator(argExprs[i]).eval(evalContext);
     }
 
-    // Look up function using full qualified name pattern
-    // For user-defined types, use "user" module
-    String functionName = FunctionUtils.getModuleFunctionName(USER_MODULE, typeName, methodName);
-    String functionFullName = FunctionUtils.generateFunctionFullName(
-        USER_MODULE, typeName, methodName, args);
+    // Resolve simple type name to FQN via the type registry so the function key
+    // is unambiguous even when two classes share the same simple name.
+    DataType resolvedType = evalContext.getDataType(typeName);
+    String typeFqn = resolvedType != null ? resolvedType.getFqn() : typeName;
+
+    // Determine module: ExternalClassType carries its registered module name;
+    // user/struct types default to "user".
+    String moduleName;
+    if (resolvedType instanceof com.elminster.jcp.eval.data.ExternalClassType) {
+      moduleName = ((com.elminster.jcp.eval.data.ExternalClassType) resolvedType).getModule();
+    } else {
+      moduleName = USER_MODULE;
+    }
+
+    String functionName = FunctionUtils.getModuleFunctionName(moduleName, typeFqn, methodName);
+    String functionFullName = FunctionUtils.generateFunctionFullName(moduleName, typeFqn, methodName, args);
 
     Function function = evalContext.getFunction(functionFullName);
     if (null == function) {

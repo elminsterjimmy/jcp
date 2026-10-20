@@ -40,6 +40,16 @@ public interface DataType {
 
   String getName();
 
+  /**
+   * Return the fully-qualified name used as the registry key.
+   * For system and user-declared types this is the same as {@link #getName()} since
+   * they have no Java package. For {@link ExternalClassType} this returns the backing
+   * {@code javaClass.getName()} (e.g. {@code "java.util.Date"}).
+   */
+  default String getFqn() {
+    return getName();
+  }
+
   DataType getParent();
 
   default boolean isCastableTo(DataType dataType) {

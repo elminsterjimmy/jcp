@@ -1,5 +1,7 @@
 package com.elminster.jcp.eval.data;
 
+import com.elminster.jcp.util.FunctionUtils;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ public class ExternalClassType implements DataType {
 
     private final String name;
     private final Class<?> javaClass;
+    private String module;
     private final Map<String, List<ExternalMethodDef>> staticMethods;
     private final Map<String, List<ExternalMethodDef>> instanceMethods;
     private final List<ExternalMethodDef> constructors;
@@ -23,9 +26,18 @@ public class ExternalClassType implements DataType {
     public ExternalClassType(String name, Class<?> javaClass) {
         this.name = name;
         this.javaClass = javaClass;
+        this.module = FunctionUtils.BASE_MODULE;
         this.staticMethods = new HashMap<>();
         this.instanceMethods = new HashMap<>();
         this.constructors = new ArrayList<>();
+    }
+
+    public String getModule() {
+        return module;
+    }
+
+    public void setModule(String module) {
+        this.module = module;
     }
 
     @Override
@@ -47,6 +59,41 @@ public class ExternalClassType implements DataType {
      */
     public String getInternalName() {
         return javaClass.getName().replace('.', '/');
+    }
+
+    @Override
+    public String getFqn() {
+        return javaClass.getName();
+    }
+
+    /**
+     * Deliberately permissive: accepts both widening (String→CharSequence) and narrowing
+     * (CharSequence→String) directions. The JVM enforces real type safety at invocation
+     * time via checkcast / method descriptor verification, so a ClassCastException at
+     * runtime is the correct failure mode for an incorrect narrowing assumption.
+     */
+    @Override
+    public boolean isCastableTo(DataType dataType) {
+        if (dataType == this) {
+            return true;
+        }
+        if (dataType instanceof ExternalClassType) {
+            ExternalClassType target = (ExternalClassType) dataType;
+            if (getFqn().equals(target.getFqn())) {
+                return true;
+            }
+            // Standard widening: this is a subtype of target
+            if (target.getJavaClass().isAssignableFrom(javaClass)) {
+                return true;
+            }
+            // Deliberate narrowing: target is a subtype of this — the runtime value
+            // may be the more specific type (e.g. Plot variable holding a PiePlot).
+            if (javaClass.isAssignableFrom(target.getJavaClass())) {
+                return true;
+            }
+            return false;
+        }
+        return DataType.super.isCastableTo(dataType);
     }
 
     /**

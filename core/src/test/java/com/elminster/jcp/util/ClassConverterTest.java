@@ -4,6 +4,10 @@ import com.elminster.jcp.ast.statement.function.Function;
 import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.DataTypeImpl;
+import com.elminster.jcp.eval.data.ExternalClassType;
+import com.elminster.jcp.eval.excpetion.AlreadyDeclaredException;
+import com.elminster.jcp.eval.excpetion.EvaluationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,6 +40,69 @@ class ClassConverterTest {
         }
 
         public void doNothing() {
+        }
+    }
+
+    @Nested
+    class CollisionTests {
+
+        /**
+         * Two classes sharing a simple name coexist — both register without error.
+         */
+        @Test
+        void testSameSimpleNameDifferentPackageCoexist() {
+            // Register java.util.Date and java.sql.Date — both named "Date"
+            context.addDataType(new ExternalClassType("Date", java.util.Date.class));
+            assertDoesNotThrow(() ->
+                context.addDataType(new ExternalClassType("Date", java.sql.Date.class)));
+        }
+
+        /**
+         * After both Date classes are registered, simple-name lookup throws EvaluationException.
+         */
+        @Test
+        void testAmbiguousSimpleNameThrowsEvaluationException() {
+            context.addDataType(new ExternalClassType("Date", java.util.Date.class));
+            context.addDataType(new ExternalClassType("Date", java.sql.Date.class));
+
+            EvaluationException ex = assertThrows(EvaluationException.class,
+                () -> context.getDataType("Date"));
+            assertTrue(ex.getMessage().contains("java.util.Date"), "message should name java.util.Date");
+            assertTrue(ex.getMessage().contains("java.sql.Date"),  "message should name java.sql.Date");
+        }
+
+        /**
+         * Registering the same class (same FQN) twice via addDataType throws AlreadyDeclaredException.
+         * Callers like ClassConverter guard against this with a prior FQN lookup.
+         */
+        @Test
+        void testSameClassRegisteredTwiceThrows() {
+            context.addDataType(new ExternalClassType("Date", java.util.Date.class));
+            assertThrows(AlreadyDeclaredException.DataTypeAlreadyDeclaredException.class, () ->
+                context.addDataType(new ExternalClassType("Date", java.util.Date.class)));
+        }
+
+        /**
+         * A JCP struct type shadows an ExternalClassType with the same simple name.
+         */
+        @Test
+        void testStructTypeShadowsExternalClassType() {
+            context.addDataType(new ExternalClassType("Date", java.util.Date.class));
+            DataTypeImpl structDate = new DataTypeImpl("Date");
+            context.addDataType(structDate);
+
+            DataType resolved = context.getDataType("Date");
+            assertSame(structDate, resolved);
+        }
+
+        /**
+         * ClassConverter.registerClass with two same-simple-name classes registers both.
+         */
+        @Test
+        void testRegisterClassCoexistenceViaClassConverter() {
+            ClassConverter.registerClass(java.util.Date.class, context, "test");
+            assertDoesNotThrow(() ->
+                ClassConverter.registerClass(java.sql.Date.class, context, "test"));
         }
     }
 

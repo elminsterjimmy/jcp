@@ -14,6 +14,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for FunctionUtils.
+ *
+ * Key format: module::typeFqn#method@paramFqn1@paramFqn2
+ *
+ * Separators:
+ *   "::"  module/type boundary
+ *   "#"   type/method boundary
+ *   "@"   param separator
+ *
+ * System types use getName() as FQN (e.g. "Integer", "String", "Boolean").
+ * ExternalClassType uses javaClass.getName() as FQN.
+ * User/struct types use getName() as FQN (no package).
  */
 class FunctionUtilsTest {
 
@@ -24,7 +35,8 @@ class FunctionUtilsTest {
         void testNoParameters() {
             Identifier id = IdentifierExpression.of("myFunc");
             String fullName = FunctionUtils.generateFunctionFullName(id, new ParameterDef[]{});
-            assertEquals("myFunc#", fullName);
+            // identifier encodes the base name; params are empty → trailing @
+            assertEquals("myFunc@", fullName);
         }
 
         @Test
@@ -34,7 +46,7 @@ class FunctionUtilsTest {
                 ParameterDef.of("name", SystemDataType.STRING)
             };
             String fullName = FunctionUtils.generateFunctionFullName(id, params);
-            assertEquals("greet#String", fullName);
+            assertEquals("greet@String", fullName);
         }
 
         @Test
@@ -45,7 +57,7 @@ class FunctionUtilsTest {
                 ParameterDef.of("b", SystemDataType.INT)
             };
             String fullName = FunctionUtils.generateFunctionFullName(id, params);
-            assertEquals("add#Integer@Integer", fullName);
+            assertEquals("add@Integer@Integer", fullName);
         }
     }
 
@@ -56,7 +68,7 @@ class FunctionUtilsTest {
         void testNoParameters() {
             Identifier id = IdentifierExpression.of("getValue");
             String fullName = FunctionUtils.generateFunctionFullName(id, new DataType[]{});
-            assertEquals("getValue#", fullName);
+            assertEquals("getValue@", fullName);
         }
 
         @Test
@@ -67,7 +79,7 @@ class FunctionUtilsTest {
                 SystemDataType.DOUBLE
             };
             String fullName = FunctionUtils.generateFunctionFullName(id, params);
-            assertEquals("calculate#Integer@Double", fullName);
+            assertEquals("calculate@Integer@Double", fullName);
         }
     }
 
@@ -78,7 +90,7 @@ class FunctionUtilsTest {
         void testNoParameters() {
             Identifier id = IdentifierExpression.of("getEmpty");
             String fullName = FunctionUtils.generateFunctionFullName(id, new Data[]{});
-            assertEquals("getEmpty#", fullName);
+            assertEquals("getEmpty@", fullName);
         }
 
         @Test
@@ -89,7 +101,7 @@ class FunctionUtilsTest {
                 new AnyData<>("hello", SystemDataType.STRING)
             };
             String fullName = FunctionUtils.generateFunctionFullName(id, dataArray);
-            assertEquals("process#Integer@String", fullName);
+            assertEquals("process@Integer@String", fullName);
         }
     }
 
@@ -129,55 +141,35 @@ class FunctionUtilsTest {
 
         @Test
         void testBaseModule() {
+            // format: module::typeFqn#method
             String name = FunctionUtils.getModuleFunctionName("base", "Logger", "log");
-            assertEquals("Logger.log", name);
+            assertEquals("base::Logger#log", name);
         }
 
         @Test
         void testEmptyModule() {
+            // empty module → resolved to "base"
             String name = FunctionUtils.getModuleFunctionName("", "Math", "sum");
-            assertEquals("Math.sum", name);
+            assertEquals("base::Math#sum", name);
         }
 
         @Test
         void testUserModule() {
-            // Note: "user" module is NOT treated as base, so module prefix is added
             String name = FunctionUtils.getModuleFunctionName("user", "Counter", "get");
-            assertEquals("user::Counter.get", name);
+            assertEquals("user::Counter#get", name);
         }
 
         @Test
         void testOtherModule() {
             String name = FunctionUtils.getModuleFunctionName("mymodule", "MyType", "func");
-            assertEquals("mymodule::MyType.func", name);
-        }
-    }
-
-    @Nested
-    class FullyQualifiedFunctionNameTests {
-
-        @Test
-        void testWithModule() {
-            String name = FunctionUtils.getFullyQualifiedFunctionName("user", "Counter", "get");
-            assertEquals("user::Counter::get", name);
+            assertEquals("mymodule::MyType#func", name);
         }
 
         @Test
-        void testNullModule() {
-            String name = FunctionUtils.getFullyQualifiedFunctionName(null, "Logger", "log");
-            assertEquals("base::Logger::log", name);
-        }
-
-        @Test
-        void testEmptyModule() {
-            String name = FunctionUtils.getFullyQualifiedFunctionName("", "Math", "sum");
-            assertEquals("base::Math::sum", name);
-        }
-
-        @Test
-        void testGlobalType() {
-            String name = FunctionUtils.getFullyQualifiedFunctionName("user", "global", "abs");
-            assertEquals("user::global::abs", name);
+        void testWithJavaFqn() {
+            // ExternalClassType uses full Java FQN as type segment
+            String name = FunctionUtils.getModuleFunctionName("base", "java.util.Date", "toString");
+            assertEquals("base::java.util.Date#toString", name);
         }
     }
 
@@ -191,7 +183,7 @@ class FunctionUtilsTest {
             };
             String fullName = FunctionUtils.generateFunctionFullName(
                 "mymodule", "MyType", "func", dataArray);
-            assertEquals("mymodule::MyType.func#Integer", fullName);
+            assertEquals("mymodule::MyType#func@Integer", fullName);
         }
 
         @Test
@@ -199,7 +191,7 @@ class FunctionUtilsTest {
             Data[] dataArray = new Data[]{};
             String fullName = FunctionUtils.generateFunctionFullName(
                 "base", "Logger", "log", dataArray);
-            assertEquals("Logger.log#", fullName);
+            assertEquals("base::Logger#log@", fullName);
         }
 
         @Test
@@ -210,14 +202,23 @@ class FunctionUtilsTest {
             };
             String fullName = FunctionUtils.generateFunctionFullName(
                 "user", "Math", "add", params);
-            assertEquals("user::Math.add#Integer@Integer", fullName);
+            assertEquals("user::Math#add@Integer@Integer", fullName);
         }
 
         @Test
         void testWithNullParameterDefs() {
             String fullName = FunctionUtils.generateFunctionFullName(
                 "base", "Logger", "info", (ParameterDef[]) null);
-            assertEquals("Logger.info#", fullName);
+            assertEquals("base::Logger#info@", fullName);
+        }
+
+        @Test
+        void testWithJavaFqnType() {
+            // Simulates an ExternalClassType key with Java FQN as type segment
+            Data[] dataArray = new Data[]{new AnyData<>(42, SystemDataType.INT)};
+            String fullName = FunctionUtils.generateFunctionFullName(
+                "base", "java.util.Date", "compareTo", dataArray);
+            assertEquals("base::java.util.Date#compareTo@Integer", fullName);
         }
     }
 
@@ -227,7 +228,7 @@ class FunctionUtilsTest {
         @Test
         void testGetGlobalFunctionName() {
             String name = FunctionUtils.getGlobalFunctionName("user", "abs");
-            assertEquals("user::global.abs", name);
+            assertEquals("user::global#abs", name);
         }
 
         @Test
@@ -236,7 +237,7 @@ class FunctionUtilsTest {
                 ParameterDef.of("value", SystemDataType.INT)
             };
             String fullName = FunctionUtils.generateGlobalFunctionFullName("user", "abs", params);
-            assertEquals("user::global.abs#Integer", fullName);
+            assertEquals("user::global#abs@Integer", fullName);
         }
 
         @Test
@@ -245,7 +246,7 @@ class FunctionUtilsTest {
                 new AnyData<>(3.14, SystemDataType.DOUBLE)
             };
             String fullName = FunctionUtils.generateGlobalFunctionFullName("user", "round", dataArray);
-            assertEquals("user::global.round#Double", fullName);
+            assertEquals("user::global#round@Double", fullName);
         }
     }
 }
