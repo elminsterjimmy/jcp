@@ -6,6 +6,7 @@ import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.DoubleData;
 import com.elminster.jcp.eval.data.IntegerData;
+import com.elminster.jcp.eval.data.LongData;
 import com.elminster.jcp.eval.data.StringData;
 import com.elminster.jcp.util.DataTypeUtils;
 
@@ -27,11 +28,18 @@ public class PlusEvaluator extends ArithmeticEvaluator {
             return new StringData(leftValue + rightValue);
         }
 
-        // Handle DOUBLE operations (including int-to-double promotion)
+        // Handle DOUBLE operations (including int/long-to-double promotion)
         if (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE) {
             double left = DataTypeUtils.toDoubleValue(leftOperand);
             double right = DataTypeUtils.toDoubleValue(rightOperand);
             return new DoubleData(left + right);
+        }
+
+        // Handle LONG operations (including int-to-long promotion)
+        if (leftType == SystemDataType.LONG || rightType == SystemDataType.LONG) {
+            long left = DataTypeUtils.toLongValue(leftOperand);
+            long right = DataTypeUtils.toLongValue(rightOperand);
+            return new LongData(left + right);
         }
 
         // int + int

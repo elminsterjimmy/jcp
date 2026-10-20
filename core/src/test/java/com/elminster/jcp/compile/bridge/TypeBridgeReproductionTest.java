@@ -107,9 +107,8 @@ class TypeBridgeReproductionTest {
         }
 
         @Test
-        void mapJavaTypeToDataType_long_collapsesToANY() {
-            // long stays ANY — no JCP LONG type yet
-            assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(long.class));
+        void mapJavaTypeToDataType_long_mapsToLONG() {
+            assertEquals(SystemDataType.LONG, CompileModeClassConverter.mapJavaTypeToDataType(long.class));
         }
 
         @Test

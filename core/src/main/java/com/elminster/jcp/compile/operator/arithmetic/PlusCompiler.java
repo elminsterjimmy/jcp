@@ -38,6 +38,12 @@ public class PlusCompiler extends ArithmeticCompiler {
 
     @Override
     protected void emitOperation(MethodVisitor mv) {
-        mv.visitInsn(useDouble ? Opcodes.DADD : Opcodes.IADD);
+        if (useDouble) {
+            mv.visitInsn(Opcodes.DADD);
+        } else if (useLong) {
+            mv.visitInsn(Opcodes.LADD);
+        } else {
+            mv.visitInsn(Opcodes.IADD);
+        }
     }
 }

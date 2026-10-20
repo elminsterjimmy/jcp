@@ -275,9 +275,9 @@ public final class CompileModeClassConverter {
                 || javaType == short.class || javaType == Short.class) {
             return SystemDataType.INT;
         }
-        // long — no JCP LONG type yet; callers should not emit LRETURN for these
+        // long maps to LONG
         if (javaType == long.class || javaType == Long.class) {
-            return SystemDataType.ANY;
+            return SystemDataType.LONG;
         }
 
         // Array types — primitive arrays
@@ -286,7 +286,7 @@ public final class CompileModeClassConverter {
             return SystemDataType.INT_ARRAY;
         }
         if (javaType == long[].class) {
-            return SystemDataType.ANY_ARRAY;
+            return SystemDataType.LONG_ARRAY;
         }
         if (javaType == double[].class || javaType == float[].class) {
             return SystemDataType.DOUBLE_ARRAY;

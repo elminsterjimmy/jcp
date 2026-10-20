@@ -42,6 +42,12 @@ public class DivideCompiler extends ArithmeticCompiler {
 
     @Override
     protected void emitOperation(MethodVisitor mv) {
-        mv.visitInsn(useDouble ? Opcodes.DDIV : Opcodes.IDIV);
+        if (useDouble) {
+            mv.visitInsn(Opcodes.DDIV);
+        } else if (useLong) {
+            mv.visitInsn(Opcodes.LDIV);
+        } else {
+            mv.visitInsn(Opcodes.IDIV);
+        }
     }
 }

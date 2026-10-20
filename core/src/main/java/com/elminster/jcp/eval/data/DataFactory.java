@@ -26,6 +26,8 @@ public class DataFactory {
     if (ClassUtils.isPrimitiveOrWrapper(clazz)) {
       if (clazz == Integer.class || clazz == int.class) {
         return new IntegerData((int) value, true);
+      } else if (clazz == Long.class || clazz == long.class) {
+        return new LongData((long) value, true);
       } else if (clazz == Double.class || clazz == double.class) {
         return new DoubleData((double) value, true);
       } else if (clazz == Boolean.class || clazz == boolean.class) {
@@ -54,6 +56,9 @@ public class DataFactory {
         case INT:
           data = new IntegerData(id, (Integer) value, isConst);
           break;
+        case LONG:
+          data = new LongData(id, (Long) value, isConst);
+          break;
         case DOUBLE:
           data = new DoubleData(id, (Double) value, isConst);
           break;
@@ -71,6 +76,9 @@ public class DataFactory {
           break;
         case INT_ARRAY:
           data = new ArrayData(DataType.SystemDataType.INT, id, null, isConst);
+          break;
+        case LONG_ARRAY:
+          data = new ArrayData(DataType.SystemDataType.LONG, id, null, isConst);
           break;
         case DOUBLE_ARRAY:
           data = new ArrayData(DataType.SystemDataType.DOUBLE, id, null, isConst);

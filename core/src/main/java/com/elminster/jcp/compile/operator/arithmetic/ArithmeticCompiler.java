@@ -50,6 +50,7 @@ import org.objectweb.asm.Opcodes;
 public abstract class ArithmeticCompiler extends AbstractAstCompiler {
 
     protected boolean useDouble;
+    protected boolean useLong;
 
     public ArithmeticCompiler(Node astNode) {
         super(astNode);
@@ -64,21 +65,28 @@ public abstract class ArithmeticCompiler extends AbstractAstCompiler {
         DataType leftType = TypeMapper.getExpressionType(left, ctx);
         DataType rightType = TypeMapper.getExpressionType(right, ctx);
         useDouble = (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE);
+        useLong = !useDouble && (leftType == SystemDataType.LONG || rightType == SystemDataType.LONG);
 
         // Compile left operand (pushes value onto stack)
         Compilable leftCompiler = AstCompilerFactory.getCompiler(left);
         leftCompiler.compile(mv, ctx);
-        // Promote int to double if needed
         if (useDouble && leftType == SystemDataType.INT) {
             mv.visitInsn(Opcodes.I2D);
+        } else if (useDouble && leftType == SystemDataType.LONG) {
+            mv.visitInsn(Opcodes.L2D);
+        } else if (useLong && leftType == SystemDataType.INT) {
+            mv.visitInsn(Opcodes.I2L);
         }
 
         // Compile right operand (pushes value onto stack)
         Compilable rightCompiler = AstCompilerFactory.getCompiler(right);
         rightCompiler.compile(mv, ctx);
-        // Promote int to double if needed
         if (useDouble && rightType == SystemDataType.INT) {
             mv.visitInsn(Opcodes.I2D);
+        } else if (useDouble && rightType == SystemDataType.LONG) {
+            mv.visitInsn(Opcodes.L2D);
+        } else if (useLong && rightType == SystemDataType.INT) {
+            mv.visitInsn(Opcodes.I2L);
         }
 
         // Apply the arithmetic operation
@@ -99,6 +107,9 @@ public abstract class ArithmeticCompiler extends AbstractAstCompiler {
         DataType rightType = TypeMapper.getExpressionType(binaryExpr.getRight(), ctx);
         if (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE) {
             return SystemDataType.DOUBLE;
+        }
+        if (leftType == SystemDataType.LONG || rightType == SystemDataType.LONG) {
+            return SystemDataType.LONG;
         }
         if (leftType == SystemDataType.INT && rightType == SystemDataType.INT) {
             return SystemDataType.INT;

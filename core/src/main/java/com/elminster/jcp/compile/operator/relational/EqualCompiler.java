@@ -55,7 +55,7 @@ public class EqualCompiler extends CompareCompiler {
     }
 
     @Override
-    protected int getDoubleConditionOpcode() {
+    protected int getCmpResultConditionOpcode() {
         return Opcodes.IFEQ;  // DCMPL result == 0 means left == right
     }
 

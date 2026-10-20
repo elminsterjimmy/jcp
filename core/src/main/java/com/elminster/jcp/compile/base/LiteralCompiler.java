@@ -6,6 +6,7 @@ import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
 import com.elminster.jcp.ast.expression.literal.DoubleLiteral;
 import com.elminster.jcp.ast.expression.literal.IntLiteral;
 import com.elminster.jcp.ast.expression.literal.Literal;
+import com.elminster.jcp.ast.expression.literal.LongLiteral;
 import com.elminster.jcp.ast.expression.literal.NullLiteral;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
 import com.elminster.jcp.compile.context.CompileContext;
@@ -93,6 +94,8 @@ public class LiteralCompiler extends AbstractAstCompiler {
     private void compileLiteral(Literal literal, MethodVisitor mv) {
         if (literal instanceof IntLiteral) {
             compileInt(((IntLiteral) literal).getValue(), mv);
+        } else if (literal instanceof LongLiteral) {
+            compileLong(((LongLiteral) literal).getValue(), mv);
         } else if (literal instanceof DoubleLiteral) {
             compileDouble(((DoubleLiteral) literal).getValue(), mv);
         } else if (literal instanceof BooleanLiteral) {
@@ -122,6 +125,16 @@ public class LiteralCompiler extends AbstractAstCompiler {
             mv.visitIntInsn(Opcodes.SIPUSH, value);
         } else {
             // Use LDC for larger values
+            mv.visitLdcInsn(value);
+        }
+    }
+
+    private void compileLong(long value, MethodVisitor mv) {
+        if (value == 0L) {
+            mv.visitInsn(Opcodes.LCONST_0);
+        } else if (value == 1L) {
+            mv.visitInsn(Opcodes.LCONST_1);
+        } else {
             mv.visitLdcInsn(value);
         }
     }
@@ -160,6 +173,7 @@ public class LiteralCompiler extends AbstractAstCompiler {
         Literal literal = litExpr.getLiteral();
 
         if (literal instanceof IntLiteral)     return SystemDataType.INT;
+        if (literal instanceof LongLiteral)    return SystemDataType.LONG;
         if (literal instanceof DoubleLiteral)  return SystemDataType.DOUBLE;
         if (literal instanceof BooleanLiteral) return SystemDataType.BOOLEAN;
         if (literal instanceof StringLiteral)  return SystemDataType.STRING;

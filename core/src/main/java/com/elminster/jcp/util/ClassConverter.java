@@ -372,12 +372,12 @@ public class ClassConverter {
         if (dataType == void.class    || dataType == Void.class)       return SystemDataType.VOID;
         if (dataType == String.class)                                   return SystemDataType.STRING;
         if (dataType == Object.class)                                   return SystemDataType.ANY;
-        if (dataType == long.class    || dataType == Long.class)       return SystemDataType.ANY;
+        if (dataType == long.class    || dataType == Long.class)       return SystemDataType.LONG;
 
         // Array fast-paths
         if (dataType == int[].class || dataType == char[].class
                 || dataType == byte[].class || dataType == short[].class) return SystemDataType.INT_ARRAY;
-        if (dataType == long[].class)                                      return SystemDataType.ANY_ARRAY;
+        if (dataType == long[].class)                                      return SystemDataType.LONG_ARRAY;
         if (dataType == double[].class || dataType == float[].class)       return SystemDataType.DOUBLE_ARRAY;
         if (dataType == boolean[].class)                                   return SystemDataType.BOOLEAN_ARRAY;
         if (dataType == String[].class)                                    return SystemDataType.STRING_ARRAY;

@@ -133,12 +133,15 @@ public class VariableDeclarationCompiler extends DeclarationCompiler {
     private void compileDefaultValue(DataType type, MethodVisitor mv) {
         if (type == SystemDataType.INT) {
             mv.visitInsn(Opcodes.ICONST_0);
+        } else if (type == SystemDataType.LONG) {
+            mv.visitInsn(Opcodes.LCONST_0);
+        } else if (type == SystemDataType.DOUBLE) {
+            mv.visitInsn(Opcodes.DCONST_0);
         } else if (type == SystemDataType.BOOLEAN) {
             mv.visitInsn(Opcodes.ICONST_0);
         } else if (type == SystemDataType.STRING) {
             mv.visitLdcInsn("");
         } else {
-            // For reference types, push null
             mv.visitInsn(Opcodes.ACONST_NULL);
         }
     }
