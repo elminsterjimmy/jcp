@@ -197,15 +197,15 @@ class CompileModeClassConverterTest {
         }
 
         /**
-         * Tests mapping custom class to ANY.
+         * Tests mapping custom class to null (unknown type).
          * <pre>
-         * CustomClass -> SystemDataType.ANY
+         * CustomClass -> null
          * </pre>
          */
         @Test
         void testMapJavaType_CustomClass() {
             DataType type = CompileModeClassConverter.mapJavaTypeToDataType(CompileModeClassConverterTest.class);
-            assertEquals(SystemDataType.ANY, type);
+            assertNull(type);
         }
     }
 
@@ -218,8 +218,8 @@ class CompileModeClassConverterTest {
          */
         @Test
         void testSameSimpleNameDifferentPackageCoexist() {
-            DataType utilDate = CompileModeClassConverter.mapJavaTypeToDataType(java.util.Date.class, ctx, "test");
-            DataType sqlDate  = CompileModeClassConverter.mapJavaTypeToDataType(java.sql.Date.class,  ctx, "test");
+            DataType utilDate = CompileModeClassConverter.resolveJavaTypeToDataType(java.util.Date.class, ctx, "test");
+            DataType sqlDate  = CompileModeClassConverter.resolveJavaTypeToDataType(java.sql.Date.class,  ctx, "test");
 
             assertInstanceOf(ExternalClassType.class, utilDate);
             assertInstanceOf(ExternalClassType.class, sqlDate);
@@ -233,8 +233,8 @@ class CompileModeClassConverterTest {
          */
         @Test
         void testAmbiguousSimpleNameThrowsCompileException() {
-            CompileModeClassConverter.mapJavaTypeToDataType(java.util.Date.class, ctx, "test");
-            CompileModeClassConverter.mapJavaTypeToDataType(java.sql.Date.class,  ctx, "test");
+            CompileModeClassConverter.resolveJavaTypeToDataType(java.util.Date.class, ctx, "test");
+            CompileModeClassConverter.resolveJavaTypeToDataType(java.sql.Date.class,  ctx, "test");
 
             com.elminster.jcp.compile.exception.CompileException ex =
                 assertThrows(com.elminster.jcp.compile.exception.CompileException.class,
@@ -249,8 +249,8 @@ class CompileModeClassConverterTest {
         @Test
         void testSameClassRegisteredTwiceIsIdempotent() {
             assertDoesNotThrow(() -> {
-                CompileModeClassConverter.mapJavaTypeToDataType(java.util.Date.class, ctx, "test");
-                CompileModeClassConverter.mapJavaTypeToDataType(java.util.Date.class, ctx, "test");
+                CompileModeClassConverter.resolveJavaTypeToDataType(java.util.Date.class, ctx, "test");
+                CompileModeClassConverter.resolveJavaTypeToDataType(java.util.Date.class, ctx, "test");
             });
             DataType dt = ctx.getDataType("Date");
             assertInstanceOf(ExternalClassType.class, dt);

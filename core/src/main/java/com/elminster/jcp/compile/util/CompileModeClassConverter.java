@@ -133,10 +133,10 @@ public final class CompileModeClassConverter {
         Class<?>[] javaParams = method.getParameterTypes();
         DataType[] paramTypes = new DataType[javaParams.length];
         for (int i = 0; i < javaParams.length; i++) {
-            paramTypes[i] = mapJavaTypeToDataType(javaParams[i], ctx, module, inProgress);
+            paramTypes[i] = resolveJavaTypeToDataType(javaParams[i], ctx, module, inProgress);
         }
 
-        DataType returnType = mapJavaTypeToDataType(method.getReturnType(), ctx, module, inProgress);
+        DataType returnType = resolveJavaTypeToDataType(method.getReturnType(), ctx, module, inProgress);
         String descriptor = Type.getMethodDescriptor(method);
 
         return new ExternalMethodDef(method, name, paramTypes, returnType, descriptor, isStatic);
@@ -153,7 +153,7 @@ public final class CompileModeClassConverter {
         Class<?>[] javaParams = constructor.getParameterTypes();
         DataType[] paramTypes = new DataType[javaParams.length];
         for (int i = 0; i < javaParams.length; i++) {
-            paramTypes[i] = mapJavaTypeToDataType(javaParams[i], ctx, module, inProgress);
+            paramTypes[i] = resolveJavaTypeToDataType(javaParams[i], ctx, module, inProgress);
         }
 
         String descriptor = Type.getConstructorDescriptor(constructor);
@@ -161,15 +161,15 @@ public final class CompileModeClassConverter {
     }
 
     /**
-     * Map a Java type to a JCP DataType, registering unknown class types if not already present.
+     * Resolve a Java type to a JCP DataType, registering unknown class types if not already present.
      * Entry point for external callers (e.g. TypeMapper). Uses a fresh in-progress set.
      */
-    public static DataType mapJavaTypeToDataType(Class<?> javaType, CompileContext ctx, String module) {
-        return mapJavaTypeToDataType(javaType, ctx, module, new HashSet<>());
+    public static DataType resolveJavaTypeToDataType(Class<?> javaType, CompileContext ctx, String module) {
+        return resolveJavaTypeToDataType(javaType, ctx, module, new HashSet<>());
     }
 
     /**
-     * Map a Java type to a JCP DataType.
+     * Resolve a Java type to a JCP DataType.
      *
      * <p>Known primitive/standard types are returned directly. Unknown class types are
      * registered via {@link #registerClass(Class, CompileContext, String, Set)} using
@@ -177,10 +177,10 @@ public final class CompileModeClassConverter {
      * unless a circular dependency is detected (type already in {@code inProgress}), in
      * which case a stub (no methods) is registered and returned to break the cycle.
      */
-    private static DataType mapJavaTypeToDataType(Class<?> javaType, CompileContext ctx, String module,
+    private static DataType resolveJavaTypeToDataType(Class<?> javaType, CompileContext ctx, String module,
                                                    Set<String> inProgress) {
         DataType known = mapJavaTypeToDataType(javaType);
-        if (known != SystemDataType.ANY) {
+        if (known != null) {
             return known;
         }
         // Object.class maps to ANY — the universal base, no stub needed
@@ -226,8 +226,9 @@ public final class CompileModeClassConverter {
     }
 
     /**
-     * Map a Java type to a JCP DataType (context-free).
-     * Unknown/unsupported types return {@code ANY}.
+     * Map a Java type to a JCP DataType (context-free, pure lookup).
+     * Returns {@code null} for unknown/unsupported types — callers must handle the null
+     * (typically by falling through to the context-aware overload that can register stubs).
      *
      * <p>Mapped types:
      * <ul>
@@ -237,8 +238,10 @@ public final class CompileModeClassConverter {
      *   <li>{@code boolean}, {@code Boolean} → {@code BOOLEAN}</li>
      *   <li>{@code void}, {@code Void} → {@code VOID}</li>
      *   <li>{@code String} → {@code STRING}</li>
+     *   <li>{@code Object} → {@code ANY} (the universal base in both Java and JCP)</li>
+     *   <li>{@code long}, {@code Long} → {@code ANY} (no JCP LONG type yet)</li>
      *   <li>Array variants → corresponding array types</li>
-     *   <li>All other types → {@code ANY} (use the context-aware overload to register them)</li>
+     *   <li>All other types → {@code null} (use the context-aware overload to register them)</li>
      * </ul>
      */
     public static DataType mapJavaTypeToDataType(Class<?> javaType) {
@@ -311,6 +314,6 @@ public final class CompileModeClassConverter {
         }
 
         // Unknown class type — caller should use the context-aware overload to register it
-        return SystemDataType.ANY;
+        return null;
     }
 }
