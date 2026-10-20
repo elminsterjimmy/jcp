@@ -41,6 +41,12 @@ public class ModCompiler extends ArithmeticCompiler {
 
     @Override
     protected void emitOperation(MethodVisitor mv) {
-        mv.visitInsn(useDouble ? Opcodes.DREM : Opcodes.IREM);
+        if (useDouble) {
+            mv.visitInsn(Opcodes.DREM);
+        } else if (useLong) {
+            mv.visitInsn(Opcodes.LREM);
+        } else {
+            mv.visitInsn(Opcodes.IREM);
+        }
     }
 }

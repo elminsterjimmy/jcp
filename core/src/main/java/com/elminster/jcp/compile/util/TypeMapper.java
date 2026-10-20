@@ -8,6 +8,7 @@ import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
@@ -71,6 +72,9 @@ public final class TypeMapper {
         if (type == SystemDataType.INT) {
             return "I";
         }
+        if (type == SystemDataType.LONG) {
+            return "J";
+        }
         if (type == SystemDataType.DOUBLE) {
             return "D";
         }
@@ -85,6 +89,9 @@ public final class TypeMapper {
         }
         if (type == SystemDataType.INT_ARRAY) {
             return "[I";
+        }
+        if (type == SystemDataType.LONG_ARRAY) {
+            return "[J";
         }
         if (type == SystemDataType.DOUBLE_ARRAY) {
             return "[D";
@@ -129,6 +136,9 @@ public final class TypeMapper {
         if (type == SystemDataType.INT || type == SystemDataType.BOOLEAN) {
             return Opcodes.ILOAD;
         }
+        if (type == SystemDataType.LONG) {
+            return Opcodes.LLOAD;
+        }
         if (type == SystemDataType.DOUBLE) {
             return Opcodes.DLOAD;
         }
@@ -145,6 +155,9 @@ public final class TypeMapper {
     public static int getStoreOpcode(DataType type) {
         if (type == SystemDataType.INT || type == SystemDataType.BOOLEAN) {
             return Opcodes.ISTORE;
+        }
+        if (type == SystemDataType.LONG) {
+            return Opcodes.LSTORE;
         }
         if (type == SystemDataType.DOUBLE) {
             return Opcodes.DSTORE;
@@ -166,6 +179,9 @@ public final class TypeMapper {
         if (type == SystemDataType.INT || type == SystemDataType.BOOLEAN) {
             return Opcodes.IRETURN;
         }
+        if (type == SystemDataType.LONG) {
+            return Opcodes.LRETURN;
+        }
         if (type == SystemDataType.DOUBLE) {
             return Opcodes.DRETURN;
         }
@@ -181,6 +197,9 @@ public final class TypeMapper {
     public static DataType getArrayElementType(DataType arrayType) {
         if (arrayType == SystemDataType.INT_ARRAY) {
             return SystemDataType.INT;
+        }
+        if (arrayType == SystemDataType.LONG_ARRAY) {
+            return SystemDataType.LONG;
         }
         if (arrayType == SystemDataType.STRING_ARRAY) {
             return SystemDataType.STRING;
@@ -201,7 +220,8 @@ public final class TypeMapper {
      * @return true if primitive (int, boolean)
      */
     public static boolean isPrimitive(DataType type) {
-        return type == SystemDataType.INT || type == SystemDataType.BOOLEAN || type == SystemDataType.DOUBLE;
+        return type == SystemDataType.INT || type == SystemDataType.BOOLEAN
+                || type == SystemDataType.DOUBLE || type == SystemDataType.LONG;
     }
 
     /**
@@ -212,7 +232,7 @@ public final class TypeMapper {
      * @return the slot size (1 or 2)
      */
     public static int getSlotSize(DataType type) {
-        return (type == SystemDataType.DOUBLE) ? 2 : 1;
+        return (type == SystemDataType.DOUBLE || type == SystemDataType.LONG) ? 2 : 1;
     }
 
     /**
@@ -237,5 +257,25 @@ public final class TypeMapper {
     public static DataType getExpressionType(Expression expr, CompileContext ctx) {
         AbstractAstCompiler compiler = (AbstractAstCompiler) AstCompilerFactory.getCompiler((Node) expr);
         return compiler.resolveType(ctx);
+    }
+
+    /**
+     * Emit boxing instructions to convert a JCP primitive to its Java wrapper type.
+     * No-op for non-primitive types (STRING, Object, etc.).
+     */
+    public static void boxPrimitive(MethodVisitor mv, DataType type) {
+        if (type == SystemDataType.INT) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf",
+                "(I)Ljava/lang/Integer;", false);
+        } else if (type == SystemDataType.LONG) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Long", "valueOf",
+                "(J)Ljava/lang/Long;", false);
+        } else if (type == SystemDataType.BOOLEAN) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf",
+                "(Z)Ljava/lang/Boolean;", false);
+        } else if (type == SystemDataType.DOUBLE) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Double", "valueOf",
+                "(D)Ljava/lang/Double;", false);
+        }
     }
 }

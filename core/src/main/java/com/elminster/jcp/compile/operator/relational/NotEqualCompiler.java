@@ -55,7 +55,7 @@ public class NotEqualCompiler extends CompareCompiler {
     }
 
     @Override
-    protected int getDoubleConditionOpcode() {
+    protected int getCmpResultConditionOpcode() {
         return Opcodes.IFNE;  // DCMPL result != 0 means left != right
     }
 

@@ -6,6 +6,7 @@ import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
 import com.elminster.jcp.ast.expression.literal.DoubleLiteral;
 import com.elminster.jcp.ast.expression.literal.IntLiteral;
 import com.elminster.jcp.ast.expression.literal.Literal;
+import com.elminster.jcp.ast.expression.literal.LongLiteral;
 import com.elminster.jcp.ast.expression.literal.NullLiteral;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
 import com.elminster.jcp.eval.context.EvalContext;
@@ -31,6 +32,8 @@ public class LiteralEvaluator extends AbstractAstEvaluator {
       return BooleanData.newBoolean(((BooleanLiteral) literal).getValue());
     } else if (literal instanceof IntLiteral) {
       return IntegerData.constInt(((IntLiteral) literal).getValue());
+    } else if (literal instanceof LongLiteral) {
+      return LongData.constLong(((LongLiteral) literal).getValue());
     } else if (literal instanceof DoubleLiteral) {
       return DoubleData.constDouble(((DoubleLiteral) literal).getValue());
     } else if (literal instanceof NullLiteral) {

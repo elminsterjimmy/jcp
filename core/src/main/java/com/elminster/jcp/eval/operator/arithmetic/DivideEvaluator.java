@@ -6,6 +6,7 @@ import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.DoubleData;
 import com.elminster.jcp.eval.data.IntegerData;
+import com.elminster.jcp.eval.data.LongData;
 import com.elminster.jcp.util.DataTypeUtils;
 
 public class DivideEvaluator extends ArithmeticEvaluator {
@@ -19,12 +20,18 @@ public class DivideEvaluator extends ArithmeticEvaluator {
     DataType leftType = leftOperand.getDataType();
     DataType rightType = rightOperand.getDataType();
 
-    // Handle DOUBLE operations (including int-to-double promotion)
-    // Note: double division by zero returns Infinity/NaN per IEEE 754
+    // Handle DOUBLE operations (including int/long-to-double promotion)
     if (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE) {
       double left = DataTypeUtils.toDoubleValue(leftOperand);
       double right = DataTypeUtils.toDoubleValue(rightOperand);
       return new DoubleData(left / right);
+    }
+
+    // Handle LONG operations (including int-to-long promotion)
+    if (leftType == SystemDataType.LONG || rightType == SystemDataType.LONG) {
+      long left = DataTypeUtils.toLongValue(leftOperand);
+      long right = DataTypeUtils.toLongValue(rightOperand);
+      return new LongData(left / right);
     }
 
     // int / int (throws ArithmeticException on divide by zero)

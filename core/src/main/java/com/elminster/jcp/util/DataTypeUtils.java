@@ -5,6 +5,7 @@ import com.elminster.jcp.ast.expression.literal.BooleanLiteral;
 import com.elminster.jcp.ast.expression.literal.DoubleLiteral;
 import com.elminster.jcp.ast.expression.literal.IntLiteral;
 import com.elminster.jcp.ast.expression.literal.Literal;
+import com.elminster.jcp.ast.expression.literal.LongLiteral;
 import com.elminster.jcp.ast.expression.literal.StringLiteral;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataTypeImpl;
@@ -60,6 +61,9 @@ public class DataTypeUtils {
     if (literal instanceof IntLiteral) {
       return DataType.SystemDataType.INT;
     }
+    if (literal instanceof LongLiteral) {
+      return DataType.SystemDataType.LONG;
+    }
     if (literal instanceof DoubleLiteral) {
       return DataType.SystemDataType.DOUBLE;
     }
@@ -74,9 +78,23 @@ public class DataTypeUtils {
     if (type == SystemDataType.DOUBLE) {
       return (Double) operand.get();
     }
+    if (type == SystemDataType.LONG) {
+      return ((Long) operand.get()).doubleValue();
+    }
     if (type == SystemDataType.INT) {
       return ((Integer) operand.get()).doubleValue();
     }
     throw new IllegalArgumentException("Cannot convert to double: " + type);
+  }
+
+  public static long toLongValue(Data operand) {
+    DataType type = operand.getDataType();
+    if (type == SystemDataType.LONG) {
+      return (Long) operand.get();
+    }
+    if (type == SystemDataType.INT) {
+      return ((Integer) operand.get()).longValue();
+    }
+    throw new IllegalArgumentException("Cannot convert to long: " + type);
   }
 }
