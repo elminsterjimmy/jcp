@@ -71,6 +71,9 @@ public final class TypeMapper {
         if (type == SystemDataType.INT) {
             return "I";
         }
+        if (type == SystemDataType.LONG) {
+            return "J";
+        }
         if (type == SystemDataType.DOUBLE) {
             return "D";
         }
@@ -85,6 +88,9 @@ public final class TypeMapper {
         }
         if (type == SystemDataType.INT_ARRAY) {
             return "[I";
+        }
+        if (type == SystemDataType.LONG_ARRAY) {
+            return "[J";
         }
         if (type == SystemDataType.DOUBLE_ARRAY) {
             return "[D";
@@ -129,6 +135,9 @@ public final class TypeMapper {
         if (type == SystemDataType.INT || type == SystemDataType.BOOLEAN) {
             return Opcodes.ILOAD;
         }
+        if (type == SystemDataType.LONG) {
+            return Opcodes.LLOAD;
+        }
         if (type == SystemDataType.DOUBLE) {
             return Opcodes.DLOAD;
         }
@@ -145,6 +154,9 @@ public final class TypeMapper {
     public static int getStoreOpcode(DataType type) {
         if (type == SystemDataType.INT || type == SystemDataType.BOOLEAN) {
             return Opcodes.ISTORE;
+        }
+        if (type == SystemDataType.LONG) {
+            return Opcodes.LSTORE;
         }
         if (type == SystemDataType.DOUBLE) {
             return Opcodes.DSTORE;
@@ -166,6 +178,9 @@ public final class TypeMapper {
         if (type == SystemDataType.INT || type == SystemDataType.BOOLEAN) {
             return Opcodes.IRETURN;
         }
+        if (type == SystemDataType.LONG) {
+            return Opcodes.LRETURN;
+        }
         if (type == SystemDataType.DOUBLE) {
             return Opcodes.DRETURN;
         }
@@ -181,6 +196,9 @@ public final class TypeMapper {
     public static DataType getArrayElementType(DataType arrayType) {
         if (arrayType == SystemDataType.INT_ARRAY) {
             return SystemDataType.INT;
+        }
+        if (arrayType == SystemDataType.LONG_ARRAY) {
+            return SystemDataType.LONG;
         }
         if (arrayType == SystemDataType.STRING_ARRAY) {
             return SystemDataType.STRING;
@@ -201,7 +219,8 @@ public final class TypeMapper {
      * @return true if primitive (int, boolean)
      */
     public static boolean isPrimitive(DataType type) {
-        return type == SystemDataType.INT || type == SystemDataType.BOOLEAN || type == SystemDataType.DOUBLE;
+        return type == SystemDataType.INT || type == SystemDataType.BOOLEAN
+                || type == SystemDataType.DOUBLE || type == SystemDataType.LONG;
     }
 
     /**
@@ -212,7 +231,7 @@ public final class TypeMapper {
      * @return the slot size (1 or 2)
      */
     public static int getSlotSize(DataType type) {
-        return (type == SystemDataType.DOUBLE) ? 2 : 1;
+        return (type == SystemDataType.DOUBLE || type == SystemDataType.LONG) ? 2 : 1;
     }
 
     /**

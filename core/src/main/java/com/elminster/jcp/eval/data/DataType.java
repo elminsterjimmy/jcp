@@ -13,6 +13,8 @@ public interface DataType {
     NUMERIC_ARRAY("Numeric[]", ANY),
     INT("Integer", NUMERIC),
     INT_ARRAY("Integer[]", ANY),
+    LONG("Long", NUMERIC),
+    LONG_ARRAY("Long[]", ANY),
     DOUBLE("Double", NUMERIC),
     DOUBLE_ARRAY("Double[]", ANY),
     VOID("Void", ANY),

@@ -67,6 +67,7 @@ import org.objectweb.asm.Opcodes;
 public abstract class CompareCompiler extends AbstractAstCompiler {
 
     protected boolean useDouble;
+    protected boolean useLong;
 
     public CompareCompiler(Node astNode) {
         super(astNode);
@@ -81,21 +82,28 @@ public abstract class CompareCompiler extends AbstractAstCompiler {
         DataType leftType = TypeMapper.getExpressionType(left, ctx);
         DataType rightType = TypeMapper.getExpressionType(right, ctx);
         useDouble = (leftType == SystemDataType.DOUBLE || rightType == SystemDataType.DOUBLE);
+        useLong = !useDouble && (leftType == SystemDataType.LONG || rightType == SystemDataType.LONG);
 
         // Compile left operand
         Compilable leftCompiler = AstCompilerFactory.getCompiler(left);
         leftCompiler.compile(mv, ctx);
-        // Promote int to double if needed
         if (useDouble && leftType == SystemDataType.INT) {
             mv.visitInsn(Opcodes.I2D);
+        } else if (useDouble && leftType == SystemDataType.LONG) {
+            mv.visitInsn(Opcodes.L2D);
+        } else if (useLong && leftType == SystemDataType.INT) {
+            mv.visitInsn(Opcodes.I2L);
         }
 
         // Compile right operand
         Compilable rightCompiler = AstCompilerFactory.getCompiler(right);
         rightCompiler.compile(mv, ctx);
-        // Promote int to double if needed
         if (useDouble && rightType == SystemDataType.INT) {
             mv.visitInsn(Opcodes.I2D);
+        } else if (useDouble && rightType == SystemDataType.LONG) {
+            mv.visitInsn(Opcodes.L2D);
+        } else if (useLong && rightType == SystemDataType.INT) {
+            mv.visitInsn(Opcodes.I2L);
         }
 
         // Generate comparison code
@@ -103,11 +111,12 @@ public abstract class CompareCompiler extends AbstractAstCompiler {
         Label endLabel = new Label();
 
         if (useDouble) {
-            // For doubles: use DCMPL or DCMPG then conditional branch
             mv.visitInsn(getDoubleCompareOpcode());
             mv.visitJumpInsn(getDoubleConditionOpcode(), trueLabel);
+        } else if (useLong) {
+            mv.visitInsn(Opcodes.LCMP);
+            mv.visitJumpInsn(getDoubleConditionOpcode(), trueLabel);
         } else {
-            // For integers: use IF_ICMPxx directly
             mv.visitJumpInsn(getCompareOpcode(), trueLabel);
         }
 

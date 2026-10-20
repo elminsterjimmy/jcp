@@ -68,11 +68,16 @@ public class PlusPlusCompiler extends AbstractAstCompiler {
             throw new CompileException("Undefined variable: " + varName);
         }
 
-        // Load current value (this is the return value for post-increment)
-        mv.visitVarInsn(Opcodes.ILOAD, local.getIndex());
-
-        // Increment the variable
-        mv.visitIincInsn(local.getIndex(), 1);
+        if (local.getType() == SystemDataType.LONG) {
+            mv.visitVarInsn(Opcodes.LLOAD, local.getIndex());
+            mv.visitVarInsn(Opcodes.LLOAD, local.getIndex());
+            mv.visitInsn(Opcodes.LCONST_1);
+            mv.visitInsn(Opcodes.LADD);
+            mv.visitVarInsn(Opcodes.LSTORE, local.getIndex());
+        } else {
+            mv.visitVarInsn(Opcodes.ILOAD, local.getIndex());
+            mv.visitIincInsn(local.getIndex(), 1);
+        }
     }
 
     private String extractVariableName(Expression expr) {
@@ -88,6 +93,12 @@ public class PlusPlusCompiler extends AbstractAstCompiler {
 
     @Override
     public DataType resolveType(CompileContext ctx) {
+        UnaryExpression unaryExpr = (UnaryExpression) astNode;
+        String varName = extractVariableName(unaryExpr.getExpress());
+        LocalVariable local = ctx.getLocal(varName);
+        if (local != null && local.getType() == SystemDataType.LONG) {
+            return SystemDataType.LONG;
+        }
         return SystemDataType.INT;
     }
 }

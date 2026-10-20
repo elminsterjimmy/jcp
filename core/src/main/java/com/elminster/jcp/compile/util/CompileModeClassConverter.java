@@ -231,8 +231,9 @@ public final class CompileModeClassConverter {
      *
      * <p>Mapped types:
      * <ul>
-     *   <li>{@code int}, {@code Integer}, {@code char}, {@code Character} → {@code INT}
-     *       (char and int share the same JVM slot)</li>
+     *   <li>{@code int}, {@code Integer} → {@code INT}</li>
+     *   <li>{@code char}, {@code Character} → {@code STRING}
+     *       (JCP treats characters as single-character strings)</li>
      *   <li>{@code double}, {@code Double} → {@code DOUBLE}</li>
      *   <li>{@code boolean}, {@code Boolean} → {@code BOOLEAN}</li>
      *   <li>{@code void}, {@code Void} → {@code VOID}</li>
@@ -246,9 +247,9 @@ public final class CompileModeClassConverter {
         if (javaType == int.class || javaType == Integer.class) {
             return SystemDataType.INT;
         }
-        // char and int share the same JVM slot (I); map char to INT
+        // char maps to STRING (JCP treats characters as single-character strings)
         if (javaType == char.class || javaType == Character.class) {
-            return SystemDataType.INT;
+            return SystemDataType.STRING;
         }
         if (javaType == double.class || javaType == Double.class) {
             return SystemDataType.DOUBLE;
@@ -266,6 +267,9 @@ public final class CompileModeClassConverter {
         if (javaType == String.class) {
             return SystemDataType.STRING;
         }
+        if (javaType == CharSequence.class) {
+            return SystemDataType.STRING;
+        }
         // Object maps to ANY — it is the universal base in both Java and JCP
         if (javaType == Object.class) {
             return SystemDataType.ANY;
@@ -275,18 +279,20 @@ public final class CompileModeClassConverter {
                 || javaType == short.class || javaType == Short.class) {
             return SystemDataType.INT;
         }
-        // long — no JCP LONG type yet; callers should not emit LRETURN for these
         if (javaType == long.class || javaType == Long.class) {
-            return SystemDataType.ANY;
+            return SystemDataType.LONG;
         }
 
         // Array types — primitive arrays
-        if (javaType == int[].class || javaType == char[].class
+        if (javaType == int[].class
                 || javaType == byte[].class || javaType == short[].class) {
             return SystemDataType.INT_ARRAY;
         }
+        if (javaType == char[].class) {
+            return SystemDataType.STRING_ARRAY;
+        }
         if (javaType == long[].class) {
-            return SystemDataType.ANY_ARRAY;
+            return SystemDataType.LONG_ARRAY;
         }
         if (javaType == double[].class || javaType == float[].class) {
             return SystemDataType.DOUBLE_ARRAY;

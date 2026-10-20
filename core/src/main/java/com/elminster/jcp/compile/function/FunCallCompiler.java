@@ -10,6 +10,7 @@ import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.context.CompileContext.FunctionSignature;
 import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
+import com.elminster.jcp.compile.util.CallSiteNarrowing;
 import com.elminster.jcp.compile.util.CompileModeClassConverter;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
@@ -294,6 +295,9 @@ public class FunCallCompiler extends AbstractAstCompiler {
             } else if (paramDataType == SystemDataType.ANY) {
                 boxPrimitive(mv, argType);
             }
+
+            // Call-site narrowing for Java parameter types
+            CallSiteNarrowing.emitNarrowing(mv, argType, paramTypes[i]);
         }
 
         // Use exact JVM descriptor from reflection — never the lossy JCP-type-derived one
@@ -492,6 +496,9 @@ public class FunCallCompiler extends AbstractAstCompiler {
         if (type == SystemDataType.INT) {
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf",
                 "(I)Ljava/lang/Integer;", false);
+        } else if (type == SystemDataType.LONG) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Long", "valueOf",
+                "(J)Ljava/lang/Long;", false);
         } else if (type == SystemDataType.BOOLEAN) {
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf",
                 "(Z)Ljava/lang/Boolean;", false);

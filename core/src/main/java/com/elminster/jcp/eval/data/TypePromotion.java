@@ -48,14 +48,13 @@ public enum TypePromotion {
     // ========================================
 
     /** int → double: Always safe, no precision loss */
-    INT_TO_DOUBLE(SystemDataType.INT, SystemDataType.DOUBLE, Opcodes.I2D);
+    INT_TO_DOUBLE(SystemDataType.INT, SystemDataType.DOUBLE, Opcodes.I2D),
 
-    // Future conversions - just uncomment when types are added:
-    // INT_TO_LONG(SystemDataType.INT, SystemDataType.LONG, Opcodes.I2L),
-    // INT_TO_FLOAT(SystemDataType.INT, SystemDataType.FLOAT, Opcodes.I2F),
-    // LONG_TO_FLOAT(SystemDataType.LONG, SystemDataType.FLOAT, Opcodes.L2F),
-    // LONG_TO_DOUBLE(SystemDataType.LONG, SystemDataType.DOUBLE, Opcodes.L2D),
-    // FLOAT_TO_DOUBLE(SystemDataType.FLOAT, SystemDataType.DOUBLE, Opcodes.F2D),
+    /** int → long: Always safe, no precision loss */
+    INT_TO_LONG(SystemDataType.INT, SystemDataType.LONG, Opcodes.I2L),
+
+    /** long → double: May lose precision for large values */
+    LONG_TO_DOUBLE(SystemDataType.LONG, SystemDataType.DOUBLE, Opcodes.L2D);
 
     // ========================================
     // Constants

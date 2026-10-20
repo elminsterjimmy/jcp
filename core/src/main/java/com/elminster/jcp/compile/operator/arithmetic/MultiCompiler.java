@@ -38,6 +38,12 @@ public class MultiCompiler extends ArithmeticCompiler {
 
     @Override
     protected void emitOperation(MethodVisitor mv) {
-        mv.visitInsn(useDouble ? Opcodes.DMUL : Opcodes.IMUL);
+        if (useDouble) {
+            mv.visitInsn(Opcodes.DMUL);
+        } else if (useLong) {
+            mv.visitInsn(Opcodes.LMUL);
+        } else {
+            mv.visitInsn(Opcodes.IMUL);
+        }
     }
 }

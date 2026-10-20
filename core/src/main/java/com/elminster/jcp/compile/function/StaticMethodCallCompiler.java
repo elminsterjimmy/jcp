@@ -10,6 +10,7 @@ import com.elminster.jcp.compile.base.AbstractAstCompiler;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
+import com.elminster.jcp.compile.util.CallSiteNarrowing;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
@@ -130,6 +131,8 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
 
         // Compile arguments (push values onto stack)
         DataType[] paramTypes = method.getParameterTypes();
+        Class<?>[] javaParamTypes = method.getJavaMethod() != null
+                ? method.getJavaMethod().getParameterTypes() : null;
         for (int i = 0; i < args.length; i++) {
             Compilable argCompiler = AstCompilerFactory.getCompiler(args[i]);
             argCompiler.compile(mv, ctx);
@@ -140,8 +143,12 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
             if (paramType == SystemDataType.DOUBLE && argType == SystemDataType.INT) {
                 mv.visitInsn(Opcodes.I2D);
             } else if (paramType == SystemDataType.ANY) {
-                // Box primitives when passing to Object parameter
                 boxPrimitive(mv, argType);
+            }
+
+            // Call-site narrowing for Java parameter types
+            if (javaParamTypes != null) {
+                CallSiteNarrowing.emitNarrowing(mv, argType, javaParamTypes[i]);
             }
         }
 
@@ -220,6 +227,9 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
         if (type == SystemDataType.INT) {
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf",
                 "(I)Ljava/lang/Integer;", false);
+        } else if (type == SystemDataType.LONG) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Long", "valueOf",
+                "(J)Ljava/lang/Long;", false);
         } else if (type == SystemDataType.BOOLEAN) {
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf",
                 "(Z)Ljava/lang/Boolean;", false);
