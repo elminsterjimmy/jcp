@@ -616,22 +616,40 @@ public class CompileContext {
     }
 
     /**
-     * Get a data type by simple name, searching this scope then parent scopes.
+     * Get a data type by simple name or fully-qualified name, searching this scope then parent scopes.
      *
-     * @throws CompileException if the simple name is ambiguous in this scope
+     * <p>Resolution order:
+     * <ol>
+     *   <li>Simple-name lookup in this scope → parent chain</li>
+     *   <li>If simple name is ambiguous or not found, FQN lookup as fallback</li>
+     * </ol>
+     *
+     * @throws CompileException if the name is ambiguous and not resolvable as an FQN
      */
     public DataType getDataType(String name) {
+        AmbiguousTypeException ambiguity = null;
         try {
             DataType type = typeTable.getBySimpleName(name);
             if (type == null && parent != null) {
                 return parent.getDataType(name);
             }
-            return type;
+            if (type != null) {
+                return type;
+            }
         } catch (AmbiguousTypeException e) {
+            ambiguity = e;
+        }
+        // FQN fallback: treat 'name' as a fully-qualified class name
+        DataType byFqn = getDataTypeByFqn(name);
+        if (byFqn != null) {
+            return byFqn;
+        }
+        if (ambiguity != null) {
             throw new CompileException(
-                "Type '" + name + "' is ambiguous: " + e.getCandidates()
+                "Type '" + name + "' is ambiguous: " + ambiguity.getCandidates()
                 + ". Qualify the type with its fully-qualified class name.");
         }
+        return null;
     }
 
     /**
