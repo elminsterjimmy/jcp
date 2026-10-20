@@ -72,12 +72,12 @@ public class DefaultEvalContext implements EvalContext {
     @Override
     public void addFunction(Function function) {
         EvalContext currentContext = getContextStack().peek();
-        String functionFullName = function.getFullName();
+        String signature = function.getSignature();
         Map<String, Function> currentFunctions = currentContext.getFunctions();
-        if (currentFunctions.containsKey(functionFullName)) {
+        if (currentFunctions.containsKey(signature)) {
             AlreadyDeclaredException.throwFunctionAlreadyDeclaredException(function);
         }
-        currentFunctions.put(functionFullName, function);
+        currentFunctions.put(signature, function);
     }
 
     /**

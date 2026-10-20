@@ -29,14 +29,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class FunctionUtilsTest {
 
     @Nested
-    class GenerateFunctionFullNameWithParameterDefsTests {
+    class GenerateSignatureWithParameterDefsTests {
 
         @Test
         void testNoParameters() {
             Identifier id = IdentifierExpression.of("myFunc");
-            String fullName = FunctionUtils.generateFunctionFullName(id, new ParameterDef[]{});
+            String signature = FunctionUtils.generateSignature(id, new ParameterDef[]{});
             // identifier encodes the base name; params are empty → trailing @
-            assertEquals("myFunc@", fullName);
+            assertEquals("myFunc@", signature);
         }
 
         @Test
@@ -45,8 +45,8 @@ class FunctionUtilsTest {
             ParameterDef[] params = new ParameterDef[]{
                 ParameterDef.of("name", SystemDataType.STRING)
             };
-            String fullName = FunctionUtils.generateFunctionFullName(id, params);
-            assertEquals("greet@String", fullName);
+            String signature = FunctionUtils.generateSignature(id, params);
+            assertEquals("greet@String", signature);
         }
 
         @Test
@@ -56,19 +56,19 @@ class FunctionUtilsTest {
                 ParameterDef.of("a", SystemDataType.INT),
                 ParameterDef.of("b", SystemDataType.INT)
             };
-            String fullName = FunctionUtils.generateFunctionFullName(id, params);
-            assertEquals("add@Integer@Integer", fullName);
+            String signature = FunctionUtils.generateSignature(id, params);
+            assertEquals("add@Integer@Integer", signature);
         }
     }
 
     @Nested
-    class GenerateFunctionFullNameWithDataTypesTests {
+    class GenerateSignatureWithDataTypesTests {
 
         @Test
         void testNoParameters() {
             Identifier id = IdentifierExpression.of("getValue");
-            String fullName = FunctionUtils.generateFunctionFullName(id, new DataType[]{});
-            assertEquals("getValue@", fullName);
+            String signature = FunctionUtils.generateSignature(id, new DataType[]{});
+            assertEquals("getValue@", signature);
         }
 
         @Test
@@ -78,19 +78,19 @@ class FunctionUtilsTest {
                 SystemDataType.INT,
                 SystemDataType.DOUBLE
             };
-            String fullName = FunctionUtils.generateFunctionFullName(id, params);
-            assertEquals("calculate@Integer@Double", fullName);
+            String signature = FunctionUtils.generateSignature(id, params);
+            assertEquals("calculate@Integer@Double", signature);
         }
     }
 
     @Nested
-    class GenerateFunctionFullNameWithDataTests {
+    class GenerateSignatureWithDataTests {
 
         @Test
         void testNoParameters() {
             Identifier id = IdentifierExpression.of("getEmpty");
-            String fullName = FunctionUtils.generateFunctionFullName(id, new Data[]{});
-            assertEquals("getEmpty@", fullName);
+            String signature = FunctionUtils.generateSignature(id, new Data[]{});
+            assertEquals("getEmpty@", signature);
         }
 
         @Test
@@ -100,8 +100,8 @@ class FunctionUtilsTest {
                 new AnyData<>(42, SystemDataType.INT),
                 new AnyData<>("hello", SystemDataType.STRING)
             };
-            String fullName = FunctionUtils.generateFunctionFullName(id, dataArray);
-            assertEquals("process@Integer@String", fullName);
+            String signature = FunctionUtils.generateSignature(id, dataArray);
+            assertEquals("process@Integer@String", signature);
         }
     }
 
@@ -174,24 +174,24 @@ class FunctionUtilsTest {
     }
 
     @Nested
-    class GenerateFunctionFullNameWithModuleTests {
+    class GenerateSignatureWithModuleTests {
 
         @Test
         void testWithDataArray() {
             Data[] dataArray = new Data[]{
                 new AnyData<>(42, SystemDataType.INT)
             };
-            String fullName = FunctionUtils.generateFunctionFullName(
+            String signature = FunctionUtils.generateSignature(
                 "mymodule", "MyType", "func", dataArray);
-            assertEquals("mymodule::MyType#func@Integer", fullName);
+            assertEquals("mymodule::MyType#func@Integer", signature);
         }
 
         @Test
         void testWithBaseModule() {
             Data[] dataArray = new Data[]{};
-            String fullName = FunctionUtils.generateFunctionFullName(
+            String signature = FunctionUtils.generateSignature(
                 "base", "Logger", "log", dataArray);
-            assertEquals("base::Logger#log@", fullName);
+            assertEquals("base::Logger#log@", signature);
         }
 
         @Test
@@ -200,25 +200,25 @@ class FunctionUtilsTest {
                 ParameterDef.of("x", SystemDataType.INT),
                 ParameterDef.of("y", SystemDataType.INT)
             };
-            String fullName = FunctionUtils.generateFunctionFullName(
+            String signature = FunctionUtils.generateSignature(
                 "user", "Math", "add", params);
-            assertEquals("user::Math#add@Integer@Integer", fullName);
+            assertEquals("user::Math#add@Integer@Integer", signature);
         }
 
         @Test
         void testWithNullParameterDefs() {
-            String fullName = FunctionUtils.generateFunctionFullName(
+            String signature = FunctionUtils.generateSignature(
                 "base", "Logger", "info", (ParameterDef[]) null);
-            assertEquals("base::Logger#info@", fullName);
+            assertEquals("base::Logger#info@", signature);
         }
 
         @Test
         void testWithJavaFqnType() {
             // Simulates an ExternalClassType key with Java FQN as type segment
             Data[] dataArray = new Data[]{new AnyData<>(42, SystemDataType.INT)};
-            String fullName = FunctionUtils.generateFunctionFullName(
+            String signature = FunctionUtils.generateSignature(
                 "base", "java.util.Date", "compareTo", dataArray);
-            assertEquals("base::java.util.Date#compareTo@Integer", fullName);
+            assertEquals("base::java.util.Date#compareTo@Integer", signature);
         }
     }
 
@@ -232,21 +232,21 @@ class FunctionUtilsTest {
         }
 
         @Test
-        void testGenerateGlobalFunctionFullNameWithParameterDefs() {
+        void testGenerateGlobalSignatureWithParameterDefs() {
             ParameterDef[] params = new ParameterDef[]{
                 ParameterDef.of("value", SystemDataType.INT)
             };
-            String fullName = FunctionUtils.generateGlobalFunctionFullName("user", "abs", params);
-            assertEquals("user::global#abs@Integer", fullName);
+            String signature = FunctionUtils.generateGlobalSignature("user", "abs", params);
+            assertEquals("user::global#abs@Integer", signature);
         }
 
         @Test
-        void testGenerateGlobalFunctionFullNameWithData() {
+        void testGenerateGlobalSignatureWithData() {
             Data[] dataArray = new Data[]{
                 new AnyData<>(3.14, SystemDataType.DOUBLE)
             };
-            String fullName = FunctionUtils.generateGlobalFunctionFullName("user", "round", dataArray);
-            assertEquals("user::global#round@Double", fullName);
+            String signature = FunctionUtils.generateGlobalSignature("user", "round", dataArray);
+            assertEquals("user::global#round@Double", signature);
         }
     }
 }

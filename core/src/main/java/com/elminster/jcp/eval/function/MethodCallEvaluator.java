@@ -67,10 +67,10 @@ public class MethodCallEvaluator extends AbstractAstEvaluator {
     // Look up function using full qualified name pattern
     String functionName = FunctionUtils.getModuleFunctionName(
         moduleName, data.getDataType().getFqn(), methodName);
-    String functionFullName = FunctionUtils.generateFunctionFullName(
+    String signature = FunctionUtils.generateSignature(
         moduleName, data.getDataType().getFqn(), methodName, parameters);
 
-    Function function = evalContext.getFunction(functionFullName);
+    Function function = evalContext.getFunction(signature);
     if (null == function) {
       DataType[] dataTypes = Arrays.stream(parameters)
           .map(Data::getDataType)

@@ -350,10 +350,10 @@ public class TypeDeclarationEvaluator extends AbstractAstEvaluator {
             true  // isInstance = true
         );
 
-        // Register using full name: user::TypeName.methodName#paramTypes
-        String fullName = FunctionUtils.generateFunctionFullName(
+        // Register using signature: user::TypeName.methodName#paramTypes
+        String signature = FunctionUtils.generateSignature(
             USER_MODULE, typeName, method.getName().getId(), funcParams);
-        context.addFunction(fullName, func);
+        context.addFunction(signature, func);
     }
 
     /**
@@ -372,9 +372,9 @@ public class TypeDeclarationEvaluator extends AbstractAstEvaluator {
             false  // isInstance = false
         );
 
-        String fullName = FunctionUtils.generateFunctionFullName(
+        String signature = FunctionUtils.generateSignature(
             USER_MODULE, typeName, method.getName().getId(), method.getParameters());
-        context.addFunction(fullName, func);
+        context.addFunction(signature, func);
     }
 }
 ```
@@ -1251,7 +1251,7 @@ The only required change is `struct` → `type`. Field-only types with positiona
 
 **Lookup Pattern:**
 - `MethodCallEvaluator` builds qualified name: `FunctionUtils.getModuleFunctionName("user", typeName, methodName)`
-- Looks up via `evalContext.getFunction(fullName)`
+- Looks up via `evalContext.getFunction(signature)`
 - Same as existing module function lookup in `ClassConverter`
 
 ## References & Research

@@ -60,9 +60,9 @@ public class StaticMethodCallEvaluator extends AbstractAstEvaluator {
     }
 
     String functionName = FunctionUtils.getModuleFunctionName(moduleName, typeFqn, methodName);
-    String functionFullName = FunctionUtils.generateFunctionFullName(moduleName, typeFqn, methodName, args);
+    String signature = FunctionUtils.generateSignature(moduleName, typeFqn, methodName, args);
 
-    Function function = evalContext.getFunction(functionFullName);
+    Function function = evalContext.getFunction(signature);
     if (null == function) {
       DataType[] types = Arrays.stream(args).map(Data::getDataType).toArray(DataType[]::new);
       UndeclaredException.throwFunctionUndeclaredException(
