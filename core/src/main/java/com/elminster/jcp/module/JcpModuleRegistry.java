@@ -15,7 +15,7 @@ import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-public class JcpModuleRegistry {
+public class JcpModuleRegistry implements AutoCloseable {
 
     public static final JcpModuleRegistry DEFAULT = new JcpModuleRegistry();
 
@@ -76,6 +76,14 @@ public class JcpModuleRegistry {
 
     public List<URLClassLoader> getJarClassLoaders() {
         return Collections.unmodifiableList(jarClassLoaders);
+    }
+
+    @Override
+    public void close() throws IOException {
+        for (URLClassLoader loader : jarClassLoaders) {
+            loader.close();
+        }
+        jarClassLoaders.clear();
     }
 
     public static final class RegistrationEntry {
