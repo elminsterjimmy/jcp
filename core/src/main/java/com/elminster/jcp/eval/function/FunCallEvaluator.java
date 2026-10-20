@@ -61,7 +61,9 @@ public class FunCallEvaluator extends AbstractAstEvaluator {
       moduleName = ((Modulable) functionCallExpression).getModule();
       functionName = rawName;
     } else {
-      // Support "module::TypeName.method" embedded in the identifier string.
+      // Function keys use "::" as the module/type boundary (see FunctionUtils).
+      // When the identifier isn't a Modulable AST node, the module may be embedded
+      // in the raw string (e.g. "base::java.util.Date#toString") — extract it here.
       int sep = rawName.indexOf("::");
       if (sep >= 0) {
         moduleName = rawName.substring(0, sep);

@@ -66,6 +66,12 @@ public class ExternalClassType implements DataType {
         return javaClass.getName();
     }
 
+    /**
+     * Deliberately permissive: accepts both widening (String→CharSequence) and narrowing
+     * (CharSequence→String) directions. The JVM enforces real type safety at invocation
+     * time via checkcast / method descriptor verification, so a ClassCastException at
+     * runtime is the correct failure mode for an incorrect narrowing assumption.
+     */
     @Override
     public boolean isCastableTo(DataType dataType) {
         if (dataType == this) {
@@ -73,16 +79,15 @@ public class ExternalClassType implements DataType {
         }
         if (dataType instanceof ExternalClassType) {
             ExternalClassType target = (ExternalClassType) dataType;
-            // Exact FQN match
             if (getFqn().equals(target.getFqn())) {
                 return true;
             }
-            // arg is a subtype of param (standard widening — safe)
+            // Standard widening: this is a subtype of target
             if (target.getJavaClass().isAssignableFrom(javaClass)) {
                 return true;
             }
-            // param is a subtype of arg — allows passing a supertype-declared variable
-            // whose runtime value may be the more specific type (e.g. Plot → PiePlot)
+            // Deliberate narrowing: target is a subtype of this — the runtime value
+            // may be the more specific type (e.g. Plot variable holding a PiePlot).
             if (javaClass.isAssignableFrom(target.getJavaClass())) {
                 return true;
             }

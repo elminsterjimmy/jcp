@@ -65,9 +65,11 @@ public class ClassConverter {
         // Simple-name lookup to check for system/struct types.
         // If the name is already ambiguous (two external classes share it), fall through to
         // register this one under its own FQN — reachable by FQN even if not by simple name.
+        // Note: byFqn is always null here — the ExternalClassType case already returned above,
+        // and non-external types use simple name as FQN so they won't appear in a FQN lookup.
         DataType existing;
         try {
-            existing = byFqn != null ? byFqn : DataTypeUtils.getDataType(name, context);
+            existing = DataTypeUtils.getDataType(name, context);
         } catch (com.elminster.jcp.eval.excpetion.EvaluationException ignored) {
             existing = null; // ambiguous simple name — proceed to FQN-keyed registration
         }
