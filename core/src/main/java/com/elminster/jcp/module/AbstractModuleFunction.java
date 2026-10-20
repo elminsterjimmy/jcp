@@ -40,10 +40,8 @@ abstract public class AbstractModuleFunction implements ModuleFunction {
   }
 
   @Override
-  public String getFullName() {
-    // TODO module support
-//    return this.getModule().concat("!").concat(FunctionUtils.generateFunctionFullName(getId(), getParameterDefs()));
-    return FunctionUtils.generateFunctionFullName(getId(), getParameterDefs());
+  public String getSignature() {
+    return FunctionUtils.generateSignature(getId(), getParameterDefs());
   }
 
   protected abstract Data doFunction(Data[] arguments, EvalContext evalContext);

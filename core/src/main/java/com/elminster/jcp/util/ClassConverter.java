@@ -139,8 +139,8 @@ public class ClassConverter {
             }
 
             @Override
-            public String getFullName() {
-                return FunctionUtils.generateFunctionFullName(
+            public String getSignature() {
+                return FunctionUtils.generateSignature(
                         module, dt.getFqn(), methodName, getParameterDefs());
             }
 
@@ -237,8 +237,8 @@ public class ClassConverter {
             }
 
             @Override
-            public String getFullName() {
-                return FunctionUtils.generateFunctionFullName(
+            public String getSignature() {
+                return FunctionUtils.generateSignature(
                         module, dt.getFqn(), methodName, getParameterDefs());
             }
 
@@ -311,8 +311,8 @@ public class ClassConverter {
                     }
 
                     @Override
-                    public String getFullName() {
-                        return FunctionUtils.generateFunctionFullName(
+                    public String getSignature() {
+                        return FunctionUtils.generateSignature(
                                 module, dt.getFqn(), "new", getParameterDefs());
                     }
 
@@ -347,7 +347,7 @@ public class ClassConverter {
      * during opaque-stub registration of unknown parameter/return types.
      */
     private static void addFunctionIfAbsent(Function function, EvalContext context) {
-        if (context.getFunction(function.getFullName()) == null) {
+        if (context.getFunction(function.getSignature()) == null) {
             context.addFunction(function);
         }
     }

@@ -14,7 +14,7 @@ public class AbstractFunction extends BlockImpl implements Function {
   private final ParameterDef[] parameterDefs;
   private Data[] parameters;
   private final DataType resultDataType;
-  private final String fullName;
+  private final String signature;
 
   public AbstractFunction(FunctionDef functionDef, Statement... body) {
     this(functionDef.id, functionDef.parameters, functionDef.returnType, body);
@@ -25,7 +25,7 @@ public class AbstractFunction extends BlockImpl implements Function {
     this.id = id;
     this.parameterDefs = parameterDefs;
     this.resultDataType = resultDataType;
-    this.fullName = FunctionUtils.generateFunctionFullName(id, parameterDefs);
+    this.signature = FunctionUtils.generateSignature(id, parameterDefs);
   }
 
   @Override
@@ -54,8 +54,8 @@ public class AbstractFunction extends BlockImpl implements Function {
   }
 
   @Override
-  public String getFullName() {
-    return this.fullName;
+  public String getSignature() {
+    return this.signature;
   }
 
   @Override

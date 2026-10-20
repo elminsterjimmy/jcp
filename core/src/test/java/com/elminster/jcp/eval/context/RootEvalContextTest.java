@@ -130,7 +130,7 @@ class RootEvalContextTest {
                 SystemDataType.INT
             );
             // Add function directly to the child context's function map
-            childContext.getFunctions().put(func.getFullName(), func);
+            childContext.getFunctions().put(func.getSignature(), func);
             rootContext.getContextStack().push(childContext);
 
             Function found = rootContext.getFunction("childFunc@");

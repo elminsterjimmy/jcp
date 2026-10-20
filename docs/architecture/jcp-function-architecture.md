@@ -108,8 +108,8 @@ Pattern: [module::]type.function#paramType1@paramType2
 public static final String USER_MODULE = "user";      // Default for user code
 public static final String GLOBAL_TYPE = "global";    // Non-type functions
 private static final String MODULE_SPLITTER = "::";
-private static final String FUNCTION_FULLNAME_PARAMETER_SPLITTER = "@";
-private static final String FUNCTION_FULLNAME_FUNCTION_NAME_SPLITTER = "#";
+static final String PARAM_SPLITTER = "@";
+static final String METHOD_SPLITTER = "#";
 ```
 
 ### Key Methods
@@ -117,7 +117,7 @@ private static final String FUNCTION_FULLNAME_FUNCTION_NAME_SPLITTER = "#";
 | Method | Purpose | Example Output |
 |--------|---------|----------------|
 | `getModuleFunctionName(module, type, func)` | Qualified name without params | `Logger.log` |
-| `generateFunctionFullName(...)` | Full name with param types | `Logger.log#Object` |
+| `generateSignature(...)` | Signature with param types | `Logger.log#Object` |
 | `getGlobalFunctionName(module, func)` | Non-type functions | `base::global::abs` |
 
 ---
@@ -136,7 +136,7 @@ private static final String FUNCTION_FULLNAME_FUNCTION_NAME_SPLITTER = "#";
 │  │                  │      │  Interface       │                 │
 │  │  functions: Map  │◄─────│                  │                 │
 │  │  variables: Map  │      │  - getId()       │                 │
-│  │  dataTypes: Map  │      │  - getFullName() │                 │
+│  │  dataTypes: Map  │      │  - getSignature()│                 │
 │  │  contextStack    │      │  - getParams()   │                 │
 │  └────────┬─────────┘      └──────────────────┘                 │
 │           │                         ▲                            │
@@ -217,7 +217,7 @@ private static final String FUNCTION_FULLNAME_FUNCTION_NAME_SPLITTER = "#";
 │              ▼                                                   │
 │     ┌─────────────────┐                                         │
 │     │context.addFunc  │                                         │
-│     │ (fullName,      │                                         │
+│     │ (signature,     │                                         │
 │     │  function)      │                                         │
 │     └─────────────────┘                                         │
 │                                                                  │
@@ -287,12 +287,12 @@ private List<Function> getFunctionCandidates(funcName, moduleName, args, ctx) {
 │     ┌─────────────────────────────────────────┐                 │
 │     │ // Example: counter.get() on Counter    │                 │
 │     │ name = "user::Counter.get"              │                 │
-│     │ fullName = "user::Counter.get#Counter"  │                 │
+│     │ signature = "user::Counter.get#Counter"  │                 │
 │     └─────────────────────────────────────────┘                 │
 │                                                                  │
 │  4. Lookup and execute                                          │
 │     ┌─────────────────────────────────────────┐                 │
-│     │ Function func = ctx.getFunction(fullName);               │
+│     │ Function func = ctx.getFunction(signature);              │
 │     │ func.setArguments(params);              │                 │
 │     │ return FunctionEvaluator.eval(func, ctx);│               │
 │     └─────────────────────────────────────────┘                 │
@@ -524,7 +524,7 @@ public class StructType implements DataType {
 │  │     │                                         │             ││
 │  │     │  function = AbstractModuleFunction {   │             ││
 │  │     │    getName() = "base::Logger.log"      │             ││
-│  │     │    getFullName() = "base::Logger.log#Object"         ││
+│  │     │    getSignature() = "base::Logger.log#Object"         ││
 │  │     │    doFunction(args) {                  │             ││
 │  │     │      return ReflectUtil.invoke(        │             ││
 │  │     │        null, method, args);            │             ││

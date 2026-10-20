@@ -72,11 +72,11 @@ public class FunctionUtils {
     }
 
     /**
-     * Build the full function key from module, type FQN, method name, and param DataTypes.
+     * Build the full function signature from module, type FQN, method name, and param DataTypes.
      * Pattern: module::typeFqn#method@paramFqn1@paramFqn2
      */
-    public static String generateFunctionFullName(String moduleName, String typeFqn,
-                                                   String methodName, DataType[] paramTypes) {
+    public static String generateSignature(String moduleName, String typeFqn,
+                                               String methodName, DataType[] paramTypes) {
         StringJoiner params = new StringJoiner(PARAM_SPLITTER);
         for (DataType pt : paramTypes) {
             params.add(pt.getFqn());
@@ -86,10 +86,10 @@ public class FunctionUtils {
     }
 
     /**
-     * Build the full function key from module, type FQN, method name, and param Data values.
+     * Build the full function signature from module, type FQN, method name, and param Data values.
      */
-    public static String generateFunctionFullName(String moduleName, String typeFqn,
-                                                   String methodName, Data[] paramData) {
+    public static String generateSignature(String moduleName, String typeFqn,
+                                               String methodName, Data[] paramData) {
         StringJoiner params = new StringJoiner(PARAM_SPLITTER);
         for (Data d : paramData) {
             params.add(d.getDataType().getFqn());
@@ -99,10 +99,10 @@ public class FunctionUtils {
     }
 
     /**
-     * Build the full function key from an Identifier and ParameterDef array.
+     * Build the full function signature from an Identifier and ParameterDef array.
      * Used by user-declared functions where the identifier already encodes module::type#method.
      */
-    public static String generateFunctionFullName(Identifier identifier, ParameterDef[] parameterDefs) {
+    public static String generateSignature(Identifier identifier, ParameterDef[] parameterDefs) {
         StringJoiner params = new StringJoiner(PARAM_SPLITTER);
         for (ParameterDef pd : parameterDefs) {
             params.add(pd.getDataType().getFqn());
@@ -111,9 +111,9 @@ public class FunctionUtils {
     }
 
     /**
-     * Build the full function key from an Identifier and DataType array.
+     * Build the full function signature from an Identifier and DataType array.
      */
-    public static String generateFunctionFullName(Identifier identifier, DataType[] parameterDataTypes) {
+    public static String generateSignature(Identifier identifier, DataType[] parameterDataTypes) {
         StringJoiner params = new StringJoiner(PARAM_SPLITTER);
         for (DataType dt : parameterDataTypes) {
             params.add(dt.getFqn());
@@ -122,9 +122,9 @@ public class FunctionUtils {
     }
 
     /**
-     * Build the full function key from an Identifier and Data array.
+     * Build the full function signature from an Identifier and Data array.
      */
-    public static String generateFunctionFullName(Identifier identifier, Data[] parameterData) {
+    public static String generateSignature(Identifier identifier, Data[] parameterData) {
         StringJoiner params = new StringJoiner(PARAM_SPLITTER);
         for (Data d : parameterData) {
             params.add(d.getDataType().getFqn());
@@ -133,10 +133,10 @@ public class FunctionUtils {
     }
 
     /**
-     * Build the full function key for a global function with ParameterDef array.
+     * Build the full function signature for a global function with ParameterDef array.
      */
-    public static String generateFunctionFullName(String moduleName, String typeFqn,
-                                                   String methodName, ParameterDef[] parameterDefs) {
+    public static String generateSignature(String moduleName, String typeFqn,
+                                               String methodName, ParameterDef[] parameterDefs) {
         StringJoiner params = new StringJoiner(PARAM_SPLITTER);
         if (parameterDefs != null) {
             for (ParameterDef pd : parameterDefs) {
@@ -155,14 +155,14 @@ public class FunctionUtils {
         return getModuleFunctionName(moduleName, GLOBAL_TYPE, functionName);
     }
 
-    public static String generateGlobalFunctionFullName(String moduleName, String functionName,
-                                                         ParameterDef[] parameterDefs) {
-        return generateFunctionFullName(moduleName, GLOBAL_TYPE, functionName, parameterDefs);
+    public static String generateGlobalSignature(String moduleName, String functionName,
+                                                     ParameterDef[] parameterDefs) {
+        return generateSignature(moduleName, GLOBAL_TYPE, functionName, parameterDefs);
     }
 
-    public static String generateGlobalFunctionFullName(String moduleName, String functionName,
-                                                         Data[] parameterData) {
-        return generateFunctionFullName(moduleName, GLOBAL_TYPE, functionName, parameterData);
+    public static String generateGlobalSignature(String moduleName, String functionName,
+                                                     Data[] parameterData) {
+        return generateSignature(moduleName, GLOBAL_TYPE, functionName, parameterData);
     }
 
     // -----------------------------------------------------------------------
@@ -177,6 +177,24 @@ public class FunctionUtils {
                 .concat(FUNCTION_TOSTRING_PARAMETER_STARTER)
                 .concat(parameterStringList.toString())
                 .concat(FUNCTION_TOSTRING_PARAMETER_ENDER);
+    }
+
+    /**
+     * Get the fully qualified function name using the new consistent pattern.
+     * New pattern: module::type::func
+     */
+    public static String getFullyQualifiedFunctionName(String moduleName, String dataTypeName, String functionName) {
+        StringBuilder sb = new StringBuilder();
+        if (moduleName != null && !moduleName.isEmpty()) {
+            sb.append(moduleName);
+        } else {
+            sb.append("base");
+        }
+        sb.append(MODULE_SPLITTER);
+        sb.append(dataTypeName);
+        sb.append(MODULE_SPLITTER);
+        sb.append(functionName);
+        return sb.toString();
     }
 
     // -----------------------------------------------------------------------

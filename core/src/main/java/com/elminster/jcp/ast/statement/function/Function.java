@@ -13,5 +13,5 @@ public interface Function extends Block {
   void setArguments(Data... arguments);
   DataType getResultDataType();
 
-  String getFullName();
+  String getSignature();
 }
