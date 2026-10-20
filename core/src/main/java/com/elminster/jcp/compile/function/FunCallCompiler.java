@@ -293,7 +293,7 @@ public class FunCallCompiler extends AbstractAstCompiler {
             if (promotionOpcode != TypePromotion.NO_PROMOTION_OPCODE) {
                 mv.visitInsn(promotionOpcode);
             } else if (paramDataType == SystemDataType.ANY) {
-                boxPrimitive(mv, argType);
+                TypeMapper.boxPrimitive(mv, argType);
             }
 
             // Call-site narrowing for Java parameter types
@@ -474,7 +474,7 @@ public class FunCallCompiler extends AbstractAstCompiler {
             if (promotionOpcode != TypePromotion.NO_PROMOTION_OPCODE) {
                 mv.visitInsn(promotionOpcode);
             } else if (paramType == SystemDataType.ANY) {
-                boxPrimitive(mv, argType);
+                TypeMapper.boxPrimitive(mv, argType);
             }
         }
 
@@ -489,24 +489,6 @@ public class FunCallCompiler extends AbstractAstCompiler {
         // Result: new instance reference is on the stack
     }
 
-    /**
-     * Box a primitive type to its wrapper class.
-     */
-    private void boxPrimitive(MethodVisitor mv, DataType type) {
-        if (type == SystemDataType.INT) {
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf",
-                "(I)Ljava/lang/Integer;", false);
-        } else if (type == SystemDataType.LONG) {
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Long", "valueOf",
-                "(J)Ljava/lang/Long;", false);
-        } else if (type == SystemDataType.BOOLEAN) {
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf",
-                "(Z)Ljava/lang/Boolean;", false);
-        } else if (type == SystemDataType.DOUBLE) {
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Double", "valueOf",
-                "(D)Ljava/lang/Double;", false);
-        }
-    }
 
     @Override
     public DataType resolveType(CompileContext ctx) {

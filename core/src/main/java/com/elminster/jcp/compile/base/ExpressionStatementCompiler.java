@@ -43,6 +43,10 @@ public class ExpressionStatementCompiler extends AbstractStatementCompiler {
         }
     }
 
+    // Returns null when type resolution fails (e.g. external module functions resolved
+    // via class lookup rather than context function signatures). Callers treat null as
+    // "no POP needed" — safe because such calls are void or their stack effect is already
+    // handled by the callee's bytecode.
     private DataType resolveExpressionType(Expression expression, CompileContext ctx) {
         try {
             return TypeMapper.getExpressionType(expression, ctx);

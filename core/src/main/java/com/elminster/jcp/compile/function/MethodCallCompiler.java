@@ -145,7 +145,7 @@ public class MethodCallCompiler extends AbstractAstCompiler {
             if (paramType == SystemDataType.DOUBLE && argType == SystemDataType.INT) {
                 mv.visitInsn(Opcodes.I2D);
             } else if (paramType == SystemDataType.ANY) {
-                boxPrimitive(mv, argType);
+                TypeMapper.boxPrimitive(mv, argType);
             }
 
             // Call-site narrowing for Java parameter types
@@ -221,26 +221,6 @@ public class MethodCallCompiler extends AbstractAstCompiler {
         return sb.toString();
     }
 
-    /**
-     * Box a primitive type to its wrapper class.
-     * INT -> Integer, BOOLEAN -> Boolean, DOUBLE -> Double
-     */
-    private void boxPrimitive(MethodVisitor mv, DataType type) {
-        if (type == SystemDataType.INT) {
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf",
-                "(I)Ljava/lang/Integer;", false);
-        } else if (type == SystemDataType.LONG) {
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Long", "valueOf",
-                "(J)Ljava/lang/Long;", false);
-        } else if (type == SystemDataType.BOOLEAN) {
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf",
-                "(Z)Ljava/lang/Boolean;", false);
-        } else if (type == SystemDataType.DOUBLE) {
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Double", "valueOf",
-                "(D)Ljava/lang/Double;", false);
-        }
-        // String and Object types don't need boxing
-    }
 
     @Override
     public DataType resolveType(CompileContext ctx) {

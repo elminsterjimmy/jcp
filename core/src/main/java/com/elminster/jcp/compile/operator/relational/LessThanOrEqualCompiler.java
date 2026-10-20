@@ -55,7 +55,7 @@ public class LessThanOrEqualCompiler extends CompareCompiler {
     }
 
     @Override
-    protected int getDoubleConditionOpcode() {
+    protected int getCmpResultConditionOpcode() {
         return Opcodes.IFLE;  // DCMPL result <= 0 means left <= right
     }
 

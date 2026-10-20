@@ -112,10 +112,10 @@ public abstract class CompareCompiler extends AbstractAstCompiler {
 
         if (useDouble) {
             mv.visitInsn(getDoubleCompareOpcode());
-            mv.visitJumpInsn(getDoubleConditionOpcode(), trueLabel);
+            mv.visitJumpInsn(getCmpResultConditionOpcode(), trueLabel);
         } else if (useLong) {
             mv.visitInsn(Opcodes.LCMP);
-            mv.visitJumpInsn(getDoubleConditionOpcode(), trueLabel);
+            mv.visitJumpInsn(getCmpResultConditionOpcode(), trueLabel);
         } else {
             mv.visitJumpInsn(getCompareOpcode(), trueLabel);
         }
@@ -150,12 +150,12 @@ public abstract class CompareCompiler extends AbstractAstCompiler {
     }
 
     /**
-     * Get the condition opcode for double comparison result.
-     * After DCMPL/DCMPG, stack has -1, 0, or 1.
+     * Get the condition opcode for comparing a CMP result (int -1, 0, or 1)
+     * against zero. Used after both DCMPL/DCMPG and LCMP.
      *
      * @return IFLT, IFLE, IFGT, IFGE, IFEQ, or IFNE
      */
-    protected abstract int getDoubleConditionOpcode();
+    protected abstract int getCmpResultConditionOpcode();
 
     @Override
     public DataType resolveType(CompileContext ctx) {

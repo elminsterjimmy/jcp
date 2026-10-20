@@ -70,7 +70,7 @@ public class MinusMinusCompiler extends AbstractAstCompiler {
 
         if (local.getType() == SystemDataType.LONG) {
             mv.visitVarInsn(Opcodes.LLOAD, local.getIndex());
-            mv.visitVarInsn(Opcodes.LLOAD, local.getIndex());
+            mv.visitInsn(Opcodes.DUP2);
             mv.visitInsn(Opcodes.LCONST_1);
             mv.visitInsn(Opcodes.LSUB);
             mv.visitVarInsn(Opcodes.LSTORE, local.getIndex());

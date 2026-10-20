@@ -8,6 +8,7 @@ import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
@@ -256,5 +257,25 @@ public final class TypeMapper {
     public static DataType getExpressionType(Expression expr, CompileContext ctx) {
         AbstractAstCompiler compiler = (AbstractAstCompiler) AstCompilerFactory.getCompiler((Node) expr);
         return compiler.resolveType(ctx);
+    }
+
+    /**
+     * Emit boxing instructions to convert a JCP primitive to its Java wrapper type.
+     * No-op for non-primitive types (STRING, Object, etc.).
+     */
+    public static void boxPrimitive(MethodVisitor mv, DataType type) {
+        if (type == SystemDataType.INT) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf",
+                "(I)Ljava/lang/Integer;", false);
+        } else if (type == SystemDataType.LONG) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Long", "valueOf",
+                "(J)Ljava/lang/Long;", false);
+        } else if (type == SystemDataType.BOOLEAN) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf",
+                "(Z)Ljava/lang/Boolean;", false);
+        } else if (type == SystemDataType.DOUBLE) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Double", "valueOf",
+                "(D)Ljava/lang/Double;", false);
+        }
     }
 }
