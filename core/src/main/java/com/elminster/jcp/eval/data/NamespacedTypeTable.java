@@ -103,7 +103,7 @@ public final class NamespacedTypeTable {
         if (nonExternal.size() == 1) {
             return nonExternal.get(0);
         }
-        // All are ExternalClassType from different packages — genuinely ambiguous.
+        // Genuinely ambiguous: multiple ExternalClassTypes, or multiple non-externals (programmer error).
         StringJoiner candidates = new StringJoiner(", ");
         fqns.forEach(candidates::add);
         throw new AmbiguousTypeException(simpleName, candidates.toString());
