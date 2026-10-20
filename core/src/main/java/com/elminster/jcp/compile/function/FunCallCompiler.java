@@ -288,11 +288,13 @@ public class FunCallCompiler extends AbstractAstCompiler {
 
             DataType argType = argTypes[i];
             DataType paramDataType = CompileModeClassConverter.mapJavaTypeToDataType(paramTypes[i]);
-            int promotionOpcode = TypePromotion.getPromotionOpcode(argType, paramDataType);
-            if (promotionOpcode != TypePromotion.NO_PROMOTION_OPCODE) {
-                mv.visitInsn(promotionOpcode);
-            } else if (paramDataType == SystemDataType.ANY) {
+            if (paramDataType == null || paramDataType == SystemDataType.ANY) {
                 boxPrimitive(mv, argType);
+            } else {
+                int promotionOpcode = TypePromotion.getPromotionOpcode(argType, paramDataType);
+                if (promotionOpcode != TypePromotion.NO_PROMOTION_OPCODE) {
+                    mv.visitInsn(promotionOpcode);
+                }
             }
         }
 
@@ -428,7 +430,7 @@ public class FunCallCompiler extends AbstractAstCompiler {
         if (jcpType == null) {
             return false;
         }
-        DataType paramDataType = CompileModeClassConverter.mapJavaTypeToDataType(javaType, ctx, "external");
+        DataType paramDataType = CompileModeClassConverter.resolveJavaTypeToDataType(javaType, ctx, "external");
         return jcpType.isCompatibleWith(paramDataType);
     }
 

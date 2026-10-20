@@ -120,7 +120,7 @@ public class ClassConverter {
         ParameterDef[] parameterDefs = getParameterDefs(parameters, context, module, inProgress);
 
         Class<?> returnType = method.getReturnType();
-        DataType returnDataType = getDataType(returnType, context, module, inProgress);
+        DataType returnDataType = resolveDataType(returnType, context, module, inProgress);
 
         Function function = new AbstractModuleFunction() {
             @Override
@@ -195,7 +195,7 @@ public class ClassConverter {
         ParameterDef[] parameterDefs = new ParameterDef[parameters.length];
         int i = 0;
         for (Parameter parameter : parameters) {
-            DataType dataType = getDataType(parameter.getType(), context, module, inProgress);
+            DataType dataType = resolveDataType(parameter.getType(), context, module, inProgress);
             String parameterName = parameter.getName();
             parameterDefs[i++] = new ParameterDef(parameterName, dataType);
         }
@@ -213,12 +213,12 @@ public class ClassConverter {
         paramDts[0] = dt;
         int i = 1;
         for (Parameter parameter : parameters) {
-            paramDts[i] = getDataType(parameter.getType(), context, module, inProgress);
+            paramDts[i] = resolveDataType(parameter.getType(), context, module, inProgress);
             paramNames[i] = parameter.getName();
             i++;
         }
         Class<?> returnType = method.getReturnType();
-        returnDt = getDataType(returnType, context, module, inProgress);
+        returnDt = resolveDataType(returnType, context, module, inProgress);
 
         Function function = new AbstractModuleFunction() {
             @Override
@@ -353,13 +353,13 @@ public class ClassConverter {
     }
 
     /**
-     * Map a Java class to a JCP DataType, registering unknown types via dependency-first ordering.
+     * Resolve a Java class to a JCP DataType, registering unknown types via dependency-first ordering.
      *
      * <p>Unknown class types are registered via {@link #registerClass(Class, EvalContext, String, Set)}
      * so their methods are available, unless a circular dependency is detected via {@code inProgress},
      * in which case a stub is left in place to break the cycle.
      */
-    private static DataType getDataType(Class<?> dataType, EvalContext context, String module,
+    private static DataType resolveDataType(Class<?> dataType, EvalContext context, String module,
                                          Set<String> inProgress) {
         // Fast-path: primitives and well-known types — mirrors CompileModeClassConverter
         if (dataType == int.class     || dataType == Integer.class)   return SystemDataType.INT;

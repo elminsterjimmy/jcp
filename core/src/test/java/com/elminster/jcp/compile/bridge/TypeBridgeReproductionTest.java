@@ -71,7 +71,7 @@ class TypeBridgeReproductionTest {
     }
 
     // -------------------------------------------------------------------------
-    // Phase 1: Characterization — mapJavaTypeToDataType for gap types
+    // Phase 1: Characterization — mapJavaTypeToDataType for known types, null for unknown
     // -------------------------------------------------------------------------
 
     @Nested
@@ -89,10 +89,10 @@ class TypeBridgeReproductionTest {
         }
 
         @Test
-        void mapJavaTypeToDataType_CharSequence_contextFree_returnsANY() {
-            // Context-free overload returns ANY for unknown types by design.
+        void mapJavaTypeToDataType_CharSequence_contextFree_returnsNull() {
+            // Context-free overload returns null for unknown types by design.
             // Use registerClass (context-aware) to get a proper ExternalClassType at runtime.
-            assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class));
+            assertNull(CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class));
         }
 
         @Test
@@ -100,7 +100,7 @@ class TypeBridgeReproductionTest {
             // With context, CharSequence is registered transitively as an ExternalClassType
             com.elminster.jcp.compile.context.CompileContext ctx =
                     new com.elminster.jcp.compile.context.CompileContext();
-            CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class, ctx, "test");
+            CompileModeClassConverter.resolveJavaTypeToDataType(CharSequence.class, ctx, "test");
             com.elminster.jcp.eval.data.DataType registered = ctx.getDataType("CharSequence");
             assertNotNull(registered, "CharSequence must be registered in context");
             assertInstanceOf(com.elminster.jcp.eval.data.ExternalClassType.class, registered);
