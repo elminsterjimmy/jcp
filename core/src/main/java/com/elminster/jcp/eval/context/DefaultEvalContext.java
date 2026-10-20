@@ -104,13 +104,26 @@ public class DefaultEvalContext implements EvalContext {
     @Override
     public DataType getDataType(String name) {
         String convertedName = convertSystemDataTypeName(name);
+        AmbiguousTypeException ambiguity = null;
         try {
-            return dataTypes.getBySimpleName(convertedName);
+            DataType type = dataTypes.getBySimpleName(convertedName);
+            if (type != null) {
+                return type;
+            }
         } catch (AmbiguousTypeException e) {
+            ambiguity = e;
+        }
+        // FQN fallback: treat 'name' as a fully-qualified class name
+        DataType byFqn = getDataTypeByFqn(name);
+        if (byFqn != null) {
+            return byFqn;
+        }
+        if (ambiguity != null) {
             throw new EvaluationException(
-                "Type '" + name + "' is ambiguous: " + e.getCandidates()
+                "Type '" + name + "' is ambiguous: " + ambiguity.getCandidates()
                 + ". Qualify the type with its fully-qualified class name.");
         }
+        return null;
     }
 
     @Override

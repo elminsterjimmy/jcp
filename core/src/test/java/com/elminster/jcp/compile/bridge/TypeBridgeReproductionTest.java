@@ -78,32 +78,30 @@ class TypeBridgeReproductionTest {
     class CharacterizationTests {
 
         @Test
-        void mapJavaTypeToDataType_char_mapsToINT() {
-            // Fixed in PR 2: char and int share the same JVM slot (I)
-            assertEquals(SystemDataType.INT, CompileModeClassConverter.mapJavaTypeToDataType(char.class));
+        void mapJavaTypeToDataType_char_mapsToSTRING() {
+            // char maps to STRING — JCP treats characters as single-character strings
+            assertEquals(SystemDataType.STRING, CompileModeClassConverter.mapJavaTypeToDataType(char.class));
         }
 
         @Test
-        void mapJavaTypeToDataType_Character_mapsToINT() {
-            assertEquals(SystemDataType.INT, CompileModeClassConverter.mapJavaTypeToDataType(Character.class));
+        void mapJavaTypeToDataType_Character_mapsToSTRING() {
+            assertEquals(SystemDataType.STRING, CompileModeClassConverter.mapJavaTypeToDataType(Character.class));
         }
 
         @Test
-        void mapJavaTypeToDataType_CharSequence_contextFree_returnsANY() {
-            // Context-free overload returns ANY for unknown types by design.
-            // Use registerClass (context-aware) to get a proper ExternalClassType at runtime.
-            assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class));
+        void mapJavaTypeToDataType_CharSequence_contextFree_returnsSTRING() {
+            // CharSequence maps to STRING in the context-free overload
+            assertEquals(SystemDataType.STRING, CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class));
         }
 
         @Test
-        void mapJavaTypeToDataType_CharSequence_contextAware_registersExternalClassType() {
-            // With context, CharSequence is registered transitively as an ExternalClassType
+        void mapJavaTypeToDataType_CharSequence_contextAware_returnsSTRING() {
+            // With context, CharSequence also maps to STRING (no longer registered as ExternalClassType)
             com.elminster.jcp.compile.context.CompileContext ctx =
                     new com.elminster.jcp.compile.context.CompileContext();
-            CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class, ctx, "test");
-            com.elminster.jcp.eval.data.DataType registered = ctx.getDataType("CharSequence");
-            assertNotNull(registered, "CharSequence must be registered in context");
-            assertInstanceOf(com.elminster.jcp.eval.data.ExternalClassType.class, registered);
+            com.elminster.jcp.eval.data.DataType dt =
+                    CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class, ctx, "test");
+            assertEquals(SystemDataType.STRING, dt);
         }
 
         @Test
@@ -161,46 +159,47 @@ class TypeBridgeReproductionTest {
         }
 
         /**
-         * Fixed in PR 2 — repeat(char, int) → String now works.
+         * Known limitation: repeat(char, int) and repeat(String, int) both map to
+         * repeat(STRING, INT) in JCP, causing ambiguous overload resolution.
+         * This is a documented trade-off of the char→STRING design decision.
          *
-         * <p>char maps to INT; the compiler treats the char param as INT-typed.
-         * The INVOKESTATIC descriptor is exact (C from the real method), and INT
-         * is directly pushed — no boxing needed. Result: "***" for char='*' (42), count=3.
+         * @see <a href="https://github.com/elminsterjimmy/jcp/issues/49">Issue #49 Known Limitation #2</a>
          */
         @Test
-        void repeat_charInt_compilesAndReturnsCorrectValue() throws Exception {
-            MultiClassLoader loader = new MultiClassLoader();
-            Class<?> clazz = compileAndLoad(
-                    StringUtils.class, "StringUtils", "repeat",
-                    SystemDataType.STRING,
-                    new com.elminster.jcp.ast.Expression[]{
-                            LiteralExpression.of(IntLiteral.of(42)), // '*' = ASCII 42
-                            LiteralExpression.of(IntLiteral.of(3))
-                    },
-                    loader);
-            Object result = clazz.getMethod("evaluate").invoke(null);
-            assertEquals("***", result);
+        void repeat_charInt_ambiguousOverload() {
+            assertThrows(IllegalArgumentException.class, () -> {
+                MultiClassLoader loader = new MultiClassLoader();
+                compileAndLoad(
+                        StringUtils.class, "StringUtils", "repeat",
+                        SystemDataType.STRING,
+                        new com.elminster.jcp.ast.Expression[]{
+                                LiteralExpression.of("*"),
+                                LiteralExpression.of(IntLiteral.of(3))
+                        },
+                        loader);
+            });
         }
 
         /**
-         * Fixed in PR 2 — countMatches(CharSequence, char) → int now works.
+         * Known limitation: countMatches(CharSequence, char) and countMatches(CharSequence, CharSequence)
+         * both map to countMatches(STRING, STRING) in JCP, causing ambiguous overload resolution.
+         * This is a documented trade-off of the char→STRING design decision.
          *
-         * <p>char→INT and CharSequence registered as ExternalClassType; STRING is
-         * Java-assignable to CharSequence so overload resolution selects the right overload.
+         * @see <a href="https://github.com/elminsterjimmy/jcp/issues/49">Issue #49 Known Limitation #2</a>
          */
         @Test
-        void countMatches_charSequenceChar_compilesAndReturnsCorrectValue() throws Exception {
-            MultiClassLoader loader = new MultiClassLoader();
-            Class<?> clazz = compileAndLoad(
-                    StringUtils.class, "StringUtils", "countMatches",
-                    SystemDataType.INT,
-                    new com.elminster.jcp.ast.Expression[]{
-                            LiteralExpression.of("hello world"),
-                            LiteralExpression.of(IntLiteral.of(108)) // 'l' = ASCII 108
-                    },
-                    loader);
-            Object result = clazz.getMethod("evaluate").invoke(null);
-            assertEquals(3, result);
+        void countMatches_charSequenceChar_ambiguousOverload() {
+            assertThrows(IllegalArgumentException.class, () -> {
+                MultiClassLoader loader = new MultiClassLoader();
+                compileAndLoad(
+                        StringUtils.class, "StringUtils", "countMatches",
+                        SystemDataType.INT,
+                        new com.elminster.jcp.ast.Expression[]{
+                                LiteralExpression.of("hello world"),
+                                LiteralExpression.of("l")
+                        },
+                        loader);
+            });
         }
 
         /**
