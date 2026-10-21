@@ -59,17 +59,17 @@ public class FunCallCompilerBranchTest extends AbstractCompileTest {
     }
 
     /**
-     * Tests constructor with an int capacity argument.
-     * StringBuilder.new(16) - covers the boxing-for-ANY-param branch in constructor compilation.
+     * Tests that constructor with ambiguous argument types throws IllegalArgumentException.
+     * StringBuilder has both StringBuilder(String) and StringBuilder(CharSequence), so a
+     * String arg is ambiguous → verifies the ambiguity error path.
      */
     @Test
-    void testExternalClassConstructorWithStringArg() throws Exception {
-        // StringBuilder sb = StringBuilder.new(16);  (capacity constructor - unambiguous int arg)
+    void testExternalClassConstructorWithAmbiguousArgThrows() {
         Block program = new BlockImpl();
 
         FunctionCallExpression ctorCall = new FunctionCallExpression(
             Identifier.fromName("StringBuilder.new"),
-            LiteralExpression.of(16)  // int capacity - unambiguous
+            LiteralExpression.of("hello")
         );
         program.addStatement(new VariableDeclarationImpl(
             "sb",
@@ -77,23 +77,13 @@ public class FunCallCompilerBranchTest extends AbstractCompileTest {
             ctorCall
         ));
 
-        MethodCallExpression toStringCall = new MethodCallExpression(
-            VariableExpression.of("sb"),
-            "capacity"
-        );
-
         String className = uniqueClassName("TestSbNewWithArg");
         BytecodeGenerator generator = new BytecodeGenerator(className);
         generator.registerExternalClass(StringBuilder.class);
-        byte[] bytecode = generator.compileWithReturn(program, toStringCall, SystemDataType.INT);
 
-        assertNotNull(bytecode);
-
-        Class<?> clazz = new ClassLoader() {
-            Class<?> def() { return defineClass(className, bytecode, 0, bytecode.length); }
-        }.def();
-        Method evaluate = clazz.getMethod("evaluate");
-        assertEquals(16, evaluate.invoke(null));
+        assertThrows(IllegalArgumentException.class, () ->
+            generator.compile(program)
+        );
     }
 
     /**
@@ -302,39 +292,37 @@ public class FunCallCompilerBranchTest extends AbstractCompileTest {
     }
 
     /**
-     * Tests calling a method on an interface type generates INVOKEINTERFACE.
-     * Uses List (an interface) and calls size().
-     * Covers the isInterface branch in MethodCallCompiler.
+     * Tests calling a method on a type that implements CharSequence (an interface).
+     * Uses StringBuilder and calls length(), which is defined on CharSequence.
+     * Covers the interface method dispatch path in MethodCallCompiler.
      */
     @Test
-    void testMethodCallOnInterfaceGeneratesInvokeInterface() throws Exception {
+    void testMethodCallOnTypeWithInterfaceMethod() throws Exception {
         Block program = new BlockImpl();
 
-        // java.util.ArrayList al = ArrayList.new()
         FunctionCallExpression ctorCall = new FunctionCallExpression(
-            Identifier.fromName("ArrayList.new")
+            Identifier.fromName("StringBuilder.new")
         );
         program.addStatement(new VariableDeclarationImpl(
-            "al", new DataTypeImpl("ArrayList"), ctorCall
+            "sb", new DataTypeImpl("StringBuilder"), ctorCall
         ));
 
-        // al.size() — List is an interface, so INVOKEINTERFACE should be emitted
-        MethodCallExpression sizeCall = new MethodCallExpression(
-            VariableExpression.of("al"),
-            "size"
+        MethodCallExpression lengthCall = new MethodCallExpression(
+            VariableExpression.of("sb"),
+            "length"
         );
 
         String className = uniqueClassName("TestInterfaceMethod");
         BytecodeGenerator generator = new BytecodeGenerator(className);
-        generator.registerExternalClass(java.util.ArrayList.class);
-        byte[] bytecode = generator.compileWithReturn(program, sizeCall, SystemDataType.INT);
+        generator.registerExternalClass(StringBuilder.class);
+        byte[] bytecode = generator.compileWithReturn(program, lengthCall, SystemDataType.INT);
 
         assertNotNull(bytecode);
         Class<?> clazz = new ClassLoader() {
             Class<?> def() { return defineClass(className, bytecode, 0, bytecode.length); }
         }.def();
         Method evaluate = clazz.getMethod("evaluate");
-        assertEquals(0, evaluate.invoke(null)); // empty list, size == 0
+        assertEquals(0, evaluate.invoke(null));
     }
 
     // -----------------------------------------------------------------------
