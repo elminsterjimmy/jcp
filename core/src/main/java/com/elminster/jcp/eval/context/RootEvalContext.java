@@ -24,6 +24,7 @@ public class RootEvalContext extends DefaultEvalContext {
   }
 
   private void registerSystemFunctions() {
+    // DEFAULT singleton holds no JAR loaders — safe to use without closing.
     JcpModuleRegistry.DEFAULT.initEval(this);
   }
 

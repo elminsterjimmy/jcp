@@ -6,6 +6,9 @@ import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.module.base.BaseModuleRegister;
 import com.elminster.jcp.util.ClassConverter;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
@@ -18,7 +21,18 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 
+/**
+ * Unified registry for Java classes and JARs used by both eval and compile modes.
+ *
+ * <p>{@link #DEFAULT} is a bootstrap singleton pre-loaded with base module classes.
+ * It is intended for single-threaded init-time use only — callers should not mutate
+ * it after the initial registration phase, and should not close it (the base module
+ * classes do not require classloader cleanup). For custom registrations (e.g. user
+ * JARs), create a new {@code JcpModuleRegistry} instance and close it when done.
+ */
 public class JcpModuleRegistry implements Closeable {
+
+    private static final Logger logger = LoggerFactory.getLogger(JcpModuleRegistry.class);
 
     public static final JcpModuleRegistry DEFAULT = new JcpModuleRegistry(true);
 
@@ -59,7 +73,8 @@ public class JcpModuleRegistry implements Closeable {
                     if (Modifier.isPublic(clazz.getModifiers())) {
                         registerClass(clazz, module);
                     }
-                } catch (ClassNotFoundException | NoClassDefFoundError ignored) {
+                } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                    logger.warn("Skipping class {} from JAR {}: {}", className, jarPath, e.getMessage());
                 }
             }
         }
@@ -81,6 +96,7 @@ public class JcpModuleRegistry implements Closeable {
         return Collections.unmodifiableList(jarLoaders);
     }
 
+    /** Package-private for test visibility. */
     int entryCount() {
         return entries.size();
     }
