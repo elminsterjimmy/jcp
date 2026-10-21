@@ -249,4 +249,50 @@ class FunctionUtilsTest {
             assertEquals("user::global#round@Double", signature);
         }
     }
+
+    @Nested
+    class GetFullyQualifiedFunctionNameTests {
+
+        @Test
+        void testWithNonNullModule() {
+            String name = FunctionUtils.getFullyQualifiedFunctionName("mymod", "MyType", "myFunc");
+            assertEquals("mymod::MyType::myFunc", name);
+        }
+
+        @Test
+        void testWithNullModuleDefaultsToBase() {
+            String name = FunctionUtils.getFullyQualifiedFunctionName(null, "MyType", "myFunc");
+            assertEquals("base::MyType::myFunc", name);
+        }
+
+        @Test
+        void testWithEmptyModuleDefaultsToBase() {
+            String name = FunctionUtils.getFullyQualifiedFunctionName("", "MyType", "myFunc");
+            assertEquals("base::MyType::myFunc", name);
+        }
+    }
+
+    @Nested
+    class GenerateSignatureWithModuleAndDataTypesTests {
+
+        @Test
+        void testWithDataTypeArray_noParams() {
+            String sig = FunctionUtils.generateSignature("base", "Logger", "log", new DataType[]{});
+            assertEquals("base::Logger#log@", sig);
+        }
+
+        @Test
+        void testWithDataTypeArray_singleParam() {
+            String sig = FunctionUtils.generateSignature("user", "Calc", "square",
+                new DataType[]{SystemDataType.INT});
+            assertEquals("user::Calc#square@Integer", sig);
+        }
+
+        @Test
+        void testWithDataTypeArray_multipleParams() {
+            String sig = FunctionUtils.generateSignature("base", "Math", "add",
+                new DataType[]{SystemDataType.INT, SystemDataType.DOUBLE});
+            assertEquals("base::Math#add@Integer@Double", sig);
+        }
+    }
 }

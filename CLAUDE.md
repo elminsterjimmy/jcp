@@ -117,7 +117,7 @@ clazz.getMethod("main", String[].class).invoke(null, (Object) new String[]{});
 
 ## Test Coverage
 
-JaCoCo enforces minimum **80% instruction and 80% branch coverage** on the core module. The build will fail if coverage drops below these thresholds.
+JaCoCo enforces minimum **85% instruction and 85% branch coverage** on the core module. The build will fail if coverage drops below these thresholds.
 
 ```bash
 # Run tests with coverage report
