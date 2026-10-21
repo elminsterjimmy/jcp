@@ -56,6 +56,77 @@ mvn clean install
 mvn test
 ```
 
+## Architecture
+
+JCP sits between your DSL frontend and the JVM backend:
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                           YOUR DSL FRONTEND                              │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                  │
+│  │   Source    │───▶│   Lexer     │───▶│   Parser    │                  │
+│  │   Code      │    │  (ANTLR)    │    │  (ANTLR)    │                  │
+│  └─────────────┘    └─────────────┘    └──────┬──────┘                  │
+└──────────────────────────────────────────────┬───────────────────────────┘
+                                               │
+                              Build JCP AST from parse tree
+                                               │
+┌──────────────────────────────────────────────▼───────────────────────────┐
+│                           JCP MIDDLEWARE                                 │
+│                                                                          │
+│                         ┌─────────────┐                                  │
+│                         │   JCP AST   │                                  │
+│                         └──────┬──────┘                                  │
+│                                │                                         │
+│            ┌───────────────────┴───────────────────┐                    │
+│            │                                       │                    │
+│     ┌──────▼──────┐                         ┌──────▼──────┐             │
+│     │  EVAL MODE  │                         │COMPILE MODE │             │
+│     │ Interpreter │                         │  Bytecode   │             │
+│     └──────┬──────┘                         └──────┬──────┘             │
+│            │                                       │                    │
+└────────────┼───────────────────────────────────────┼────────────────────┘
+             │                                       │
+      ┌──────▼──────┐                         ┌──────▼──────┐
+      │   Result    │                         │  JVM Class  │
+      └─────────────┘                         └──────┬──────┘
+                                                     │
+                                              ┌──────▼──────┐
+                                              │     JVM     │
+                                              │  Execution  │
+                                              └─────────────┘
+```
+
+## Language Overview
+
+A taste of the DSL syntax — see the [Language Reference](docs/language-reference.md) for the full guide.
+
+```
+// Variables and types
+int x = 10;
+string name = "JCP";
+
+// Control flow
+while (x > 0) {
+    x = x - 1;
+}
+
+// Functions
+func add(int a, int b) -> int {
+    return a + b;
+}
+
+// Structs
+struct Point {
+    int x;
+    int y;
+}
+Point p = Point(10, 20);
+
+// Module disambiguation
+string repeated = guava::Strings.repeat("ab", 3);
+```
+
 ## Documentation
 
 | Topic | Description |
