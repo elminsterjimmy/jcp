@@ -3,6 +3,8 @@ package com.elminster.jcp.module;
 import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.util.CompileModeClassConverter;
 import com.elminster.jcp.eval.context.EvalContext;
+import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.module.base.BaseModuleRegister;
 import com.elminster.jcp.util.ClassConverter;
 
@@ -18,6 +20,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 
@@ -45,13 +48,18 @@ public class JcpModuleRegistry implements Closeable {
     private JcpModuleRegistry(boolean loadBase) {
         if (loadBase) {
             for (Class<?> clazz : BaseModuleRegister.classToRegister()) {
-                entries.add(new RegistrationEntry(clazz, "base"));
+                entries.add(new RegistrationEntry(clazz, "base", null));
             }
         }
     }
 
     public void registerClass(Class<?> clazz, String module) {
-        entries.add(new RegistrationEntry(clazz, module));
+        entries.add(new RegistrationEntry(clazz, module, null));
+    }
+
+    public void registerClass(Class<?> clazz, String module,
+                               Consumer<ExternalClassType> customizer) {
+        entries.add(new RegistrationEntry(clazz, module, customizer));
     }
 
     public void registerJar(Path jarPath, String module) throws IOException {
@@ -83,12 +91,24 @@ public class JcpModuleRegistry implements Closeable {
     public void initEval(EvalContext ctx) {
         for (RegistrationEntry entry : entries) {
             ClassConverter.registerClass(entry.clazz, ctx, entry.module);
+            if (entry.customizer != null) {
+                applyCustomizer(entry, ctx.getDataTypeByFqn(entry.clazz.getName()));
+            }
         }
     }
 
     public void initCompile(CompileContext ctx) {
         for (RegistrationEntry entry : entries) {
             CompileModeClassConverter.registerClass(entry.clazz, ctx, entry.module);
+            if (entry.customizer != null) {
+                applyCustomizer(entry, ctx.getDataTypeByFqn(entry.clazz.getName()));
+            }
+        }
+    }
+
+    private static void applyCustomizer(RegistrationEntry entry, DataType dt) {
+        if (dt instanceof ExternalClassType) {
+            entry.customizer.accept((ExternalClassType) dt);
         }
     }
 
@@ -112,10 +132,12 @@ public class JcpModuleRegistry implements Closeable {
     private static class RegistrationEntry {
         final Class<?> clazz;
         final String module;
+        final Consumer<ExternalClassType> customizer;
 
-        RegistrationEntry(Class<?> clazz, String module) {
+        RegistrationEntry(Class<?> clazz, String module, Consumer<ExternalClassType> customizer) {
             this.clazz = clazz;
             this.module = module;
+            this.customizer = customizer;
         }
     }
 }

@@ -11,6 +11,7 @@ import org.objectweb.asm.Label;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -666,6 +667,18 @@ public class CompileContext {
             return parent.getDataTypeByFqn(fqn);
         }
         return type;
+    }
+
+    /**
+     * Returns all registered types from this context and all parent contexts.
+     */
+    public Collection<DataType> getAllRegisteredTypes() {
+        if (parent == null) {
+            return typeTable.allTypes();
+        }
+        List<DataType> all = new ArrayList<>(typeTable.allTypes());
+        all.addAll(parent.getAllRegisteredTypes());
+        return all;
     }
 
     /**

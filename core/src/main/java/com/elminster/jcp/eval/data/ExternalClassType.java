@@ -5,9 +5,11 @@ import com.elminster.jcp.util.FunctionUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * DataType implementation for external Java classes.
@@ -22,6 +24,7 @@ public class ExternalClassType implements DataType {
     private final Map<String, List<ExternalMethodDef>> staticMethods;
     private final Map<String, List<ExternalMethodDef>> instanceMethods;
     private final List<ExternalMethodDef> constructors;
+    private final Set<Class<?>> additionalCompatibleTypes = new HashSet<>();
 
     public ExternalClassType(String name, Class<?> javaClass) {
         this.name = name;
@@ -64,6 +67,21 @@ public class ExternalClassType implements DataType {
     @Override
     public String getFqn() {
         return javaClass.getName();
+    }
+
+    public void addCompatibleJavaType(Class<?> javaType) {
+        additionalCompatibleTypes.add(javaType);
+    }
+
+    @Override
+    public Set<Class<?>> getCompatibleJavaTypes() {
+        if (additionalCompatibleTypes.isEmpty()) {
+            return Set.of(javaClass);
+        }
+        Set<Class<?>> result = new HashSet<>();
+        result.add(javaClass);
+        result.addAll(additionalCompatibleTypes);
+        return Collections.unmodifiableSet(result);
     }
 
     /**

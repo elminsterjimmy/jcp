@@ -14,6 +14,7 @@ import com.elminster.jcp.exception.CallStack;
 import com.elminster.jcp.exception.StackFrame;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -129,6 +130,11 @@ public class DefaultEvalContext implements EvalContext {
     @Override
     public DataType getDataTypeByFqn(String fqn) {
         return dataTypes.getByFqn(fqn);
+    }
+
+    @Override
+    public Collection<DataType> getAllRegisteredTypes() {
+        return dataTypes.allTypes();
     }
 
     protected String convertSystemDataTypeName(String name) {

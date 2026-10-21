@@ -5,6 +5,7 @@ import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.eval.data.ExternalMethodDef;
+import com.elminster.jcp.eval.data.TypeCompatibilityUtil;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Constructor;
@@ -231,95 +232,18 @@ public final class CompileModeClassConverter {
      * Map a Java type to a JCP DataType (context-free).
      * Unknown/unsupported types return {@code ANY}.
      *
-     * <p>Mapped types:
-     * <ul>
-     *   <li>{@code int}, {@code Integer} → {@code INT}</li>
-     *   <li>{@code char}, {@code Character} → {@code STRING}
-     *       (JCP treats char as a single-character string)</li>
-     *   <li>{@code double}, {@code Double} → {@code DOUBLE}</li>
-     *   <li>{@code boolean}, {@code Boolean} → {@code BOOLEAN}</li>
-     *   <li>{@code void}, {@code Void} → {@code VOID}</li>
-     *   <li>{@code String} → {@code STRING}</li>
-     *   <li>Array variants → corresponding array types</li>
-     *   <li>All other types → {@code ANY} (use the context-aware overload to register them)</li>
-     * </ul>
+     * <p>Delegates to {@link TypeCompatibilityUtil#findJcpTypeForJava(Class)} which
+     * iterates {@link SystemDataType} constants and checks {@link IAdaptable#isAdaptableTo}.
+     * Each SystemDataType declares its own compatible Java types.
      */
     public static DataType mapJavaTypeToDataType(Class<?> javaType) {
-        // Primitive types
-        if (javaType == int.class || javaType == Integer.class) {
-            return SystemDataType.INT;
-        }
-        // char maps to STRING (JCP treats char as a single-character string)
-        if (javaType == char.class || javaType == Character.class) {
-            return SystemDataType.STRING;
-        }
-        if (javaType == double.class || javaType == Double.class) {
-            return SystemDataType.DOUBLE;
-        }
-        // float maps to DOUBLE (widening; JCP has no separate float type)
-        if (javaType == float.class || javaType == Float.class) {
-            return SystemDataType.DOUBLE;
-        }
-        if (javaType == boolean.class || javaType == Boolean.class) {
-            return SystemDataType.BOOLEAN;
-        }
-        if (javaType == void.class || javaType == Void.class) {
-            return SystemDataType.VOID;
-        }
-        if (javaType == String.class) {
-            return SystemDataType.STRING;
-        }
-        if (javaType == CharSequence.class) {
-            return SystemDataType.STRING;
-        }
-        // Object maps to ANY — it is the universal base in both Java and JCP
         if (javaType == Object.class) {
             return SystemDataType.ANY;
         }
-        // byte and short share the JVM int slot; map to INT
-        if (javaType == byte.class || javaType == Byte.class
-                || javaType == short.class || javaType == Short.class) {
-            return SystemDataType.INT;
+        DataType found = TypeCompatibilityUtil.findJcpTypeForJava(javaType);
+        if (found != null) {
+            return found;
         }
-        // long maps to LONG
-        if (javaType == long.class || javaType == Long.class) {
-            return SystemDataType.LONG;
-        }
-
-        // Array types — primitive arrays
-        if (javaType == int[].class
-                || javaType == byte[].class || javaType == short[].class) {
-            return SystemDataType.INT_ARRAY;
-        }
-        if (javaType == char[].class) {
-            return SystemDataType.STRING_ARRAY;
-        }
-        if (javaType == long[].class) {
-            return SystemDataType.LONG_ARRAY;
-        }
-        if (javaType == double[].class || javaType == float[].class) {
-            return SystemDataType.DOUBLE_ARRAY;
-        }
-        if (javaType == boolean[].class) {
-            return SystemDataType.BOOLEAN_ARRAY;
-        }
-        if (javaType == String[].class) {
-            return SystemDataType.STRING_ARRAY;
-        }
-        if (javaType == Integer[].class) {
-            return SystemDataType.INT_ARRAY;
-        }
-        if (javaType == Double[].class) {
-            return SystemDataType.DOUBLE_ARRAY;
-        }
-        if (javaType == Boolean[].class) {
-            return SystemDataType.BOOLEAN_ARRAY;
-        }
-        if (javaType == Object[].class) {
-            return SystemDataType.ANY_ARRAY;
-        }
-
-        // Unknown class type — caller should use the context-aware overload to register it
         return SystemDataType.ANY;
     }
 }

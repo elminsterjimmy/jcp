@@ -1,33 +1,52 @@
 package com.elminster.jcp.eval.data;
 
-public interface DataType {
+import java.util.Set;
+
+public interface DataType extends IAdaptable, ICastable<DataType> {
 
   enum SystemDataType implements DataType {
-    ANY("Any", null),
-    ANY_ARRAY("Any[]", ANY),
-    STRING("String", ANY),
-    STRING_ARRAY("String[]", ANY),
-    BOOLEAN("Boolean", ANY),
-    BOOLEAN_ARRAY("Boolean[]", ANY),
+    ANY("Any", null, Object.class) {
+      @Override
+      public boolean isAdaptableTo(Class<?> javaType) {
+        return true;
+      }
+    },
+    ANY_ARRAY("Any[]", ANY, Object[].class),
+    STRING("String", ANY, String.class, CharSequence.class, Comparable.class,
+            char.class, Character.class),
+    STRING_ARRAY("String[]", ANY, String[].class, char[].class),
+    BOOLEAN("Boolean", ANY, boolean.class, Boolean.class),
+    BOOLEAN_ARRAY("Boolean[]", ANY, boolean[].class, Boolean[].class),
     NUMERIC("Numeric", ANY),
     NUMERIC_ARRAY("Numeric[]", ANY),
-    INT("Integer", NUMERIC),
-    INT_ARRAY("Integer[]", ANY),
-    LONG("Long", NUMERIC),
-    LONG_ARRAY("Long[]", ANY),
-    DOUBLE("Double", NUMERIC),
-    DOUBLE_ARRAY("Double[]", ANY),
-    VOID("Void", ANY),
+    INT("Integer", NUMERIC, int.class, Integer.class,
+            byte.class, Byte.class, short.class, Short.class),
+    INT_ARRAY("Integer[]", ANY, int[].class, Integer[].class,
+            byte[].class, short[].class),
+    LONG("Long", NUMERIC, long.class, Long.class),
+    LONG_ARRAY("Long[]", ANY, long[].class),
+    DOUBLE("Double", NUMERIC, double.class, Double.class,
+            float.class, Float.class),
+    DOUBLE_ARRAY("Double[]", ANY, double[].class, Double[].class,
+            float[].class),
+    VOID("Void", ANY, void.class, Void.class),
     ;
 
+    private final String name;
+    private final DataType parent;
+    private final Set<Class<?>> compatibleJavaTypes;
 
-    SystemDataType(String name, DataType parent) {
+    SystemDataType(String name, DataType parent, Class<?>... compatibleJavaTypes) {
       this.name = name;
       this.parent = parent;
+      this.compatibleJavaTypes = compatibleJavaTypes.length > 0
+              ? Set.of(compatibleJavaTypes) : Set.of();
     }
 
-    private String name;
-    private DataType parent;
+    @Override
+    public Set<Class<?>> getCompatibleJavaTypes() {
+      return compatibleJavaTypes;
+    }
 
     @Override
     public String getName() {
