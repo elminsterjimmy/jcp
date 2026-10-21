@@ -105,8 +105,8 @@ class ClassConverterBranchTest {
     }
 
     @Test
-    void registerClass_charParam_mapsToInt() {
-        // PrimitiveHolder.getChar() returns char → getDataType(char.class) → INT
+    void registerClass_charParam_mapsToString() {
+        // PrimitiveHolder.getChar() returns char → getDataType(char.class) → STRING
         ClassConverter.registerClass(PrimitiveHolder.class, ctx, "test");
         assertNotNull(ctx.getDataType("PrimitiveHolder"));
     }
@@ -120,12 +120,13 @@ class ClassConverterBranchTest {
         assertNotNull(ctx.getDataTypeByFqn("java.sql.Date"));
     }
 
-    // ── CharHolder to cover char/Character → INT branch in getDataType ────────
+    // ── CharHolder to cover char/Character → STRING branch in getDataType ───
 
     public static class CharHolder {
         public static char identity(char c) { return c; }
         public static byte  byteVal()  { return 1; }
         public static short shortVal() { return 2; }
+        public static char[] charArr()  { return new char[0]; }
     }
 
     @Test

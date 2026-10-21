@@ -5,12 +5,10 @@ import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.exception.CallStack;
 import com.elminster.jcp.exception.StackFrame;
-import com.elminster.jcp.module.base.BaseModuleRegister;
-import com.elminster.jcp.util.ClassConverter;
+import com.elminster.jcp.module.JcpModuleRegistry;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.util.Iterator;
-import java.util.List;
 
 public class RootEvalContext extends DefaultEvalContext {
 
@@ -26,8 +24,8 @@ public class RootEvalContext extends DefaultEvalContext {
   }
 
   private void registerSystemFunctions() {
-    List<Class<?>> classes = BaseModuleRegister.classToRegister();
-    classes.forEach(clazz -> ClassConverter.registerClass(clazz, this, "base"));
+    // DEFAULT singleton holds no JAR loaders — safe to use without closing.
+    JcpModuleRegistry.DEFAULT.initEval(this);
   }
 
   private void registerSystemDataTypes() {
