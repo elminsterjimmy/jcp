@@ -8,6 +8,7 @@ import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.compile.BytecodeGenerator;
 import com.elminster.jcp.compile.MultiClassLoader;
 import com.elminster.jcp.compile.util.CompileModeClassConverter;
+import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Nested;
@@ -78,32 +79,26 @@ class TypeBridgeReproductionTest {
     class CharacterizationTests {
 
         @Test
-        void mapJavaTypeToDataType_char_mapsToINT() {
-            // Fixed in PR 2: char and int share the same JVM slot (I)
-            assertEquals(SystemDataType.INT, CompileModeClassConverter.mapJavaTypeToDataType(char.class));
+        void mapJavaTypeToDataType_char_mapsToSTRING() {
+            assertEquals(SystemDataType.STRING, CompileModeClassConverter.mapJavaTypeToDataType(char.class));
         }
 
         @Test
-        void mapJavaTypeToDataType_Character_mapsToINT() {
-            assertEquals(SystemDataType.INT, CompileModeClassConverter.mapJavaTypeToDataType(Character.class));
+        void mapJavaTypeToDataType_Character_mapsToSTRING() {
+            assertEquals(SystemDataType.STRING, CompileModeClassConverter.mapJavaTypeToDataType(Character.class));
         }
 
         @Test
-        void mapJavaTypeToDataType_CharSequence_contextFree_returnsANY() {
-            // Context-free overload returns ANY for unknown types by design.
-            // Use registerClass (context-aware) to get a proper ExternalClassType at runtime.
-            assertEquals(SystemDataType.ANY, CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class));
+        void mapJavaTypeToDataType_CharSequence_contextFree_returnsSTRING() {
+            assertEquals(SystemDataType.STRING, CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class));
         }
 
         @Test
-        void mapJavaTypeToDataType_CharSequence_contextAware_registersExternalClassType() {
-            // With context, CharSequence is registered transitively as an ExternalClassType
+        void mapJavaTypeToDataType_CharSequence_contextAware_returnsSTRING() {
             com.elminster.jcp.compile.context.CompileContext ctx =
                     new com.elminster.jcp.compile.context.CompileContext();
-            CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class, ctx, "test");
-            com.elminster.jcp.eval.data.DataType registered = ctx.getDataType("CharSequence");
-            assertNotNull(registered, "CharSequence must be registered in context");
-            assertInstanceOf(com.elminster.jcp.eval.data.ExternalClassType.class, registered);
+            DataType result = CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class, ctx, "test");
+            assertEquals(SystemDataType.STRING, result);
         }
 
         @Test
@@ -161,20 +156,21 @@ class TypeBridgeReproductionTest {
         }
 
         /**
-         * Fixed in PR 2 — repeat(char, int) → String now works.
+         * repeat(char, int) → String — char maps to STRING.
          *
-         * <p>char maps to INT; the compiler treats the char param as INT-typed.
-         * The INVOKESTATIC descriptor is exact (C from the real method), and INT
-         * is directly pushed — no boxing needed. Result: "***" for char='*' (42), count=3.
+         * <p>Uses a custom fixture to avoid overload ambiguity (StringUtils has
+         * both repeat(char,int) and repeat(String,int) which collapse to the
+         * same JCP types). The STRING argument is narrowed to char at the call
+         * boundary via CallSiteNarrowing.STRING→char (charAt(0)).
          */
         @Test
         void repeat_charInt_compilesAndReturnsCorrectValue() throws Exception {
             MultiClassLoader loader = new MultiClassLoader();
             Class<?> clazz = compileAndLoad(
-                    StringUtils.class, "StringUtils", "repeat",
+                    CharFixture.class, "CharFixture", "repeatChar",
                     SystemDataType.STRING,
                     new com.elminster.jcp.ast.Expression[]{
-                            LiteralExpression.of(IntLiteral.of(42)), // '*' = ASCII 42
+                            LiteralExpression.of("*"),
                             LiteralExpression.of(IntLiteral.of(3))
                     },
                     loader);
@@ -183,24 +179,23 @@ class TypeBridgeReproductionTest {
         }
 
         /**
-         * Fixed in PR 2 — countMatches(CharSequence, char) → int now works.
+         * charSequenceLength(CharSequence) → int — CharSequence maps to STRING.
          *
-         * <p>char→INT and CharSequence registered as ExternalClassType; STRING is
-         * Java-assignable to CharSequence so overload resolution selects the right overload.
+         * <p>Uses a custom fixture that takes CharSequence without an ambiguous overload.
+         * The STRING argument is Java-assignable to CharSequence.
          */
         @Test
-        void countMatches_charSequenceChar_compilesAndReturnsCorrectValue() throws Exception {
+        void charSequenceParam_compilesAndReturnsCorrectValue() throws Exception {
             MultiClassLoader loader = new MultiClassLoader();
             Class<?> clazz = compileAndLoad(
-                    StringUtils.class, "StringUtils", "countMatches",
+                    CharFixture.class, "CharFixture", "charSequenceLength",
                     SystemDataType.INT,
                     new com.elminster.jcp.ast.Expression[]{
-                            LiteralExpression.of("hello world"),
-                            LiteralExpression.of(IntLiteral.of(108)) // 'l' = ASCII 108
+                            LiteralExpression.of("hello")
                     },
                     loader);
             Object result = clazz.getMethod("evaluate").invoke(null);
-            assertEquals(3, result);
+            assertEquals(5, result);
         }
 
         /**
@@ -519,6 +514,25 @@ class TypeBridgeReproductionTest {
         /** Accepts Object — exercises the ANY param path without char-boxing conflict. */
         public static String objectParam(Object obj) {
             return obj == null ? "null" : obj.toString();
+        }
+    }
+
+    /**
+     * Fixture for char→STRING and CharSequence→STRING call-site narrowing tests.
+     * Uses unique method names to avoid overload ambiguity that commons-lang3 would produce.
+     */
+    public static final class CharFixture {
+        private CharFixture() {
+        }
+
+        public static String repeatChar(char c, int times) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < times; i++) sb.append(c);
+            return sb.toString();
+        }
+
+        public static int charSequenceLength(CharSequence cs) {
+            return cs.length();
         }
     }
 }

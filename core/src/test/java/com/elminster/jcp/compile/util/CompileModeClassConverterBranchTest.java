@@ -30,13 +30,13 @@ class CompileModeClassConverterBranchTest {
     // ── context-free overload: remaining primitive/wrapper branches ───────────
 
     @Test
-    void mapJavaType_charPrimitive_returnsInt() {
-        assertEquals(SystemDataType.INT, CompileModeClassConverter.mapJavaTypeToDataType(char.class));
+    void mapJavaType_charPrimitive_returnsString() {
+        assertEquals(SystemDataType.STRING, CompileModeClassConverter.mapJavaTypeToDataType(char.class));
     }
 
     @Test
-    void mapJavaType_charWrapper_returnsInt() {
-        assertEquals(SystemDataType.INT, CompileModeClassConverter.mapJavaTypeToDataType(Character.class));
+    void mapJavaType_charWrapper_returnsString() {
+        assertEquals(SystemDataType.STRING, CompileModeClassConverter.mapJavaTypeToDataType(Character.class));
     }
 
     @Test
@@ -80,8 +80,13 @@ class CompileModeClassConverterBranchTest {
     }
 
     @Test
-    void mapJavaType_charArray_returnsIntArray() {
-        assertEquals(SystemDataType.INT_ARRAY, CompileModeClassConverter.mapJavaTypeToDataType(char[].class));
+    void mapJavaType_charArray_returnsStringArray() {
+        assertEquals(SystemDataType.STRING_ARRAY, CompileModeClassConverter.mapJavaTypeToDataType(char[].class));
+    }
+
+    @Test
+    void mapJavaType_charSequence_returnsString() {
+        assertEquals(SystemDataType.STRING, CompileModeClassConverter.mapJavaTypeToDataType(CharSequence.class));
     }
 
     @Test

@@ -363,7 +363,7 @@ public class ClassConverter {
                                          Set<String> inProgress) {
         // Fast-path: primitives and well-known types — mirrors CompileModeClassConverter
         if (dataType == int.class     || dataType == Integer.class)   return SystemDataType.INT;
-        if (dataType == char.class    || dataType == Character.class)  return SystemDataType.INT;
+        if (dataType == char.class    || dataType == Character.class)  return SystemDataType.STRING;
         if (dataType == byte.class    || dataType == Byte.class)       return SystemDataType.INT;
         if (dataType == short.class   || dataType == Short.class)      return SystemDataType.INT;
         if (dataType == double.class  || dataType == Double.class)     return SystemDataType.DOUBLE;
@@ -371,12 +371,14 @@ public class ClassConverter {
         if (dataType == boolean.class || dataType == Boolean.class)    return SystemDataType.BOOLEAN;
         if (dataType == void.class    || dataType == Void.class)       return SystemDataType.VOID;
         if (dataType == String.class)                                   return SystemDataType.STRING;
+        if (dataType == CharSequence.class)                             return SystemDataType.STRING;
         if (dataType == Object.class)                                   return SystemDataType.ANY;
         if (dataType == long.class    || dataType == Long.class)       return SystemDataType.LONG;
 
         // Array fast-paths
-        if (dataType == int[].class || dataType == char[].class
+        if (dataType == int[].class
                 || dataType == byte[].class || dataType == short[].class) return SystemDataType.INT_ARRAY;
+        if (dataType == char[].class)                                     return SystemDataType.STRING_ARRAY;
         if (dataType == long[].class)                                      return SystemDataType.LONG_ARRAY;
         if (dataType == double[].class || dataType == float[].class)       return SystemDataType.DOUBLE_ARRAY;
         if (dataType == boolean[].class)                                   return SystemDataType.BOOLEAN_ARRAY;

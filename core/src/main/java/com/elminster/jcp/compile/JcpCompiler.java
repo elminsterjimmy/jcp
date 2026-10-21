@@ -3,6 +3,7 @@ package com.elminster.jcp.compile;
 import com.elminster.jcp.ast.Expression;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.eval.data.DataType;
+import com.elminster.jcp.module.JcpModuleRegistry;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.util.TraceClassVisitor;
 import org.slf4j.Logger;
@@ -73,6 +74,9 @@ public class JcpCompiler {
 
         // Load all classes using MultiClassLoader
         MultiClassLoader loader = new MultiClassLoader();
+        for (ClassLoader cl : JcpModuleRegistry.DEFAULT.getJarLoaders()) {
+            loader.registerClassLoader(cl);
+        }
         for (Map.Entry<String, byte[]> entry : allClasses.entrySet()) {
             loader.defineClass(entry.getKey(), entry.getValue());
         }

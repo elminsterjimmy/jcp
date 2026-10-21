@@ -10,7 +10,7 @@ import com.elminster.jcp.compile.declare.FunctionDeclarationCompiler;
 import com.elminster.jcp.compile.util.CompileModeClassConverter;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.module.base.BaseModuleRegister;
+import com.elminster.jcp.module.JcpModuleRegistry;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -394,10 +394,7 @@ public class BytecodeGenerator implements Opcodes {
      * This allows compiled JCP code to call methods on these external Java classes.
      */
     private void registerModuleTypes(CompileContext ctx) {
-        List<Class<?>> moduleClasses = BaseModuleRegister.classToRegister();
-        for (Class<?> clazz : moduleClasses) {
-            CompileModeClassConverter.registerClass(clazz, ctx, "base");
-        }
+        JcpModuleRegistry.DEFAULT.initCompile(ctx);
 
         // Register additional external classes
         additionalExternalClasses.forEach((clazz, module) ->
