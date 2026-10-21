@@ -80,7 +80,7 @@ public class ModulePrefixTypeDisambiguationCompileTest extends AbstractCompileTe
     }
 
     /**
-     * Unknown module prefix returns null from getDataType, causing CompileException.
+     * Unknown module prefix throws CompileException with a message naming the module.
      */
     @Test
     void testUnknownModulePrefixThrowsCompileException() {
@@ -98,8 +98,8 @@ public class ModulePrefixTypeDisambiguationCompileTest extends AbstractCompileTe
         CompileException ex = assertThrows(CompileException.class, () ->
             generator.compileWithReturn(program, call, SystemDataType.INT)
         );
-        assertTrue(ex.getMessage().contains("unknownmod::Strings"),
-            "Error message should contain the module-qualified name");
+        assertTrue(ex.getMessage().contains("not found in module 'unknownmod'"),
+            "Error should name the unknown module");
     }
 
     /**

@@ -6,10 +6,8 @@ import com.elminster.jcp.ast.expression.literal.IntLiteral;
 import com.elminster.jcp.ast.statement.Block;
 import com.elminster.jcp.ast.statement.BlockImpl;
 import com.elminster.jcp.ast.statement.ExpressionStatement;
-import com.elminster.jcp.ast.statement.declaration.VariableDeclarationImpl;
 import com.elminster.jcp.eval.context.RootEvalContext;
 import com.elminster.jcp.eval.data.DataType;
-import com.elminster.jcp.eval.data.DataTypeImpl;
 import com.elminster.jcp.eval.excpetion.EvaluationException;
 import com.elminster.jcp.util.ClassConverter;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,9 +89,8 @@ class ModulePrefixTypeDisambiguationEvalTest {
     }
 
     /**
-     * unknownmod::Strings should fail with a clear error.
-     * Since getDataType returns null for unknown module, StaticMethodCallEvaluator
-     * will throw because the type resolution returns null.
+     * unknownmod::Strings should fail with a clear error message
+     * naming the module that was not found.
      */
     @Test
     void testUnknownModulePrefixFails() {
@@ -106,7 +103,10 @@ class ModulePrefixTypeDisambiguationEvalTest {
             )
         ));
 
-        assertThrows(Exception.class, () -> new EvalVisitor(context).visit(program));
+        EvaluationException ex = assertThrows(EvaluationException.class,
+            () -> new EvalVisitor(context).visit(program));
+        assertTrue(ex.getMessage().contains("not found in module 'unknownmod'"),
+            "Error should name the unknown module");
     }
 
     /**
@@ -176,15 +176,19 @@ class ModulePrefixTypeDisambiguationEvalTest {
         }
 
         @Test
-        void testGetDataTypeReturnsNullForUnknownModule() {
-            DataType resolved = context.getDataType("unknownmod::Strings");
-            assertNull(resolved, "unknownmod::Strings should return null");
+        void testGetDataTypeThrowsForUnknownModule() {
+            EvaluationException ex = assertThrows(EvaluationException.class,
+                () -> context.getDataType("unknownmod::Strings"));
+            assertTrue(ex.getMessage().contains("not found in module 'unknownmod'"),
+                "Error should name the unknown module");
         }
 
         @Test
-        void testGetDataTypeReturnsNullForUnknownSimpleName() {
-            DataType resolved = context.getDataType("guava::NonExistent");
-            assertNull(resolved, "guava::NonExistent should return null");
+        void testGetDataTypeThrowsForUnknownSimpleName() {
+            EvaluationException ex = assertThrows(EvaluationException.class,
+                () -> context.getDataType("guava::NonExistent"));
+            assertTrue(ex.getMessage().contains("not found in module 'guava'"),
+                "Error should name the module");
         }
     }
 }

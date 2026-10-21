@@ -633,7 +633,12 @@ public class CompileContext {
             String simpleName = name.substring(sep + 2);
             DataType type = typeTable.getByModuleAndSimpleName(module, simpleName);
             if (type == null && parent != null) {
-                return parent.getDataType(name);
+                type = parent.getDataType(name);
+            }
+            if (type == null) {
+                throw new CompileException(
+                    "Type '" + simpleName + "' not found in module '" + module
+                    + "'. Check the module name and ensure the class is registered.");
             }
             return type;
         }

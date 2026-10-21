@@ -107,7 +107,13 @@ public class DefaultEvalContext implements EvalContext {
         if (sep > 0) {
             String module = name.substring(0, sep);
             String simpleName = name.substring(sep + 2);
-            return dataTypes.getByModuleAndSimpleName(module, simpleName);
+            DataType type = dataTypes.getByModuleAndSimpleName(module, simpleName);
+            if (type == null) {
+                throw new EvaluationException(
+                    "Type '" + simpleName + "' not found in module '" + module
+                    + "'. Check the module name and ensure the class is registered.");
+            }
+            return type;
         }
 
         String convertedName = convertSystemDataTypeName(name);
