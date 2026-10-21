@@ -32,7 +32,7 @@ A **middleware platform** that bridges Domain-Specific Languages (DSLs) and the 
 - **Unified AST**: Same abstract syntax tree works with both execution backends
 - **Type System**: Hierarchical type system with `ANY`, `NUMERIC`, `INT`, `BOOLEAN`, `STRING`, and more
 - **Custom Structs**: Define and use custom data structures
-- **Module System**: Extensible module architecture for adding Java-backed functions
+- **Module System**: Extensible module architecture for adding Java-backed functions, with `module::Type` disambiguation when names collide
 - **Function Overloading**: Type-safe function resolution with parameter type matching
 
 ## Quick Start
@@ -339,6 +339,30 @@ struct Point {
 
 Point p = Point(10, 20);
 int xVal = p.x;
+```
+
+### Modules and Type Disambiguation
+
+JCP's module system lets you register external Java classes as callable types. When two modules expose the same simple name (e.g. both the base module and Guava provide a `Strings` class), use the `module::Type` prefix to disambiguate:
+
+```
+// Unambiguous — only one "Math" is registered
+int abs = Math.abs(-5);
+
+// Ambiguous — two "Strings" classes exist, use module:: prefix
+string repeated = guava::Strings.repeat("ab", 3);
+string len = base::Strings.length("hello");
+```
+
+In Java code, register external classes with a module name:
+
+```java
+// Compile mode
+BytecodeGenerator generator = new BytecodeGenerator("MyProgram");
+generator.registerExternalClass(com.google.common.base.Strings.class, "guava");
+
+// Eval mode
+ClassConverter.registerClass(com.google.common.base.Strings.class, context, "guava");
 ```
 
 ## Project Structure
