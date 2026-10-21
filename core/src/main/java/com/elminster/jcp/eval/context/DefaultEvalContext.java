@@ -103,13 +103,26 @@ public class DefaultEvalContext implements EvalContext {
 
     @Override
     public DataType getDataType(String name) {
+        int sep = name.indexOf("::");
+        if (sep > 0) {
+            String module = name.substring(0, sep);
+            String simpleName = name.substring(sep + 2);
+            DataType type = dataTypes.getByModuleAndSimpleName(module, simpleName);
+            if (type == null) {
+                throw new EvaluationException(
+                    "Type '" + simpleName + "' not found in module '" + module
+                    + "'. Check the module name and ensure the class is registered.");
+            }
+            return type;
+        }
+
         String convertedName = convertSystemDataTypeName(name);
         try {
             return dataTypes.getBySimpleName(convertedName);
         } catch (AmbiguousTypeException e) {
             throw new EvaluationException(
                 "Type '" + name + "' is ambiguous: " + e.getCandidates()
-                + ". Qualify the type with its fully-qualified class name.");
+                + ". Use module::SimpleName or the fully-qualified class name to disambiguate.");
         }
     }
 

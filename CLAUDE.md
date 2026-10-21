@@ -70,6 +70,18 @@ Both modes use reflection-based factories that map AST node names to processor c
 
 Type compatibility checked via `isCastableTo()` method.
 
+### External Types and Module Disambiguation
+
+Java classes can be registered as external types via `CompileModeClassConverter.registerClass()` (compile) or `ClassConverter.registerClass()` (eval). Each registration associates the class with a **module name** (e.g. `"base"`, `"guava"`).
+
+When two modules register classes with the same simple name (e.g. `com.google.common.base.Strings` and the base module's `Strings`), a bare `Strings` reference is ambiguous. Resolution uses a **three-tier** strategy:
+
+1. **Simple name** — works when unambiguous (only one class has that name)
+2. **`module::SimpleName`** — e.g. `guava::Strings` disambiguates by module
+3. **Fully-qualified name** — e.g. `com.google.common.base.Strings`
+
+In compile mode, `BytecodeGenerator.registerExternalClass(Class<?>, String module)` registers a class under a module name before compilation. The base module classes are registered automatically.
+
 ### Context Management
 
 - **EvalContext**: Variable/function maps, loop context for break/continue, context stack for scopes

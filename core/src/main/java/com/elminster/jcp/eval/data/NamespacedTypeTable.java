@@ -109,6 +109,45 @@ public final class NamespacedTypeTable {
         throw new AmbiguousTypeException(simpleName, candidates.toString());
     }
 
+    /**
+     * Look up a type by module name and simple name.
+     *
+     * <p>Filters candidates to {@link ExternalClassType}s whose {@code getModule()}
+     * matches the given module. Returns null if no match; throws
+     * {@link AmbiguousTypeException} if multiple ExternalClassTypes from the same
+     * module share the simple name (defensive — shouldn't happen in practice).
+     *
+     * @param module     the module name (e.g. "guava", "base")
+     * @param simpleName the simple class name (e.g. "Strings")
+     * @return the matching DataType, or {@code null} if not found
+     * @throws AmbiguousTypeException if multiple types match
+     */
+    public DataType getByModuleAndSimpleName(String module, String simpleName) {
+        Set<String> fqns = aliasBySimpleName.getOrDefault(simpleName, Collections.emptySet());
+        if (fqns.isEmpty()) {
+            return null;
+        }
+
+        List<DataType> matches = new ArrayList<>();
+        for (String fqn : fqns) {
+            DataType dt = byFqn.get(fqn);
+            if (dt instanceof ExternalClassType
+                    && module.equals(((ExternalClassType) dt).getModule())) {
+                matches.add(dt);
+            }
+        }
+
+        if (matches.isEmpty()) {
+            return null;
+        }
+        if (matches.size() == 1) {
+            return matches.get(0);
+        }
+        StringJoiner candidates = new StringJoiner(", ");
+        matches.stream().map(DataType::getFqn).forEach(candidates::add);
+        throw new AmbiguousTypeException(simpleName, candidates.toString());
+    }
+
     /** Whether this table contains any registration for the given simple name. */
     public boolean containsSimpleName(String simpleName) {
         Set<String> fqns = aliasBySimpleName.get(simpleName);

@@ -616,11 +616,33 @@ public class CompileContext {
     }
 
     /**
-     * Get a data type by simple name, searching this scope then parent scopes.
+     * Get a data type by name, searching this scope then parent scopes.
+     *
+     * <p>Resolution order:
+     * <ol>
+     *   <li>{@code module::SimpleName} — if name contains {@code "::"}, filter by module</li>
+     *   <li>Simple name — unambiguous single-match lookup</li>
+     * </ol>
      *
      * @throws CompileException if the simple name is ambiguous in this scope
      */
     public DataType getDataType(String name) {
+        int sep = name.indexOf("::");
+        if (sep > 0) {
+            String module = name.substring(0, sep);
+            String simpleName = name.substring(sep + 2);
+            DataType type = typeTable.getByModuleAndSimpleName(module, simpleName);
+            if (type == null && parent != null) {
+                type = parent.getDataType(name);
+            }
+            if (type == null) {
+                throw new CompileException(
+                    "Type '" + simpleName + "' not found in module '" + module
+                    + "'. Check the module name and ensure the class is registered.");
+            }
+            return type;
+        }
+
         try {
             DataType type = typeTable.getBySimpleName(name);
             if (type == null && parent != null) {
@@ -630,7 +652,7 @@ public class CompileContext {
         } catch (AmbiguousTypeException e) {
             throw new CompileException(
                 "Type '" + name + "' is ambiguous: " + e.getCandidates()
-                + ". Qualify the type with its fully-qualified class name.");
+                + ". Use module::SimpleName or the fully-qualified class name to disambiguate.");
         }
     }
 
