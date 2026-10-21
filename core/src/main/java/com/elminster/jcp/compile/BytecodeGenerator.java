@@ -37,8 +37,8 @@ public class BytecodeGenerator implements Opcodes {
     // Source file name for debugging information
     private String sourceFile = DEFAULT_SOURCE_FILE;
 
-    // Additional external classes to register before compilation
-    private final List<Class<?>> additionalExternalClasses = new ArrayList<>();
+    // Additional external classes to register before compilation (class → module name)
+    private final Map<Class<?>, String> additionalExternalClasses = new HashMap<>();
 
     /**
      * Create a new bytecode generator.
@@ -57,7 +57,18 @@ public class BytecodeGenerator implements Opcodes {
      * @param clazz the Java class to register
      */
     public void registerExternalClass(Class<?> clazz) {
-        additionalExternalClasses.add(clazz);
+        additionalExternalClasses.put(clazz, "external");
+    }
+
+    /**
+     * Register an external Java class under a specific module name.
+     * Must be called before compile() or compileWithReturn().
+     *
+     * @param clazz  the Java class to register
+     * @param module the module name (e.g. "guava")
+     */
+    public void registerExternalClass(Class<?> clazz, String module) {
+        additionalExternalClasses.put(clazz, module);
     }
 
     /**
@@ -389,8 +400,8 @@ public class BytecodeGenerator implements Opcodes {
         }
 
         // Register additional external classes
-        for (Class<?> clazz : additionalExternalClasses) {
-            CompileModeClassConverter.registerClass(clazz, ctx, "external");
-        }
+        additionalExternalClasses.forEach((clazz, module) ->
+            CompileModeClassConverter.registerClass(clazz, ctx, module)
+        );
     }
 }

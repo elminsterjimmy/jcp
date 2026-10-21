@@ -74,6 +74,7 @@ public final class CompileModeClassConverter {
             }
             // A stub was created by mapJavaTypeToDataType when this class appeared as a
             // parameter/return type of another class. Mark in-progress and fully register now.
+            existingExt.setModule(module);
             inProgress.add(fqn);
             addMethodsAndConstructors(existingExt, clazz, ctx, module, inProgress);
             inProgress.remove(fqn);
@@ -95,6 +96,7 @@ public final class CompileModeClassConverter {
 
         // Not yet registered. Create, register, then add methods.
         ExternalClassType type = new ExternalClassType(name, clazz);
+        type.setModule(module);
         ctx.addDataType(type);
         inProgress.add(fqn);
         addMethodsAndConstructors(type, clazz, ctx, module, inProgress);

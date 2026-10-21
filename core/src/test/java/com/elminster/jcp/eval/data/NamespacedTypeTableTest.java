@@ -183,4 +183,67 @@ class NamespacedTypeTableTest {
             assertFalse(table.containsSimpleName("Date"));
         }
     }
+
+    @Nested
+    class GetByModuleAndSimpleName {
+
+        @Test
+        void testReturnsCorrectTypeWhenTwoModulesShareSimpleName() {
+            ExternalClassType baseStrings = new ExternalClassType("Strings",
+                com.elminster.jcp.module.base.strings.Strings.class);
+            baseStrings.setModule("base");
+
+            ExternalClassType guavaStrings = new ExternalClassType("Strings",
+                com.google.common.base.Strings.class);
+            guavaStrings.setModule("guava");
+
+            table.register(baseStrings);
+            table.register(guavaStrings);
+
+            assertSame(guavaStrings, table.getByModuleAndSimpleName("guava", "Strings"));
+            assertSame(baseStrings, table.getByModuleAndSimpleName("base", "Strings"));
+        }
+
+        @Test
+        void testReturnsSingleTypeWhenNoCollision() {
+            ExternalClassType dateType = new ExternalClassType("Date", java.util.Date.class);
+            dateType.setModule("javautil");
+            table.register(dateType);
+
+            assertSame(dateType, table.getByModuleAndSimpleName("javautil", "Date"));
+        }
+
+        @Test
+        void testReturnsNullForNonExistentModule() {
+            ExternalClassType dateType = new ExternalClassType("Date", java.util.Date.class);
+            dateType.setModule("javautil");
+            table.register(dateType);
+
+            assertNull(table.getByModuleAndSimpleName("unknownmod", "Date"));
+        }
+
+        @Test
+        void testReturnsNullForNonExistentSimpleName() {
+            ExternalClassType dateType = new ExternalClassType("Date", java.util.Date.class);
+            dateType.setModule("javautil");
+            table.register(dateType);
+
+            assertNull(table.getByModuleAndSimpleName("javautil", "NonExistent"));
+        }
+
+        @Test
+        void testReturnsNullForEmptyTable() {
+            assertNull(table.getByModuleAndSimpleName("anymod", "AnyType"));
+        }
+
+        @Test
+        void testFiltersOutNonExternalClassTypes() {
+            // Register a non-ExternalClassType (struct/system) with same simple name
+            DataType structType = new DataTypeImpl("Math");
+            table.register(structType);
+
+            // module:: lookup should NOT match non-ExternalClassType
+            assertNull(table.getByModuleAndSimpleName("base", "Math"));
+        }
+    }
 }
