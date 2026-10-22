@@ -1,5 +1,6 @@
 package com.elminster.jcp.module.base.dict;
 
+import com.elminster.jcp.module.base.ContentEquality;
 import com.elminster.jcp.module.base.vb.ValueBuffer;
 
 import java.util.HashMap;
@@ -66,6 +67,27 @@ public class Dictionary {
             vb.appendRow(new Object[]{key, map.get(key)});
         }
         return vb;
+    }
+
+    public boolean contentEquals(Dictionary other) {
+        if (other == null) {
+            return false;
+        }
+        if (this == other) {
+            return true;
+        }
+        if (map.size() != other.map.size()) {
+            return false;
+        }
+        for (Object key : map.keySet()) {
+            if (!other.map.containsKey(key)) {
+                return false;
+            }
+            if (!ContentEquality.elementEquals(map.get(key), other.map.get(key))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
