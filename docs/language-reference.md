@@ -127,10 +127,11 @@ Resolution uses a three-tier strategy:
 2. **`module::SimpleName`** — e.g. `guava::Strings` disambiguates by module
 3. **Fully-qualified name** — e.g. `com.google.common.base.Strings`
 
-For the Java-side API to register modules, see the [Integration Guide](integration-guide.md#module-registration).
+For the Java-side API to register modules, see the [Integration Guide](integration-guide.md#module-registration) and the [Custom Module Functions Guide](guides/custom-module-functions.md).
 
 ## See Also
 
 - [Integration Guide](integration-guide.md) — Connect your DSL to JCP, execute programs
+- [Custom Module Functions](guides/custom-module-functions.md) — Register Java classes, type mapping, JAR imports
 - [Architecture](architecture/jcp-function-architecture.md) — Function system internals
 - [Debugger API](debugger.md) — Breakpoints, stepping, variable inspection
