@@ -1,5 +1,8 @@
 package com.elminster.jcp.module.base.vb;
 
+import com.elminster.jcp.module.base.ContentEquality;
+
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -44,5 +47,33 @@ public class ValueBuffer {
 
   public int length() {
     return buffer.size();
+  }
+
+  public boolean contentEquals(ValueBuffer other) {
+    if (other == null) {
+      return false;
+    }
+    if (this == other) {
+      return true;
+    }
+    if (!Arrays.equals(header, other.header)) {
+      return false;
+    }
+    if (buffer.size() != other.buffer.size()) {
+      return false;
+    }
+    for (int i = 0; i < buffer.size(); i++) {
+      Object[] rowA = buffer.get(i);
+      Object[] rowB = other.buffer.get(i);
+      if (rowA.length != rowB.length) {
+        return false;
+      }
+      for (int j = 0; j < rowA.length; j++) {
+        if (!ContentEquality.elementEquals(rowA[j], rowB[j])) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 }

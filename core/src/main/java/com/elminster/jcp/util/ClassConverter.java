@@ -15,6 +15,8 @@ import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.eval.data.TypeCompatibilityUtil;
 import com.elminster.jcp.eval.excpetion.InitializeException;
 import com.elminster.jcp.module.AbstractModuleFunction;
+import com.elminster.jcp.module.base.dict.Dictionary;
+import com.elminster.jcp.module.base.vb.ValueBuffer;
 import com.google.common.reflect.ClassPath;
 
 import java.lang.reflect.*;
@@ -157,7 +159,7 @@ public class ClassConverter {
 
             @Override
             protected Data doFunction(Data[] arguments, EvalContext evalContext) {
-                Object[] argValues = getArgumentValues(arguments);
+                Object[] argValues = convertArgumentsForJava(arguments, method);
                 Object result = null;
                 try {
                     result = ReflectUtil.invoke(null, method, argValues);
@@ -167,7 +169,7 @@ public class ClassConverter {
                     }
                     throw new RuntimeException("Invoke failed", e);
                 }
-                return new AnyData(result, returnDataType);
+                return wrapReturnValue(result, returnDataType, evalContext);
             }
         };
         addFunctionIfAbsent(function, context);
@@ -189,6 +191,39 @@ public class ClassConverter {
             argValues[i] = arguments[i].get();
         }
         return argValues;
+    }
+
+    private static Object[] convertArgumentsForJava(Data[] arguments, Method method) {
+        Class<?>[] javaParamTypes = method.getParameterTypes();
+        Object[] argValues = new Object[arguments.length];
+        for (int i = 0; i < arguments.length; i++) {
+            Object val = arguments[i].get();
+            if (val instanceof Dictionary && java.util.Map.class.isAssignableFrom(javaParamTypes[i])) {
+                argValues[i] = CollectionConverter.toMap((Dictionary) val);
+            } else if (val instanceof ValueBuffer && java.util.List.class.isAssignableFrom(javaParamTypes[i])) {
+                argValues[i] = CollectionConverter.toList((ValueBuffer) val);
+            } else {
+                argValues[i] = val;
+            }
+        }
+        return argValues;
+    }
+
+    private static Data wrapReturnValue(Object result, DataType returnDataType, EvalContext evalContext) {
+        if (result == null) {
+            return new AnyData((Object) null, returnDataType);
+        }
+        if (result instanceof java.util.Map && !(result instanceof Dictionary)) {
+            Dictionary dict = CollectionConverter.fromMap((java.util.Map<?, ?>) result);
+            DataType dictType = DataTypeUtils.getDataType("Dictionary", evalContext);
+            return new AnyData(dict, dictType != null ? dictType : returnDataType);
+        }
+        if (result instanceof java.util.List) {
+            ValueBuffer vb = CollectionConverter.fromList((java.util.List<?>) result);
+            DataType vbType = DataTypeUtils.getDataType("ValueBuffer", evalContext);
+            return new AnyData(vb, vbType != null ? vbType : returnDataType);
+        }
+        return new AnyData(result, returnDataType);
     }
 
     private static ParameterDef[] getParameterDefs(Parameter[] parameters, EvalContext context,
@@ -261,9 +296,17 @@ public class ClassConverter {
             @Override
             protected Data doFunction(Data[] parameters, EvalContext evalContext) {
                 Object target = parameters[0].get();
+                Class<?>[] javaParamTypes = method.getParameterTypes();
                 Object[] args = new Object[parameters.length - 1];
                 for (int i = 1; i < parameters.length; i++) {
-                    args[i - 1] = parameters[i].get();
+                    Object val = parameters[i].get();
+                    if (val instanceof Dictionary && java.util.Map.class.isAssignableFrom(javaParamTypes[i - 1])) {
+                        args[i - 1] = CollectionConverter.toMap((Dictionary) val);
+                    } else if (val instanceof ValueBuffer && java.util.List.class.isAssignableFrom(javaParamTypes[i - 1])) {
+                        args[i - 1] = CollectionConverter.toList((ValueBuffer) val);
+                    } else {
+                        args[i - 1] = val;
+                    }
                 }
                 Object result = null;
                 try {
@@ -279,7 +322,7 @@ public class ClassConverter {
                     }
                     throw new RuntimeException("Invoke failed", e);
                 }
-                return new AnyData(result, returnDt);
+                return wrapReturnValue(result, returnDt, evalContext);
             }
         };
         addFunctionIfAbsent(function, context);
