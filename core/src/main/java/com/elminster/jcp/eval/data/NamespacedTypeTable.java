@@ -3,6 +3,7 @@ package com.elminster.jcp.eval.data;
 import com.elminster.jcp.eval.excpetion.AmbiguousTypeException;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -152,6 +153,11 @@ public final class NamespacedTypeTable {
     public boolean containsSimpleName(String simpleName) {
         Set<String> fqns = aliasBySimpleName.get(simpleName);
         return fqns != null && !fqns.isEmpty();
+    }
+
+    /** Returns a read-only view of all registered types. */
+    public Collection<DataType> allTypes() {
+        return Collections.unmodifiableCollection(byFqn.values());
     }
 
     // -----------------------------------------------------------------------

@@ -81,6 +81,16 @@ class TypeMapperTest {
         }
 
         @Test
+        void testLongArrayDescriptor() {
+            assertEquals("[J", TypeMapper.toDescriptor(SystemDataType.LONG_ARRAY));
+        }
+
+        @Test
+        void testAnyArrayDescriptor() {
+            assertEquals("Ljava/lang/Object;", TypeMapper.toDescriptor(SystemDataType.ANY_ARRAY));
+        }
+
+        @Test
         void testStructTypeDescriptor() {
             StructType structType = new StructType("Person", Collections.emptyList());
             assertEquals("LPerson;", TypeMapper.toDescriptor(structType));
@@ -140,6 +150,12 @@ class TypeMapperTest {
             DataType[] argTypes = {SystemDataType.INT};
             String desc = TypeMapper.buildMethodDescriptor(argTypes, null);
             assertEquals("(I)", desc);
+        }
+
+        @Test
+        void testBuildMethodDescriptor_NullArgTypes() {
+            String desc = TypeMapper.buildMethodDescriptor((DataType[]) null, SystemDataType.VOID);
+            assertEquals("()V", desc);
         }
     }
 
@@ -215,6 +231,21 @@ class TypeMapperTest {
         void testReturnOpcode_String() {
             assertEquals(Opcodes.ARETURN, TypeMapper.getReturnOpcode(SystemDataType.STRING));
         }
+
+        @Test
+        void testLoadOpcode_Long() {
+            assertEquals(Opcodes.LLOAD, TypeMapper.getLoadOpcode(SystemDataType.LONG));
+        }
+
+        @Test
+        void testStoreOpcode_Long() {
+            assertEquals(Opcodes.LSTORE, TypeMapper.getStoreOpcode(SystemDataType.LONG));
+        }
+
+        @Test
+        void testReturnOpcode_Long() {
+            assertEquals(Opcodes.LRETURN, TypeMapper.getReturnOpcode(SystemDataType.LONG));
+        }
     }
 
     @Nested
@@ -244,6 +275,11 @@ class TypeMapperTest {
         void testGetArrayElementType_Unknown() {
             assertEquals(SystemDataType.ANY, TypeMapper.getArrayElementType(SystemDataType.ANY_ARRAY));
         }
+
+        @Test
+        void testGetArrayElementType_LongArray() {
+            assertEquals(SystemDataType.LONG, TypeMapper.getArrayElementType(SystemDataType.LONG_ARRAY));
+        }
     }
 
     @Nested
@@ -270,6 +306,11 @@ class TypeMapperTest {
         }
 
         @Test
+        void testIsPrimitive_Long() {
+            assertTrue(TypeMapper.isPrimitive(SystemDataType.LONG));
+        }
+
+        @Test
         void testSlotSize_Int() {
             assertEquals(1, TypeMapper.getSlotSize(SystemDataType.INT));
         }
@@ -277,6 +318,11 @@ class TypeMapperTest {
         @Test
         void testSlotSize_Double() {
             assertEquals(2, TypeMapper.getSlotSize(SystemDataType.DOUBLE));
+        }
+
+        @Test
+        void testSlotSize_Long() {
+            assertEquals(2, TypeMapper.getSlotSize(SystemDataType.LONG));
         }
 
         @Test

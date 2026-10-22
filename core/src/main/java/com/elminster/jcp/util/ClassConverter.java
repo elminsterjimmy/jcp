@@ -12,6 +12,7 @@ import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.DataTypeImpl;
 import com.elminster.jcp.eval.data.ExternalClassType;
+import com.elminster.jcp.eval.data.TypeCompatibilityUtil;
 import com.elminster.jcp.eval.excpetion.InitializeException;
 import com.elminster.jcp.module.AbstractModuleFunction;
 import com.google.common.reflect.ClassPath;
@@ -361,29 +362,19 @@ public class ClassConverter {
      */
     private static DataType getDataType(Class<?> dataType, EvalContext context, String module,
                                          Set<String> inProgress) {
-        // Fast-path: primitives and well-known types — mirrors CompileModeClassConverter
-        if (dataType == int.class     || dataType == Integer.class)   return SystemDataType.INT;
-        if (dataType == char.class    || dataType == Character.class)  return SystemDataType.STRING;
-        if (dataType == byte.class    || dataType == Byte.class)       return SystemDataType.INT;
-        if (dataType == short.class   || dataType == Short.class)      return SystemDataType.INT;
-        if (dataType == double.class  || dataType == Double.class)     return SystemDataType.DOUBLE;
-        if (dataType == float.class   || dataType == Float.class)      return SystemDataType.DOUBLE;
-        if (dataType == boolean.class || dataType == Boolean.class)    return SystemDataType.BOOLEAN;
-        if (dataType == void.class    || dataType == Void.class)       return SystemDataType.VOID;
-        if (dataType == String.class)                                   return SystemDataType.STRING;
-        if (dataType == CharSequence.class)                             return SystemDataType.STRING;
-        if (dataType == Object.class)                                   return SystemDataType.ANY;
-        if (dataType == long.class    || dataType == Long.class)       return SystemDataType.LONG;
-
-        // Array fast-paths
-        if (dataType == int[].class
-                || dataType == byte[].class || dataType == short[].class) return SystemDataType.INT_ARRAY;
-        if (dataType == char[].class)                                     return SystemDataType.STRING_ARRAY;
-        if (dataType == long[].class)                                      return SystemDataType.LONG_ARRAY;
-        if (dataType == double[].class || dataType == float[].class)       return SystemDataType.DOUBLE_ARRAY;
-        if (dataType == boolean[].class)                                   return SystemDataType.BOOLEAN_ARRAY;
-        if (dataType == String[].class)                                    return SystemDataType.STRING_ARRAY;
-        if (dataType.isArray())                                            return SystemDataType.ANY_ARRAY;
+        // Fast-path: Object → ANY
+        if (dataType == Object.class) {
+            return SystemDataType.ANY;
+        }
+        // Delegate to TypeCompatibilityUtil for SystemDataType matches
+        DataType found = TypeCompatibilityUtil.findJcpTypeForJava(dataType);
+        if (found != null) {
+            return found;
+        }
+        // Generic array fallback (typed arrays handled by SystemDataType.isAdaptableTo)
+        if (dataType.isArray()) {
+            return SystemDataType.ANY_ARRAY;
+        }
 
         String simpleName = dataType.getSimpleName();
         if (simpleName.isEmpty()) {

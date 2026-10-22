@@ -7,6 +7,7 @@ import com.elminster.jcp.exception.CallStack;
 import com.elminster.jcp.exception.StackFrame;
 import com.elminster.jcp.ast.statement.function.Function;
 
+import java.util.Collection;
 import java.util.Map;
 
 public interface EvalContext {
@@ -32,6 +33,8 @@ public interface EvalContext {
    * Used during stub registration to avoid ambiguity from simple-name lookup.
    */
   DataType getDataTypeByFqn(String fqn);
+
+  Collection<DataType> getAllRegisteredTypes();
 
   LoopContext getLoopContext();
 

@@ -5,9 +5,11 @@ import com.elminster.jcp.util.FunctionUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * DataType implementation for external Java classes.
@@ -22,6 +24,8 @@ public class ExternalClassType implements DataType {
     private final Map<String, List<ExternalMethodDef>> staticMethods;
     private final Map<String, List<ExternalMethodDef>> instanceMethods;
     private final List<ExternalMethodDef> constructors;
+    private final Set<Class<?>> additionalCompatibleTypes = new HashSet<>();
+    private Set<Class<?>> cachedCompatibleTypes;
 
     public ExternalClassType(String name, Class<?> javaClass) {
         this.name = name;
@@ -30,6 +34,7 @@ public class ExternalClassType implements DataType {
         this.staticMethods = new HashMap<>();
         this.instanceMethods = new HashMap<>();
         this.constructors = new ArrayList<>();
+        this.cachedCompatibleTypes = Set.of(javaClass);
     }
 
     public String getModule() {
@@ -64,6 +69,27 @@ public class ExternalClassType implements DataType {
     @Override
     public String getFqn() {
         return javaClass.getName();
+    }
+
+    public void addCompatibleJavaType(Class<?> javaType) {
+        additionalCompatibleTypes.add(javaType);
+        cachedCompatibleTypes = null;
+    }
+
+    @Override
+    public Set<Class<?>> getCompatibleJavaTypes() {
+        if (cachedCompatibleTypes != null) {
+            return cachedCompatibleTypes;
+        }
+        if (additionalCompatibleTypes.isEmpty()) {
+            cachedCompatibleTypes = Set.of(javaClass);
+        } else {
+            Set<Class<?>> result = new HashSet<>();
+            result.add(javaClass);
+            result.addAll(additionalCompatibleTypes);
+            cachedCompatibleTypes = Collections.unmodifiableSet(result);
+        }
+        return cachedCompatibleTypes;
     }
 
     /**
