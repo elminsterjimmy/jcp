@@ -60,6 +60,14 @@ class DataFactoryTest {
         }
 
         @Test
+        void testCreateLongVariable() {
+            Data data = factory.createVariable(Identifier.fromName("big"), DataType.SystemDataType.LONG, 100L);
+
+            assertInstanceOf(LongData.class, data);
+            assertEquals(100L, data.get());
+        }
+
+        @Test
         void testCreateAnyVariable() {
             Data data = factory.createVariable(Identifier.fromName("obj"), DataType.SystemDataType.ANY, "anything");
 
@@ -110,6 +118,13 @@ class DataFactoryTest {
         @Test
         void testCreateAnyArray() {
             Data data = factory.createVariable(Identifier.fromName("objects"), DataType.SystemDataType.ANY_ARRAY, null);
+
+            assertInstanceOf(ArrayData.class, data);
+        }
+
+        @Test
+        void testCreateLongArray() {
+            Data data = factory.createVariable(Identifier.fromName("longs"), DataType.SystemDataType.LONG_ARRAY, null);
 
             assertInstanceOf(ArrayData.class, data);
         }

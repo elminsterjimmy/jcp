@@ -134,4 +134,39 @@ class ClassConverterBranchTest {
         ClassConverter.registerClass(CharHolder.class, ctx, "test");
         assertNotNull(ctx.getDataType("CharHolder"));
     }
+
+    // ── stub-upgrade: circular dependency creates a stub, later upgraded ────────
+
+    public static class EvalCircularA {
+        public static EvalCircularB getB() { return null; }
+    }
+
+    public static class EvalCircularB {
+        public static EvalCircularA getA() { return null; }
+        public static int value() { return 42; }
+    }
+
+    @Test
+    void registerClass_stubUpgradedToFull_evalMode() {
+        // EvalCircularA → EvalCircularB → EvalCircularA forms a cycle.
+        // Registering EvalCircularA creates a stub for EvalCircularB (cycle guard).
+        ClassConverter.registerClass(EvalCircularA.class, ctx, "test");
+        DataType bType = ctx.getDataTypeByFqn(EvalCircularB.class.getName());
+        assertNotNull(bType, "EvalCircularB should be registered");
+        assertInstanceOf(ExternalClassType.class, bType);
+
+        // Now explicitly register EvalCircularB — should hit the stub-upgrade path.
+        ClassConverter.registerClass(EvalCircularB.class, ctx, "test");
+        DataType upgraded = ctx.getDataTypeByFqn(EvalCircularB.class.getName());
+        assertSame(bType, upgraded, "should reuse the same ExternalClassType object");
+    }
+
+    // ── system-type collision: registering a class whose simple name matches a SystemDataType
+
+    @Test
+    void registerClass_skippedWhenSimpleNameIsSystemType() {
+        assertDoesNotThrow(() -> ClassConverter.registerClass(String.class, ctx, "test"));
+        DataType dt = ctx.getDataType("String");
+        assertEquals(SystemDataType.STRING, dt);
+    }
 }

@@ -204,6 +204,41 @@ class ExternalClassTypeTest {
             ExternalMethodDef found = classType.getConstructor(new DataType[]{});
             assertNull(found);
         }
+
+        @Test
+        void testGetConstructor_withBooleanParam() throws Exception {
+            Method valueOf = String.class.getMethod("valueOf", int.class);
+            ExternalMethodDef ctor = new ExternalMethodDef(
+                valueOf,
+                "<init>",
+                new DataType[]{SystemDataType.BOOLEAN},
+                SystemDataType.VOID,
+                "(Z)V",
+                false
+            );
+            classType.addConstructor(ctor);
+
+            ExternalMethodDef found = classType.getConstructor(new DataType[]{SystemDataType.BOOLEAN});
+            assertNotNull(found);
+        }
+
+        @Test
+        void testGetConstructor_withExternalClassTypeParam() throws Exception {
+            Method valueOf = String.class.getMethod("valueOf", int.class);
+            ExternalClassType paramType = new ExternalClassType("MyParam", java.util.Date.class);
+            ExternalMethodDef ctor = new ExternalMethodDef(
+                valueOf,
+                "<init>",
+                new DataType[]{paramType},
+                SystemDataType.VOID,
+                "(Ljava/util/Date;)V",
+                false
+            );
+            classType.addConstructor(ctor);
+
+            ExternalMethodDef found = classType.getConstructor(new DataType[]{paramType});
+            assertNotNull(found);
+        }
     }
 
     @Nested
@@ -285,6 +320,141 @@ class ExternalClassTypeTest {
     }
 
     @Nested
+    class CastableTests {
+
+        @Test
+        void testCastableTo_SameExternalClassType_ByFqn() {
+            ExternalClassType a = new ExternalClassType("Date", java.util.Date.class);
+            ExternalClassType b = new ExternalClassType("Date", java.util.Date.class);
+            assertTrue(a.isCastableTo(b));
+        }
+
+        @Test
+        void testCastableTo_SuperClass() {
+            ExternalClassType arrayList = new ExternalClassType("ArrayList", java.util.ArrayList.class);
+            ExternalClassType abstractList = new ExternalClassType("AbstractList", java.util.AbstractList.class);
+            assertTrue(arrayList.isCastableTo(abstractList));
+        }
+
+        @Test
+        void testCastableTo_NarrowingAllowed() {
+            ExternalClassType abstractList = new ExternalClassType("AbstractList", java.util.AbstractList.class);
+            ExternalClassType arrayList = new ExternalClassType("ArrayList", java.util.ArrayList.class);
+            assertTrue(abstractList.isCastableTo(arrayList));
+        }
+
+        @Test
+        void testCastableTo_UnrelatedExternal_ReturnsFalse() {
+            ExternalClassType date = new ExternalClassType("Date", java.util.Date.class);
+            ExternalClassType list = new ExternalClassType("List", java.util.ArrayList.class);
+            assertFalse(date.isCastableTo(list));
+        }
+
+        @Test
+        void testCastableTo_SystemDataType() {
+            assertTrue(classType.isCastableTo(SystemDataType.ANY));
+        }
+    }
+
+    @Nested
+    class MethodResolutionEdgeCases {
+
+        @Test
+        void testGetStaticMethod_withVoidArgType_notFound() throws Exception {
+            Method valueOf = String.class.getMethod("valueOf", int.class);
+            ExternalClassType paramType = new ExternalClassType("Param", java.util.Date.class);
+            ExternalMethodDef method = new ExternalMethodDef(
+                valueOf,
+                "process",
+                new DataType[]{paramType},
+                SystemDataType.VOID,
+                "(Ljava/util/Date;)V",
+                true
+            );
+            classType.addStaticMethod(method);
+
+            // VOID type → toJavaClass returns null → isJavaAssignableCompat returns false
+            ExternalMethodDef found = classType.getStaticMethod("process", new DataType[]{SystemDataType.VOID});
+            assertNull(found);
+        }
+
+        @Test
+        void testGetStaticMethod_withLongArgType_notFound() throws Exception {
+            Method valueOf = String.class.getMethod("valueOf", int.class);
+            ExternalClassType paramType = new ExternalClassType("Param", java.util.Date.class);
+            ExternalMethodDef method = new ExternalMethodDef(
+                valueOf,
+                "process",
+                new DataType[]{paramType},
+                SystemDataType.VOID,
+                "(Ljava/util/Date;)V",
+                true
+            );
+            classType.addStaticMethod(method);
+
+            // LONG type → toJavaClass returns null → isJavaAssignableCompat returns false
+            ExternalMethodDef found = classType.getStaticMethod("process", new DataType[]{SystemDataType.LONG});
+            assertNull(found);
+        }
+
+        @Test
+        void testGetStaticMethod_stringArgMatchesCharSequenceParam() throws Exception {
+            Method valueOf = String.class.getMethod("valueOf", int.class);
+            ExternalClassType csType = new ExternalClassType("CS", CharSequence.class);
+            ExternalMethodDef method = new ExternalMethodDef(
+                valueOf,
+                "consume",
+                new DataType[]{csType},
+                SystemDataType.VOID,
+                "(Ljava/lang/CharSequence;)V",
+                true
+            );
+            classType.addStaticMethod(method);
+
+            // STRING → toJavaClass returns String.class → CharSequence.isAssignableFrom(String) → true
+            ExternalMethodDef found = classType.getStaticMethod("consume", new DataType[]{SystemDataType.STRING});
+            assertNotNull(found);
+        }
+
+        @Test
+        void testGetStaticMethod_externalArgMatchesSuperParam() throws Exception {
+            Method valueOf = String.class.getMethod("valueOf", int.class);
+            ExternalClassType listType = new ExternalClassType("List", java.util.List.class);
+            ExternalClassType arrayListType = new ExternalClassType("ArrayList", java.util.ArrayList.class);
+            ExternalMethodDef method = new ExternalMethodDef(
+                valueOf,
+                "consume",
+                new DataType[]{listType},
+                SystemDataType.VOID,
+                "(Ljava/util/List;)V",
+                true
+            );
+            classType.addStaticMethod(method);
+
+            // ArrayList → toJavaClass returns ArrayList.class → List.isAssignableFrom(ArrayList) → true
+            ExternalMethodDef found = classType.getStaticMethod("consume", new DataType[]{arrayListType});
+            assertNotNull(found);
+        }
+
+        @Test
+        void testGetInstanceMethod_withBooleanParam() throws Exception {
+            Method valueOf = String.class.getMethod("valueOf", int.class);
+            ExternalMethodDef method = new ExternalMethodDef(
+                valueOf,
+                "process",
+                new DataType[]{SystemDataType.BOOLEAN},
+                SystemDataType.VOID,
+                "(Z)V",
+                false
+            );
+            classType.addInstanceMethod(method);
+
+            ExternalMethodDef found = classType.getInstanceMethod("process", new DataType[]{SystemDataType.BOOLEAN});
+            assertNotNull(found);
+        }
+    }
+
+    @Nested
     class EqualsHashCodeTests {
 
         @Test
@@ -307,6 +477,12 @@ class ExternalClassTypeTest {
         @Test
         void testEquals_Null() {
             assertNotEquals(null, classType);
+        }
+
+        @Test
+        void testEquals_SameNameDifferentJavaClass() {
+            ExternalClassType other = new ExternalClassType("TestClass", Integer.class);
+            assertNotEquals(classType, other);
         }
 
         @Test

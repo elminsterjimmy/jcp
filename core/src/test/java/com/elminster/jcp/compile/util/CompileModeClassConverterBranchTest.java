@@ -174,4 +174,68 @@ class CompileModeClassConverterBranchTest {
         // ArrayList should have been registered as a dependency
         assertNotNull(ctx.getDataTypeByFqn("java.util.ArrayList"));
     }
+
+    @Test
+    void registerClass_stubUpgradedToFullRegistration() {
+        // CircularA → CircularB → CircularA forms a cycle.
+        // Registering CircularA creates a stub for CircularB (cycle guard prevents full registration).
+        CompileModeClassConverter.registerClass(CircularA.class, ctx, "test");
+        ExternalClassType bType = (ExternalClassType) ctx.getDataTypeByFqn(CircularB.class.getName());
+        assertNotNull(bType, "CircularB should be registered");
+
+        // Now explicitly register CircularB — should upgrade the stub in-place.
+        CompileModeClassConverter.registerClass(CircularB.class, ctx, "test");
+        ExternalClassType upgraded = (ExternalClassType) ctx.getDataTypeByFqn(CircularB.class.getName());
+        assertSame(bType, upgraded, "should reuse the same ExternalClassType object");
+        assertFalse(upgraded.getStaticMethods().isEmpty(), "stub should now have methods");
+    }
+
+    @Test
+    void registerClass_alreadyFullyRegistered_skipsSecondTime() {
+        CompileModeClassConverter.registerClass(CircularA.class, ctx, "test");
+        ExternalClassType aType = (ExternalClassType) ctx.getDataTypeByFqn(CircularA.class.getName());
+        assertNotNull(aType);
+        assertFalse(aType.getStaticMethods().isEmpty(), "should have static methods");
+
+        // Second registration should hit the "already fully registered" early return
+        CompileModeClassConverter.registerClass(CircularA.class, ctx, "test");
+        ExternalClassType aType2 = (ExternalClassType) ctx.getDataTypeByFqn(CircularA.class.getName());
+        assertSame(aType, aType2);
+    }
+
+    @Test
+    void registerClass_anonymousClass_skippedOrAny() {
+        // Anonymous classes have an empty simpleName
+        Runnable anon = new Runnable() {
+            @Override
+            public void run() {}
+        };
+        CompileModeClassConverter.registerClass(anon.getClass(), ctx, "test");
+    }
+
+    public static class HasInstanceMethods {
+        public int getValue() { return 42; }
+    }
+
+    @Test
+    void registerClass_alreadyFullyRegisteredWithInstanceMethods_skipsSecondTime() {
+        CompileModeClassConverter.registerClass(HasInstanceMethods.class, ctx, "test");
+        ExternalClassType type = (ExternalClassType) ctx.getDataTypeByFqn(HasInstanceMethods.class.getName());
+        assertNotNull(type);
+        assertFalse(type.getInstanceMethods().isEmpty(), "should have instance methods");
+
+        // Second registration should hit !getInstanceMethods().isEmpty() → true → early return
+        CompileModeClassConverter.registerClass(HasInstanceMethods.class, ctx, "test");
+        ExternalClassType type2 = (ExternalClassType) ctx.getDataTypeByFqn(HasInstanceMethods.class.getName());
+        assertSame(type, type2);
+    }
+
+    public static class CircularA {
+        public static CircularB getB() { return null; }
+    }
+
+    public static class CircularB {
+        public static CircularA getA() { return null; }
+        public static int value() { return 42; }
+    }
 }

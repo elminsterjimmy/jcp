@@ -135,6 +135,19 @@ class TypeCompatibilityTest {
         }
 
         @Test
+        void numeric_notAdaptableToConcreteJavaType() {
+            assertFalse(SystemDataType.NUMERIC.isAdaptableTo(int.class));
+            assertFalse(SystemDataType.NUMERIC.isAdaptableTo(Number.class));
+            assertTrue(SystemDataType.NUMERIC.isAdaptableTo(Object.class));
+        }
+
+        @Test
+        void numericArray_adaptability() {
+            assertFalse(SystemDataType.NUMERIC_ARRAY.isAdaptableTo(int[].class));
+            assertTrue(SystemDataType.NUMERIC_ARRAY.isAdaptableTo(Object.class));
+        }
+
+        @Test
         void void_adaptableToVoidPrimitive() {
             assertTrue(SystemDataType.VOID.isAdaptableTo(void.class));
         }
@@ -288,6 +301,24 @@ class TypeCompatibilityTest {
                     .anyMatch(dt -> dt instanceof ExternalClassType
                             && ((ExternalClassType) dt).getJavaClass() == SampleWrapper.class);
             assertTrue(found);
+        }
+
+        @Test
+        void compileContext_getAllRegisteredTypes_withChildContext_includesParentTypes() {
+            CompileContext parent = new CompileContext();
+            parent.setClassName("TestClass");
+            CompileModeClassConverter.registerClass(java.util.Date.class, parent, "test");
+
+            CompileContext child = parent.createChildContext();
+            CompileModeClassConverter.registerClass(SampleWrapper.class, child, "test");
+
+            Collection<DataType> all = child.getAllRegisteredTypes();
+            assertTrue(all.stream().anyMatch(dt -> dt instanceof ExternalClassType
+                    && ((ExternalClassType) dt).getJavaClass() == java.util.Date.class),
+                    "should include parent's type");
+            assertTrue(all.stream().anyMatch(dt -> dt instanceof ExternalClassType
+                    && ((ExternalClassType) dt).getJavaClass() == SampleWrapper.class),
+                    "should include child's own type");
         }
     }
 
