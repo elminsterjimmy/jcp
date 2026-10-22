@@ -102,6 +102,8 @@ ClassConverter.registerClass(com.google.common.base.Strings.class, context, "gua
 
 Each class is associated with a module name (e.g. `"guava"`, `"base"`). When two modules register classes with the same simple name, users disambiguate with the `module::Type` prefix — see [Language Reference: Modules](language-reference.md#modules-and-type-disambiguation).
 
+For a comprehensive walkthrough — registration APIs, type mapping, overload resolution, JAR imports, and end-to-end examples — see the [Custom Module Functions Guide](guides/custom-module-functions.md).
+
 ## Error Handling with Source Location
 
 JCP provides enhanced error messages with GCC-style source location tracking. When errors occur, you'll see exactly where in your source code the problem is:
@@ -225,6 +227,7 @@ JcpException (base)
 ## See Also
 
 - [Language Reference](language-reference.md) — DSL syntax: types, control flow, functions, structs, modules
+- [Custom Module Functions](guides/custom-module-functions.md) — Register Java classes, type mapping, JAR imports
 - [Architecture](architecture/jcp-function-architecture.md) — Function system internals, method dispatch
 - [Debugger API](debugger.md) — Breakpoints, stepping, variable inspection
 - [Contributing](contributing.md) — How to add features and submit PRs
