@@ -22,8 +22,8 @@ public class CollectionConverter {
         Map<Object, Object> result = new HashMap<>();
         ValueBuffer entries = dict.entries();
         for (int i = 0; i < entries.length(); i++) {
-            ValueBuffer row = (ValueBuffer) entries.getRow(i)[0];
-            result.put(row.getRow(0)[0], row.getRow(0)[1]);
+            Object[] row = entries.getRow(i);
+            result.put(row[0], row[1]);
         }
         return result;
     }

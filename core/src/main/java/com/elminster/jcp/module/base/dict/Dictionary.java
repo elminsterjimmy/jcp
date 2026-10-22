@@ -17,8 +17,8 @@ public class Dictionary {
         this.map = new HashMap<>();
         ValueBuffer entries = source.entries();
         for (int i = 0; i < entries.length(); i++) {
-            ValueBuffer row = (ValueBuffer) entries.getRow(i)[0];
-            this.map.put(row.getRow(0)[0], row.getRow(0)[1]);
+            Object[] row = entries.getRow(i);
+            this.map.put(row[0], row[1]);
         }
     }
 
@@ -46,10 +46,7 @@ public class Dictionary {
         ValueBuffer vb = new ValueBuffer();
         vb.setHeader(new String[]{"key"});
         for (Object key : map.keySet()) {
-            ValueBuffer row = new ValueBuffer();
-            row.setHeader(new String[]{"key"});
-            row.appendRow(new Object[]{key});
-            vb.appendRow(new Object[]{row});
+            vb.appendRow(new Object[]{key});
         }
         return vb;
     }
@@ -58,10 +55,7 @@ public class Dictionary {
         ValueBuffer vb = new ValueBuffer();
         vb.setHeader(new String[]{"key", "value"});
         for (Object key : map.keySet()) {
-            ValueBuffer row = new ValueBuffer();
-            row.setHeader(new String[]{"key", "value"});
-            row.appendRow(new Object[]{key, map.get(key)});
-            vb.appendRow(new Object[]{row});
+            vb.appendRow(new Object[]{key, map.get(key)});
         }
         return vb;
     }
@@ -70,10 +64,7 @@ public class Dictionary {
         ValueBuffer vb = new ValueBuffer();
         vb.setHeader(new String[]{"key", "value"});
         for (Object key : map.keySet()) {
-            ValueBuffer row = new ValueBuffer();
-            row.setHeader(new String[]{"key", "value"});
-            row.appendRow(new Object[]{key, map.get(key)});
-            vb.appendRow(new Object[]{row});
+            vb.appendRow(new Object[]{key, map.get(key)});
         }
         return vb;
     }
