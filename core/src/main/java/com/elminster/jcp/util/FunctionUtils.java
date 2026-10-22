@@ -39,7 +39,7 @@ import java.util.StringJoiner;
  */
 public class FunctionUtils {
 
-    static final String PARAM_SPLITTER = "@";
+    public static final String PARAM_SPLITTER = "@";
     static final String METHOD_SPLITTER = "#";
     static final String MODULE_SPLITTER = "::";
 

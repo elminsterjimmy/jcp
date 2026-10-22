@@ -117,6 +117,12 @@ public class ExternalClassType implements DataType {
             if (javaClass.isAssignableFrom(target.getJavaClass())) {
                 return true;
             }
+            // Check registered compatible Java types (e.g. Dictionary → Map)
+            for (Class<?> compatType : getCompatibleJavaTypes()) {
+                if (target.getJavaClass().isAssignableFrom(compatType)) {
+                    return true;
+                }
+            }
             return false;
         }
         return DataType.super.isCastableTo(dataType);
@@ -275,9 +281,17 @@ public class ExternalClassType implements DataType {
         if (!(paramType instanceof ExternalClassType)) {
             return false;
         }
+        Class<?> paramJava = ((ExternalClassType) paramType).getJavaClass();
         Class<?> argJava = toJavaClass(argType);
-        return argJava != null &&
-               ((ExternalClassType) paramType).getJavaClass().isAssignableFrom(argJava);
+        if (argJava != null && paramJava.isAssignableFrom(argJava)) {
+            return true;
+        }
+        for (Class<?> compatType : argType.getCompatibleJavaTypes()) {
+            if (paramJava.isAssignableFrom(compatType)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

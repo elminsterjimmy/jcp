@@ -1,5 +1,6 @@
 package com.elminster.jcp.module.base.vb;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -44,5 +45,22 @@ public class ValueBuffer {
 
   public int length() {
     return buffer.size();
+  }
+
+  public static ValueBuffer fromList(List<?> list) {
+    ValueBuffer vb = new ValueBuffer();
+    vb.setHeader(new String[]{"value"});
+    for (Object item : list) {
+      vb.appendRow(new Object[]{item});
+    }
+    return vb;
+  }
+
+  public List<Object> toList() {
+    List<Object> result = new ArrayList<>(buffer.size());
+    for (Object[] row : buffer) {
+      result.add(row.length > 0 ? row[0] : null);
+    }
+    return result;
   }
 }

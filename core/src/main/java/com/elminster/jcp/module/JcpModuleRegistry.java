@@ -6,6 +6,8 @@ import com.elminster.jcp.eval.context.EvalContext;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.module.base.BaseModuleRegister;
+import com.elminster.jcp.module.base.dict.Dictionary;
+import com.elminster.jcp.module.base.vb.ValueBuffer;
 import com.elminster.jcp.util.ClassConverter;
 
 import org.slf4j.Logger;
@@ -48,7 +50,13 @@ public class JcpModuleRegistry implements Closeable {
     private JcpModuleRegistry(boolean loadBase) {
         if (loadBase) {
             for (Class<?> clazz : BaseModuleRegister.classToRegister()) {
-                entries.add(new RegistrationEntry(clazz, "base", null));
+                Consumer<ExternalClassType> customizer = null;
+                if (clazz == Dictionary.class) {
+                    customizer = ext -> ext.addCompatibleJavaType(java.util.Map.class);
+                } else if (clazz == ValueBuffer.class) {
+                    customizer = ext -> ext.addCompatibleJavaType(java.util.List.class);
+                }
+                entries.add(new RegistrationEntry(clazz, "base", customizer));
             }
         }
     }

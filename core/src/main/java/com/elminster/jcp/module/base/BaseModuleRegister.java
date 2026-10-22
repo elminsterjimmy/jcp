@@ -8,6 +8,7 @@ import com.elminster.jcp.module.base.io.Stdio;
 import com.elminster.jcp.module.base.logger.Logger;
 import com.elminster.jcp.module.base.math.Math;
 import com.elminster.jcp.module.base.strings.Strings;
+import com.elminster.jcp.module.base.dict.Dictionary;
 import com.elminster.jcp.module.base.vb.ValueBuffer;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ public class BaseModuleRegister {
         classes.add(Math.class);
         classes.add(Strings.class);
         classes.add(ValueBuffer.class);
+        classes.add(Dictionary.class);
 
         return classes;
     }
