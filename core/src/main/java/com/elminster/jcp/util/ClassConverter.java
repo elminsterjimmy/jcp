@@ -214,7 +214,7 @@ public class ClassConverter {
             return new AnyData((Object) null, returnDataType);
         }
         if (result instanceof java.util.Map && !(result instanceof Dictionary)) {
-            Dictionary dict = new Dictionary((java.util.Map<?, ?>) result);
+            Dictionary dict = CollectionConverter.fromMap((java.util.Map<?, ?>) result);
             DataType dictType = DataTypeUtils.getDataType("Dictionary", evalContext);
             return new AnyData(dict, dictType != null ? dictType : returnDataType);
         }

@@ -247,8 +247,9 @@ public class DictionaryEvalTest {
         ValueBuffer vals = (ValueBuffer) valsData.get();
         assertArrayEquals(new String[]{"key", "value"}, vals.getHeader());
         assertEquals(1, vals.length());
-        assertEquals("a", vals.getRow(0)[0]);
-        assertEquals("alpha", vals.getRow(0)[1]);
+        ValueBuffer row = (ValueBuffer) vals.getRow(0)[0];
+        assertEquals("a", row.getRow(0)[0]);
+        assertEquals("alpha", row.getRow(0)[1]);
     }
 
     @Test
@@ -283,7 +284,8 @@ public class DictionaryEvalTest {
         ValueBuffer entries = (ValueBuffer) entriesData.get();
         assertArrayEquals(new String[]{"key", "value"}, entries.getHeader());
         assertEquals(1, entries.length());
-        assertEquals("color", entries.getRow(0)[0]);
-        assertEquals("red", entries.getRow(0)[1]);
+        ValueBuffer entryRow = (ValueBuffer) entries.getRow(0)[0];
+        assertEquals("color", entryRow.getRow(0)[0]);
+        assertEquals("red", entryRow.getRow(0)[1]);
     }
 }

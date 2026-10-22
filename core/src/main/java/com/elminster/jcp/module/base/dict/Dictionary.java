@@ -3,7 +3,6 @@ package com.elminster.jcp.module.base.dict;
 import com.elminster.jcp.module.base.vb.ValueBuffer;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 public class Dictionary {
@@ -14,8 +13,13 @@ public class Dictionary {
         this.map = new HashMap<>();
     }
 
-    public Dictionary(Map<?, ?> source) {
-        this.map = new HashMap<>(source);
+    public Dictionary(Dictionary source) {
+        this.map = new HashMap<>();
+        ValueBuffer entries = source.entries();
+        for (int i = 0; i < entries.length(); i++) {
+            ValueBuffer row = (ValueBuffer) entries.getRow(i)[0];
+            this.map.put(row.getRow(0)[0], row.getRow(0)[1]);
+        }
     }
 
     public void put(Object key, Object value) {
@@ -42,7 +46,10 @@ public class Dictionary {
         ValueBuffer vb = new ValueBuffer();
         vb.setHeader(new String[]{"key"});
         for (Object key : map.keySet()) {
-            vb.appendRow(new Object[]{key});
+            ValueBuffer row = new ValueBuffer();
+            row.setHeader(new String[]{"key"});
+            row.appendRow(new Object[]{key});
+            vb.appendRow(new Object[]{row});
         }
         return vb;
     }
@@ -51,7 +58,10 @@ public class Dictionary {
         ValueBuffer vb = new ValueBuffer();
         vb.setHeader(new String[]{"key", "value"});
         for (Object key : map.keySet()) {
-            vb.appendRow(new Object[]{key, map.get(key)});
+            ValueBuffer row = new ValueBuffer();
+            row.setHeader(new String[]{"key", "value"});
+            row.appendRow(new Object[]{key, map.get(key)});
+            vb.appendRow(new Object[]{row});
         }
         return vb;
     }
@@ -60,7 +70,10 @@ public class Dictionary {
         ValueBuffer vb = new ValueBuffer();
         vb.setHeader(new String[]{"key", "value"});
         for (Object key : map.keySet()) {
-            vb.appendRow(new Object[]{key, map.get(key)});
+            ValueBuffer row = new ValueBuffer();
+            row.setHeader(new String[]{"key", "value"});
+            row.appendRow(new Object[]{key, map.get(key)});
+            vb.appendRow(new Object[]{row});
         }
         return vb;
     }

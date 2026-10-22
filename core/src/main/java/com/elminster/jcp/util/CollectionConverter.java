@@ -11,15 +11,19 @@ import java.util.Map;
 public class CollectionConverter {
 
     public static Dictionary fromMap(Map<?, ?> source) {
-        return new Dictionary(source);
+        Dictionary dict = new Dictionary();
+        for (Map.Entry<?, ?> entry : source.entrySet()) {
+            dict.put(entry.getKey(), entry.getValue());
+        }
+        return dict;
     }
 
     public static Map<Object, Object> toMap(Dictionary dict) {
         Map<Object, Object> result = new HashMap<>();
         ValueBuffer entries = dict.entries();
         for (int i = 0; i < entries.length(); i++) {
-            Object[] row = entries.getRow(i);
-            result.put(row[0], row[1]);
+            ValueBuffer row = (ValueBuffer) entries.getRow(i)[0];
+            result.put(row.getRow(0)[0], row.getRow(0)[1]);
         }
         return result;
     }
