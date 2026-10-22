@@ -671,6 +671,7 @@ public class CompileContext {
 
     /**
      * Returns all registered types from this context and all parent contexts.
+     * Allocates a new list per call — not intended for hot-path use.
      */
     public Collection<DataType> getAllRegisteredTypes() {
         if (parent == null) {

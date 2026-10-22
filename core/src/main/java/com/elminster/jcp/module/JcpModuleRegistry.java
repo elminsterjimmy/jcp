@@ -109,6 +109,9 @@ public class JcpModuleRegistry implements Closeable {
     private static void applyCustomizer(RegistrationEntry entry, DataType dt) {
         if (dt instanceof ExternalClassType) {
             entry.customizer.accept((ExternalClassType) dt);
+        } else {
+            logger.warn("Customizer for {} ignored: resolved DataType is {} (expected ExternalClassType)",
+                    entry.clazz.getName(), dt == null ? "null" : dt.getClass().getSimpleName());
         }
     }
 

@@ -25,6 +25,7 @@ public class ExternalClassType implements DataType {
     private final Map<String, List<ExternalMethodDef>> instanceMethods;
     private final List<ExternalMethodDef> constructors;
     private final Set<Class<?>> additionalCompatibleTypes = new HashSet<>();
+    private Set<Class<?>> cachedCompatibleTypes;
 
     public ExternalClassType(String name, Class<?> javaClass) {
         this.name = name;
@@ -33,6 +34,7 @@ public class ExternalClassType implements DataType {
         this.staticMethods = new HashMap<>();
         this.instanceMethods = new HashMap<>();
         this.constructors = new ArrayList<>();
+        this.cachedCompatibleTypes = Set.of(javaClass);
     }
 
     public String getModule() {
@@ -71,17 +73,23 @@ public class ExternalClassType implements DataType {
 
     public void addCompatibleJavaType(Class<?> javaType) {
         additionalCompatibleTypes.add(javaType);
+        cachedCompatibleTypes = null;
     }
 
     @Override
     public Set<Class<?>> getCompatibleJavaTypes() {
-        if (additionalCompatibleTypes.isEmpty()) {
-            return Set.of(javaClass);
+        if (cachedCompatibleTypes != null) {
+            return cachedCompatibleTypes;
         }
-        Set<Class<?>> result = new HashSet<>();
-        result.add(javaClass);
-        result.addAll(additionalCompatibleTypes);
-        return Collections.unmodifiableSet(result);
+        if (additionalCompatibleTypes.isEmpty()) {
+            cachedCompatibleTypes = Set.of(javaClass);
+        } else {
+            Set<Class<?>> result = new HashSet<>();
+            result.add(javaClass);
+            result.addAll(additionalCompatibleTypes);
+            cachedCompatibleTypes = Collections.unmodifiableSet(result);
+        }
+        return cachedCompatibleTypes;
     }
 
     /**

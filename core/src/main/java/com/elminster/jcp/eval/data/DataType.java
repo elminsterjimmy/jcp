@@ -4,6 +4,7 @@ import java.util.Set;
 
 public interface DataType extends IAdaptable, ICastable<DataType> {
 
+  // Declaration order matters: TypeCompatibilityUtil.findJcpTypeForJava() returns the first match.
   enum SystemDataType implements DataType {
     ANY("Any", null, Object.class) {
       @Override
@@ -12,7 +13,7 @@ public interface DataType extends IAdaptable, ICastable<DataType> {
       }
     },
     ANY_ARRAY("Any[]", ANY, Object[].class),
-    STRING("String", ANY, String.class, CharSequence.class, Comparable.class,
+    STRING("String", ANY, String.class, CharSequence.class,
             char.class, Character.class),
     STRING_ARRAY("String[]", ANY, String[].class, char[].class),
     BOOLEAN("Boolean", ANY, boolean.class, Boolean.class),
