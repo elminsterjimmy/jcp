@@ -1,6 +1,7 @@
 package com.elminster.jcp.module.base.dict;
 
 import com.elminster.jcp.module.base.vb.ValueBuffer;
+import com.elminster.jcp.util.Generated;
 
 import java.util.HashMap;
 import java.util.Objects;
@@ -69,11 +70,13 @@ public class Dictionary {
         return vb;
     }
 
+    @Generated
     @Override
     public String toString() {
         return map.toString();
     }
 
+    @Generated
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -81,6 +84,7 @@ public class Dictionary {
         return map.equals(((Dictionary) o).map);
     }
 
+    @Generated
     @Override
     public int hashCode() {
         return Objects.hash(map);
