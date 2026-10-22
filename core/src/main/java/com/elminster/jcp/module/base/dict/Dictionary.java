@@ -4,6 +4,7 @@ import com.elminster.jcp.module.base.vb.ValueBuffer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class Dictionary {
 
@@ -48,9 +49,9 @@ public class Dictionary {
 
     public ValueBuffer values() {
         ValueBuffer vb = new ValueBuffer();
-        vb.setHeader(new String[]{"value"});
-        for (Object value : map.values()) {
-            vb.appendRow(new Object[]{value});
+        vb.setHeader(new String[]{"key", "value"});
+        for (Object key : map.keySet()) {
+            vb.appendRow(new Object[]{key, map.get(key)});
         }
         return vb;
     }
@@ -58,13 +59,26 @@ public class Dictionary {
     public ValueBuffer entries() {
         ValueBuffer vb = new ValueBuffer();
         vb.setHeader(new String[]{"key", "value"});
-        for (Map.Entry<Object, Object> entry : map.entrySet()) {
-            vb.appendRow(new Object[]{entry.getKey(), entry.getValue()});
+        for (Object key : map.keySet()) {
+            vb.appendRow(new Object[]{key, map.get(key)});
         }
         return vb;
     }
 
-    public Map<Object, Object> toMap() {
-        return new HashMap<>(map);
+    @Override
+    public String toString() {
+        return map.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Dictionary)) return false;
+        return map.equals(((Dictionary) o).map);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(map);
     }
 }

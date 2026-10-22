@@ -93,7 +93,15 @@ public class MethodCallEvaluator extends AbstractAstEvaluator {
                 Arrays.stream(parameters).map(Data::getDataType).toArray(DataType[]::new),
                 Arrays.stream(f.getParameterDefs()).map(ParameterDef::getDataType).toArray(DataType[]::new)))
             .collect(Collectors.toList());
-        function = exact.size() == 1 ? exact.get(0) : candidates.get(0);
+        if (exact.size() == 1) {
+          function = exact.get(0);
+        } else {
+          DataType[] dataTypes = Arrays.stream(parameters)
+              .map(Data::getDataType)
+              .toArray(DataType[]::new);
+          UndeclaredException.throwFunctionUndeclaredException(
+              Identifier.fromName(functionName), dataTypes);
+        }
       }
     }
     if (null == function) {

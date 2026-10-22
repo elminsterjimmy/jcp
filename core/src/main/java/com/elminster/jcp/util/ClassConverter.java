@@ -199,9 +199,9 @@ public class ClassConverter {
         for (int i = 0; i < arguments.length; i++) {
             Object val = arguments[i].get();
             if (val instanceof Dictionary && java.util.Map.class.isAssignableFrom(javaParamTypes[i])) {
-                argValues[i] = ((Dictionary) val).toMap();
+                argValues[i] = CollectionConverter.toMap((Dictionary) val);
             } else if (val instanceof ValueBuffer && java.util.List.class.isAssignableFrom(javaParamTypes[i])) {
-                argValues[i] = ((ValueBuffer) val).toList();
+                argValues[i] = CollectionConverter.toList((ValueBuffer) val);
             } else {
                 argValues[i] = val;
             }
@@ -219,7 +219,7 @@ public class ClassConverter {
             return new AnyData(dict, dictType != null ? dictType : returnDataType);
         }
         if (result instanceof java.util.List) {
-            ValueBuffer vb = ValueBuffer.fromList((java.util.List<?>) result);
+            ValueBuffer vb = CollectionConverter.fromList((java.util.List<?>) result);
             DataType vbType = DataTypeUtils.getDataType("ValueBuffer", evalContext);
             return new AnyData(vb, vbType != null ? vbType : returnDataType);
         }
@@ -301,9 +301,9 @@ public class ClassConverter {
                 for (int i = 1; i < parameters.length; i++) {
                     Object val = parameters[i].get();
                     if (val instanceof Dictionary && java.util.Map.class.isAssignableFrom(javaParamTypes[i - 1])) {
-                        args[i - 1] = ((Dictionary) val).toMap();
+                        args[i - 1] = CollectionConverter.toMap((Dictionary) val);
                     } else if (val instanceof ValueBuffer && java.util.List.class.isAssignableFrom(javaParamTypes[i - 1])) {
-                        args[i - 1] = ((ValueBuffer) val).toList();
+                        args[i - 1] = CollectionConverter.toList((ValueBuffer) val);
                     } else {
                         args[i - 1] = val;
                     }
