@@ -170,6 +170,34 @@ public class ArraysSortByFuncCompileTest extends AbstractCompileTest {
         assertTrue(ex.getMessage().contains("doesNotExist"));
     }
 
+    // --- Direction tests for function-name mode ---
+
+    @Test
+    void testSortByFunc_desc_reversesOrder() {
+        SortKey key = SortKey.sortByFunc("compareInts", TestComparator.class).desc();
+        Comparator<Object> cmp = key.toComparator();
+        assertTrue(cmp.compare(1, 2) > 0, "desc should reverse: 1 vs 2 should be > 0");
+        assertTrue(cmp.compare(2, 1) < 0, "desc should reverse: 2 vs 1 should be < 0");
+        assertEquals(0, cmp.compare(5, 5));
+    }
+
+    @Test
+    void testSortByFunc_asc_preservesOrder() {
+        SortKey key = SortKey.sortByFunc("compareInts", TestComparator.class).asc();
+        Comparator<Object> cmp = key.toComparator();
+        assertTrue(cmp.compare(1, 2) < 0);
+        assertTrue(cmp.compare(2, 1) > 0);
+    }
+
+    @Test
+    void testSortByFunc_withResolvedComparator_desc() {
+        Comparator<Object> ascending = (a, b) -> Integer.compare((Integer) a, (Integer) b);
+        SortKey key = SortKey.sortByFunc("f").withResolvedComparator(ascending);
+        SortKey descKey = key.desc();
+        Comparator<Object> cmp = descKey.toComparator();
+        assertTrue(cmp.compare(1, 2) > 0, "desc on pre-resolved comparator should reverse");
+    }
+
     /**
      * Test helper class with static comparator methods for reflection testing.
      */

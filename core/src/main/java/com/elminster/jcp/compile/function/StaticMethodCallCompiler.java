@@ -11,16 +11,15 @@ import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.CallSiteNarrowing;
+import com.elminster.jcp.compile.util.SortKeyCompileHelper;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.eval.data.ExternalMethodDef;
 import com.elminster.jcp.eval.data.StructType;
-import com.elminster.jcp.module.base.arrays.SortKey;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
 import java.util.Arrays;
 
@@ -117,9 +116,6 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
         }
     }
 
-    private static final String SORT_KEY_INTERNAL =
-        "com/elminster/jcp/module/base/arrays/SortKey";
-
     /**
      * Compile static method call on ExternalClassType (external Java class).
      */
@@ -127,20 +123,8 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
                                           ExternalClassType extType, String methodName,
                                           Expression[] args, DataType[] argTypes) {
         // SortKey.sortByFunc(String) → emit two-arg sortByFunc(String, Class) with current class
-        if (extType.getJavaClass() == SortKey.class
-                && "sortByFunc".equals(methodName)
-                && args.length == 1
-                && argTypes[0] == SystemDataType.STRING) {
-            Compilable argCompiler = AstCompilerFactory.getCompiler(args[0]);
-            argCompiler.compile(mv, ctx);
-            mv.visitLdcInsn(Type.getObjectType(ctx.getClassName()));
-            mv.visitMethodInsn(
-                Opcodes.INVOKESTATIC,
-                SORT_KEY_INTERNAL,
-                "sortByFunc",
-                "(Ljava/lang/String;Ljava/lang/Class;)L" + SORT_KEY_INTERNAL + ";",
-                false
-            );
+        if (SortKeyCompileHelper.isSortByFuncExternalClass(extType, methodName, args, argTypes)) {
+            SortKeyCompileHelper.emitSortByFuncWithClass(mv, ctx, args[0]);
             return;
         }
 

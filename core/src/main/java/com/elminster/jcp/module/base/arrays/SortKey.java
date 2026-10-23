@@ -137,16 +137,20 @@ public class SortKey {
      */
     public Comparator<Object> toComparator() {
         if (resolvedComparator != null) {
-            return resolvedComparator;
+            return applyDirection(resolvedComparator);
         }
         if (functionName != null && declaringClass != null) {
-            return buildReflectionComparator();
+            return applyDirection(buildReflectionComparator());
         }
         if (functionName != null) {
             throw new IllegalStateException(
                 "Function-name SortKey not resolved — use withResolvedComparator or provide declaringClass");
         }
         return buildFieldPathComparator();
+    }
+
+    private Comparator<Object> applyDirection(Comparator<Object> cmp) {
+        return direction == Direction.DESC ? (a, b) -> cmp.compare(b, a) : cmp;
     }
 
     private Comparator<Object> buildReflectionComparator() {

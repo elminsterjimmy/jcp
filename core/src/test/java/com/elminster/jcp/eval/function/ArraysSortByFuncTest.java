@@ -146,6 +146,43 @@ public class ArraysSortByFuncTest {
     }
 
     @Test
+    void testSortByFunc_descDirectionReversesOrder() {
+        // Use ascending comparator (a.age - b.age) but apply .desc() on the SortKey
+        EvalContext ctx = new RootEvalContext();
+        DataType sortKeyType = ctx.getDataType("SortKey");
+
+        Function ascComparator = ageComparator("ascAge");
+        ctx.addFunction(ascComparator);
+
+        StructData[] persons = {
+            person("Alice", 10),
+            person("Charlie", 30),
+            person("Bob", 20)
+        };
+        ctx.getVariables().put("arr",
+            new AnyData<>(Identifier.fromName("arr"), SystemDataType.ANY_ARRAY,
+                (Object) persons));
+
+        SortKey key = SortKey.sortByFunc("ascAge").desc();
+        ctx.getVariables().put("k0", new AnyData<>(key, sortKeyType));
+
+        Block program = new BlockImpl();
+        program.addStatement(new VariableDeclarationImpl(
+            "result", SystemDataType.ANY_ARRAY,
+            new FunctionCallExpression(Identifier.fromName("Arrays.sort"),
+                VariableExpression.of(Identifier.fromName("arr")),
+                VariableExpression.of(Identifier.fromName("k0")))
+        ));
+        new EvalVisitor(ctx).visit(program);
+        Object[] sorted = (Object[]) ctx.getVariable("result").get();
+
+        // Ascending comparator + .desc() SortKey → descending order
+        assertEquals(30, ((StructData) sorted[0]).getField("age").get());
+        assertEquals(20, ((StructData) sorted[1]).getField("age").get());
+        assertEquals(10, ((StructData) sorted[2]).getField("age").get());
+    }
+
+    @Test
     void testMixedSortKeys_functionAndFieldPath() {
         EvalContext ctx = new RootEvalContext();
         DataType sortKeyType = ctx.getDataType("SortKey");

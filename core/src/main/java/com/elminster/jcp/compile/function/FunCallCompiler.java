@@ -12,6 +12,7 @@ import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.CallSiteNarrowing;
 import com.elminster.jcp.compile.util.CompileModeClassConverter;
+import com.elminster.jcp.compile.util.SortKeyCompileHelper;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
@@ -282,8 +283,8 @@ public class FunCallCompiler extends AbstractAstCompiler {
         }
 
         // SortKey.sortByFunc(String) → emit two-arg sortByFunc(String, Class) with current class
-        if (isSortByFuncOneArg(resolvedMethod)) {
-            compileSortByFuncWithClass(mv, ctx, args, className);
+        if (SortKeyCompileHelper.isSortByFuncOneArg(resolvedMethod)) {
+            SortKeyCompileHelper.emitSortByFuncWithClass(mv, ctx, args[0]);
             return;
         }
 
@@ -525,8 +526,13 @@ public class FunCallCompiler extends AbstractAstCompiler {
         if (sig == null && isModuleFunctionPattern(funcName)) {
             try {
                 return resolveModuleFunctionReturnType(funcName, argTypes, ctx);
+            } catch (CompileException e) {
+                throw e;
+            } catch (ClassNotFoundException e) {
+                // Module class not found — fall through to "undefined function" below
             } catch (Exception e) {
-                throw new CompileException(String.format("undefined function: %s", funcName));
+                throw new CompileException(
+                    String.format("undefined function: %s — %s", funcName, e.getMessage()));
             }
         }
         if (sig == null) {
@@ -562,31 +568,4 @@ public class FunCallCompiler extends AbstractAstCompiler {
         return CompileModeClassConverter.mapJavaTypeToDataType(resolvedMethod.getReturnType());
     }
 
-    private static final String SORT_KEY_INTERNAL =
-        "com/elminster/jcp/module/base/arrays/SortKey";
-
-    private boolean isSortByFuncOneArg(java.lang.reflect.Method method) {
-        return "sortByFunc".equals(method.getName())
-            && method.getParameterCount() == 1
-            && method.getParameterTypes()[0] == String.class;
-    }
-
-    private void compileSortByFuncWithClass(MethodVisitor mv, CompileContext ctx,
-                                            Expression[] args, String ownerClassName) {
-        // Compile the string argument (function name) — push onto stack
-        Compilable argCompiler = AstCompilerFactory.getCompiler(args[0]);
-        argCompiler.compile(mv, ctx);
-
-        // Push the current class constant onto the stack
-        mv.visitLdcInsn(Type.getObjectType(ctx.getClassName()));
-
-        // Emit INVOKESTATIC SortKey.sortByFunc(String, Class)SortKey
-        mv.visitMethodInsn(
-            Opcodes.INVOKESTATIC,
-            SORT_KEY_INTERNAL,
-            "sortByFunc",
-            "(Ljava/lang/String;Ljava/lang/Class;)L" + SORT_KEY_INTERNAL + ";",
-            false
-        );
-    }
 }
