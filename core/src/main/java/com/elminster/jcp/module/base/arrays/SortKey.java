@@ -3,24 +3,28 @@ package com.elminster.jcp.module.base.arrays;
 import com.elminster.jcp.eval.data.Data;
 import com.elminster.jcp.eval.data.StructData;
 
+import java.lang.reflect.Method;
 import java.util.Comparator;
 
 /**
- * A sort key for struct array sorting — specifies a field path and direction.
+ * A sort key for struct array sorting — specifies a field path and direction,
+ * or a named comparator function.
  *
  * <p>Used with {@link Arrays#sort(Object[], SortKey)},
  * {@link Arrays#sort(Object[], SortKey, SortKey)}, and
  * {@link Arrays#sort(Object[], SortKey, SortKey, SortKey)}.
  *
- * <p>Field paths use dot notation for nested structs: {@code "address.city"}.
- * An illegal field path (intermediate segment missing or not a struct) raises
- * {@link IllegalArgumentException} during comparison. Elements that are not
- * {@link StructData} or whose leaf value is missing/non-Comparable sort last.
- *
+ * <p><strong>Field-path mode</strong> (existing): dot notation for nested structs.
  * <pre>
  *   SortKey.by("age")               // ascending
  *   SortKey.by("name").desc()       // descending
  *   SortKey.by("address.city").asc()
+ * </pre>
+ *
+ * <p><strong>Function-name mode</strong> (new): delegates comparison to a named function.
+ * <pre>
+ *   SortKey.sortByFunc("myCompare")                    // eval mode
+ *   SortKey.sortByFunc("myCompare", MyClass.class)     // compile mode
  * </pre>
  *
  * @author jgu
@@ -35,10 +39,22 @@ public class SortKey {
 
     private final String fieldPath;
     private final Direction direction;
+    private final String functionName;
+    private final Class<?> declaringClass;
+    private final Comparator<Object> resolvedComparator;
 
-    private SortKey(String fieldPath, Direction direction) {
+    private SortKey(String fieldPath, Direction direction,
+                    String functionName, Class<?> declaringClass,
+                    Comparator<Object> resolvedComparator) {
         this.fieldPath = fieldPath;
         this.direction = direction;
+        this.functionName = functionName;
+        this.declaringClass = declaringClass;
+        this.resolvedComparator = resolvedComparator;
+    }
+
+    private SortKey(String fieldPath, Direction direction) {
+        this(fieldPath, direction, null, null, null);
     }
 
     /**
@@ -53,25 +69,108 @@ public class SortKey {
         return new SortKey(fieldPath, Direction.ASC);
     }
 
+    /**
+     * Creates a function-name mode sort key (eval mode — resolved later via EvalContext).
+     *
+     * @param functionName the name of the comparator function
+     * @throws IllegalArgumentException if {@code functionName} is null or empty
+     */
+    public static SortKey sortByFunc(String functionName) {
+        if (functionName == null || functionName.isEmpty()) {
+            throw new IllegalArgumentException("functionName must not be null or empty");
+        }
+        return new SortKey(null, Direction.ASC, functionName, null, null);
+    }
+
+    /**
+     * Creates a function-name mode sort key (compile mode — resolved via reflection at runtime).
+     *
+     * @param functionName   the name of the comparator function
+     * @param declaringClass the class containing the comparator method
+     * @throws IllegalArgumentException if either argument is null
+     */
+    public static SortKey sortByFunc(String functionName, Class<?> declaringClass) {
+        if (functionName == null || functionName.isEmpty()) {
+            throw new IllegalArgumentException("functionName must not be null or empty");
+        }
+        if (declaringClass == null) {
+            throw new IllegalArgumentException("declaringClass must not be null");
+        }
+        return new SortKey(null, Direction.ASC, functionName, declaringClass, null);
+    }
+
     /** Returns a new sort key with ascending direction. */
     public SortKey asc() {
-        return new SortKey(this.fieldPath, Direction.ASC);
+        return new SortKey(this.fieldPath, Direction.ASC,
+                this.functionName, this.declaringClass, this.resolvedComparator);
     }
 
     /** Returns a new sort key with descending direction. */
     public SortKey desc() {
-        return new SortKey(this.fieldPath, Direction.DESC);
+        return new SortKey(this.fieldPath, Direction.DESC,
+                this.functionName, this.declaringClass, this.resolvedComparator);
+    }
+
+    /** Returns the function name, or {@code null} if this is a field-path mode key. */
+    public String getFunctionName() {
+        return functionName;
     }
 
     /**
-     * Returns a {@link Comparator} that compares two elements by this key's field path.
-     *
-     * <p>Elements that are not {@link StructData} sort last. Elements whose leaf field is
-     * missing or not {@link Comparable} sort last. An illegal field path — one that
-     * traverses through a non-struct or references a missing intermediate segment —
-     * raises {@link IllegalArgumentException}.
+     * Returns a copy of this sort key with a pre-resolved comparator (eval mode).
+     * The original instance is not modified.
      */
-    Comparator<Object> toComparator() {
+    public SortKey withResolvedComparator(Comparator<Object> comparator) {
+        return new SortKey(this.fieldPath, this.direction,
+                this.functionName, this.declaringClass, comparator);
+    }
+
+    /**
+     * Returns a {@link Comparator} for this sort key.
+     *
+     * <p>Resolution order:
+     * <ol>
+     *   <li>Pre-resolved comparator (eval mode, set via {@link #withResolvedComparator})</li>
+     *   <li>Reflection-based resolution (compile mode, requires {@code declaringClass})</li>
+     *   <li>Field-path comparator (existing behavior)</li>
+     * </ol>
+     */
+    public Comparator<Object> toComparator() {
+        if (resolvedComparator != null) {
+            return resolvedComparator;
+        }
+        if (functionName != null && declaringClass != null) {
+            return buildReflectionComparator();
+        }
+        if (functionName != null) {
+            throw new IllegalStateException(
+                "Function-name SortKey not resolved — use withResolvedComparator or provide declaringClass");
+        }
+        return buildFieldPathComparator();
+    }
+
+    private Comparator<Object> buildReflectionComparator() {
+        Method method;
+        try {
+            method = declaringClass.getMethod(functionName, Object.class, Object.class);
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException(
+                "Comparator function '" + functionName + "' not found in " + declaringClass.getName(), e);
+        }
+        if (method.getReturnType() != int.class && method.getReturnType() != Integer.class) {
+            throw new IllegalStateException(
+                "Comparator function '" + functionName + "' must return int, got: " + method.getReturnType().getName());
+        }
+        return (a, b) -> {
+            try {
+                return (int) method.invoke(null, a, b);
+            } catch (Exception e) {
+                throw new RuntimeException("Error invoking comparator function '" + functionName + "'", e);
+            }
+        };
+    }
+
+    private Comparator<Object> buildFieldPathComparator() {
         return (a, b) -> {
             Comparable<Object> va = resolveField(a);
             Comparable<Object> vb = resolveField(b);
@@ -85,13 +184,6 @@ public class SortKey {
         };
     }
 
-    /**
-     * Resolves the field path from a struct element.
-     * Returns {@code null} if the element is not a {@link StructData} or the leaf value is
-     * missing/non-{@link Comparable}. Throws {@link IllegalArgumentException} if any
-     * intermediate segment is missing or not a {@link StructData} — that path is illegal
-     * for this element's schema.
-     */
     @SuppressWarnings("unchecked")
     private Comparable<Object> resolveField(Object element) {
         if (!(element instanceof StructData)) {
