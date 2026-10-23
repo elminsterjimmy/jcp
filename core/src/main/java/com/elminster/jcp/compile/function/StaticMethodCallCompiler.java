@@ -11,6 +11,7 @@ import com.elminster.jcp.compile.context.CompileContext;
 import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.CallSiteNarrowing;
+import com.elminster.jcp.compile.util.SortKeyCompileHelper;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
@@ -121,6 +122,12 @@ public class StaticMethodCallCompiler extends AbstractAstCompiler {
     private void compileExternalClassCall(MethodVisitor mv, CompileContext ctx,
                                           ExternalClassType extType, String methodName,
                                           Expression[] args, DataType[] argTypes) {
+        // SortKey.sortByFunc(String) → emit two-arg sortByFunc(String, Class) with current class
+        if (SortKeyCompileHelper.isSortByFuncExternalClass(extType, methodName, args, argTypes)) {
+            SortKeyCompileHelper.emitSortByFuncWithClass(mv, ctx, args[0]);
+            return;
+        }
+
         // Look up static method with overload resolution
         ExternalMethodDef method = extType.getStaticMethod(methodName, argTypes);
         if (method == null) {

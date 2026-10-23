@@ -12,6 +12,7 @@ import com.elminster.jcp.compile.exception.CompileException;
 import com.elminster.jcp.compile.factory.AstCompilerFactory;
 import com.elminster.jcp.compile.util.CallSiteNarrowing;
 import com.elminster.jcp.compile.util.CompileModeClassConverter;
+import com.elminster.jcp.compile.util.SortKeyCompileHelper;
 import com.elminster.jcp.compile.util.TypeMapper;
 import com.elminster.jcp.eval.data.DataType;
 import com.elminster.jcp.eval.data.DataType.SystemDataType;
@@ -281,6 +282,12 @@ public class FunCallCompiler extends AbstractAstCompiler {
                 " in class " + className, getSourceLocation());
         }
 
+        // SortKey.sortByFunc(String) → emit two-arg sortByFunc(String, Class) with current class
+        if (SortKeyCompileHelper.isSortByFuncOneArg(resolvedMethod)) {
+            SortKeyCompileHelper.emitSortByFuncWithClass(mv, ctx, args[0]);
+            return;
+        }
+
         // Compile arguments and emit boxing when the Java param type is Object/ANY
         Class<?>[] paramTypes = resolvedMethod.getParameterTypes();
         for (int i = 0; i < args.length; i++) {
@@ -516,9 +523,49 @@ public class FunCallCompiler extends AbstractAstCompiler {
         }
 
         FunctionSignature sig = ctx.lookupFunction(funcName, argTypes);
+        if (sig == null && isModuleFunctionPattern(funcName)) {
+            try {
+                return resolveModuleFunctionReturnType(funcName, argTypes, ctx);
+            } catch (CompileException e) {
+                throw e;
+            } catch (ClassNotFoundException e) {
+                // Module class not found — fall through to "undefined function" below
+            } catch (Exception e) {
+                throw new CompileException(
+                    String.format("undefined function: %s — %s", funcName, e.getMessage()));
+            }
+        }
         if (sig == null) {
             throw new CompileException(String.format("undefined function: %s", funcName));
         }
         return sig.getReturnType();
     }
+
+    private DataType resolveModuleFunctionReturnType(String fullName, DataType[] argTypes,
+                                                      CompileContext ctx) throws Exception {
+        String moduleName;
+        String typeAndMethod;
+        if (fullName.contains("::")) {
+            int moduleDelimiter = fullName.indexOf("::");
+            moduleName = fullName.substring(0, moduleDelimiter);
+            typeAndMethod = fullName.substring(moduleDelimiter + 2);
+        } else {
+            moduleName = null;
+            typeAndMethod = fullName;
+        }
+        String typeName;
+        String methodName;
+        if (typeAndMethod.contains(".")) {
+            int dotIndex = typeAndMethod.lastIndexOf('.');
+            typeName = typeAndMethod.substring(0, dotIndex);
+            methodName = typeAndMethod.substring(dotIndex + 1);
+        } else {
+            typeName = "global";
+            methodName = typeAndMethod;
+        }
+        Class<?> clazz = resolveModuleClass(moduleName, typeName, ctx);
+        java.lang.reflect.Method resolvedMethod = discoverMethod(clazz, methodName, argTypes, ctx);
+        return CompileModeClassConverter.mapJavaTypeToDataType(resolvedMethod.getReturnType());
+    }
+
 }
