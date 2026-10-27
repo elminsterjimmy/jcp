@@ -13,8 +13,11 @@ import com.elminster.jcp.eval.data.DataType.SystemDataType;
 import com.elminster.jcp.eval.data.DataTypeImpl;
 import com.elminster.jcp.eval.data.ExternalClassType;
 import com.elminster.jcp.eval.data.TypeCompatibilityUtil;
+import com.elminster.jcp.eval.excpetion.EvaluationException;
 import com.elminster.jcp.eval.excpetion.InitializeException;
+import com.elminster.jcp.eval.factory.AstEvaluatorFactory;
 import com.elminster.jcp.module.AbstractModuleFunction;
+import com.elminster.jcp.module.base.arrays.SortKey;
 import com.elminster.jcp.module.base.dict.Dictionary;
 import com.elminster.jcp.module.base.vb.ValueBuffer;
 import com.google.common.reflect.ClassPath;
@@ -159,7 +162,7 @@ public class ClassConverter {
 
             @Override
             protected Data doFunction(Data[] arguments, EvalContext evalContext) {
-                Object[] argValues = convertArgumentsForJava(arguments, method);
+                Object[] argValues = convertArgumentsForJava(arguments, method, evalContext);
                 Object result = null;
                 try {
                     result = ReflectUtil.invoke(null, method, argValues);
@@ -194,6 +197,11 @@ public class ClassConverter {
     }
 
     private static Object[] convertArgumentsForJava(Data[] arguments, Method method) {
+        return convertArgumentsForJava(arguments, method, null);
+    }
+
+    private static Object[] convertArgumentsForJava(Data[] arguments, Method method,
+                                                     EvalContext evalContext) {
         Class<?>[] javaParamTypes = method.getParameterTypes();
         Object[] argValues = new Object[arguments.length];
         for (int i = 0; i < arguments.length; i++) {
@@ -202,11 +210,51 @@ public class ClassConverter {
                 argValues[i] = CollectionConverter.toMap((Dictionary) val);
             } else if (val instanceof ValueBuffer && java.util.List.class.isAssignableFrom(javaParamTypes[i])) {
                 argValues[i] = CollectionConverter.toList((ValueBuffer) val);
+            } else if (evalContext != null
+                    && val instanceof SortKey
+                    && ((SortKey) val).getFunctionName() != null) {
+                argValues[i] = resolveSortKeyComparator((SortKey) val, evalContext);
             } else {
                 argValues[i] = val;
             }
         }
         return argValues;
+    }
+
+    private static SortKey resolveSortKeyComparator(SortKey sk, EvalContext evalContext) {
+        String fname = sk.getFunctionName();
+        Function func = findFunctionByName(fname, evalContext);
+        if (func == null) {
+            throw new EvaluationException("Comparator function not found: " + fname);
+        }
+        ParameterDef[] params = func.getParameterDefs();
+        if (params.length != 2) {
+            throw new EvaluationException("Comparator function '" + fname
+                + "' must accept exactly 2 parameters, got " + params.length);
+        }
+        java.util.Comparator<Object> adapter = (a, b) -> {
+            Data argA = new AnyData<>(a, SystemDataType.ANY);
+            Data argB = new AnyData<>(b, SystemDataType.ANY);
+            func.setArguments(argA, argB);
+            com.elminster.jcp.eval.Evaluable evaluator = AstEvaluatorFactory.getEvaluator(func);
+            Data result = evaluator.eval(evalContext);
+            Object resultVal = result.get();
+            if (resultVal instanceof Number) {
+                return ((Number) resultVal).intValue();
+            }
+            throw new EvaluationException("Comparator function '" + fname
+                + "' must return int, got: " + result.getDataType());
+        };
+        return sk.withResolvedComparator(adapter);
+    }
+
+    private static Function findFunctionByName(String name, EvalContext evalContext) {
+        for (Function func : evalContext.getFunctions().values()) {
+            if (name.equals(func.getId().getId())) {
+                return func;
+            }
+        }
+        return null;
     }
 
     private static Data wrapReturnValue(Object result, DataType returnDataType, EvalContext evalContext) {

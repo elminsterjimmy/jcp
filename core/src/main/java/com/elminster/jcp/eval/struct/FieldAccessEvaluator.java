@@ -28,13 +28,16 @@ public class FieldAccessEvaluator extends AbstractAstEvaluator {
     // Evaluate the object expression
     Data objectData = AstEvaluatorFactory.getEvaluator(objectExpr).eval(evalContext);
 
-    // Ensure it's a struct
-    if (!(objectData instanceof StructData)) {
+    // Unwrap: if objectData is not StructData but wraps one, unwrap
+    StructData structData;
+    if (objectData instanceof StructData) {
+      structData = (StructData) objectData;
+    } else if (objectData.get() instanceof StructData) {
+      structData = (StructData) objectData.get();
+    } else {
       throw new IllegalArgumentException(
           "Field access requires a struct instance, got: " + objectData.getDataType().getName());
     }
-
-    StructData structData = (StructData) objectData;
 
     // Get the field value
     Data fieldValue = structData.getField(fieldName);
